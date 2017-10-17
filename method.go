@@ -100,14 +100,19 @@ func main() {
 
 
 	r := Rectangle{2,5, "rectangle"}
-	t := Triangle{3, 5, "triangle"}
-	c := Circle{2, "circle"}
-	var i myInt = 4
-
-	g := []Geometric{&r, &t, &c, &i}
+	//t := Triangle{3, 5, "triangle"}
+	//c := Circle{2, "circle"}
+	//var i myInt = 4
 
 
-	printArea(g)
+	var x interface{}
+
+	x = &r
+	fmt.Printf("Value: %v\nType: %T\n", x, x.(Geometric))   //    x.(T)
+
+
+	//g := []Geometric{&r, &t, &c, &i}
+	//printArea(g)
 
 
 
