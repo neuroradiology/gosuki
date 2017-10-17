@@ -4,10 +4,9 @@ import "fmt"
 import "io/ioutil"
 import "encoding/json"
 
-
 type Person struct {
-	name string
-	age int
+	Name string
+	Age int
 }
 
 type Data struct {
@@ -23,12 +22,18 @@ func main() {
 	f, _ := ioutil.ReadFile("test2.json")
 
 	//var data Data // does not allocate memory (must use make)
-
 	data := Data{}
 
-	_ = json.Unmarshal(f, &data)
 
-	fmt.Printf("%v", data)
+	err := json.Unmarshal(f, &data)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	//fmt.Println(data["people"])
+	fmt.Println(data)
+
 }
 
 
