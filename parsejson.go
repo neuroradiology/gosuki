@@ -14,7 +14,7 @@ type Data struct {
 	Name string
 	Url string
 	Tags []string `json:"categories"`
-	People []Person
+	//People []Person
 }
 
 func main() {
