@@ -1,0 +1,38 @@
+
+parse(currentNode) {
+
+    if (type of node == 'url') {
+        printUrl(currentNode)
+
+    } else { // Node is folder
+
+        if (length(children) == 0) {
+           return
+        }
+
+        for (childNode in children) {
+            parse(childNode)
+        }
+    }
+}
+
+
+-----
+
+
+F:BookmarkBar:
+    url
+    url
+    F:MyFolder
+    F:Blog
+       url
+       url
+       F:Test
+           url
+
+
+url --> MyFolder, Blog
+url --> Test, Blog
+url
+url
+url
