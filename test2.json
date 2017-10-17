@@ -1,0 +1,19 @@
+{
+    "name": "this a website",
+    "url": "htjtp://lol.com",
+    "categories": ["tech", "news"],
+    "people": [
+        {
+            "name": "toto",
+            "age": 42
+        },
+        {
+            "name": "hello",
+            "age": 10
+        }
+    ]
+}
+
+
+
+
