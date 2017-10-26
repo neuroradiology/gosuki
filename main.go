@@ -2,12 +2,13 @@ package main
 
 import (
 	"log"
+
 	"github.com/fsnotify/fsnotify"
 )
 
 const (
-	BOOKMARK_FILE="/home/spike/.config/google-chrome-unstable/Default/Bookmarks"
-	BOOKMARK_DIR="/home/spike/.config/google-chrome-unstable/Default/"
+	BOOKMARK_FILE = "/home/spike/.config/google-chrome-unstable/Default/Bookmarks"
+	BOOKMARK_DIR  = "/home/spike/.config/google-chrome-unstable/Default/"
 )
 
 func main() {
@@ -21,8 +22,6 @@ func main() {
 	done := make(chan bool)
 
 	go watcherThread(watcher)
-
-
 
 	err = watcher.Add(BOOKMARK_DIR)
 	if err != nil {
