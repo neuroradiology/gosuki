@@ -1,72 +1,93 @@
 package main
 
 import (
-	"fmt"
-	"encoding/json"
-	"bytes"
+	"log"
+	"regexp"
+
+	"github.com/buger/jsonparser"
 )
 
-type Node struct {
-	Type string
-	Children []interface{}
-	Url string `json:",omitempty"`
-	Name string
-}
+const (
+	RE_TAGS = `\B#\w+`
+)
 
+var parserStat = struct {
+	lastNodeCount int
+	currentCount  int
+}{0, 0}
 
-type RootData struct {
-	Name string
-	Roots map[string]Node
-	Version float64
-}
+var nodeTypes = struct {
+	Folder, Url string
+}{"folder", "url"}
 
+var nodePaths = struct {
+	Type, Children, Url string
+}{"type", "children", "url"}
 
+type parseFunc func([]byte, []byte, jsonparser.ValueType, int) error
 
-func mapToNode(childNode interface{}) (*Node, error) {
-	if childNode == nil {
-		return new(Node), nil
-	}
-
-	buf := new(bytes.Buffer)
-
-	// Convert interface{} to json
-	err := json.NewEncoder(buf).Encode(childNode)
+func parseChildren(childVal []byte, dataType jsonparser.ValueType, offset int, err error) {
 	if err != nil {
-		return nil, err
+		log.Panic(err)
 	}
 
-	//fmt.Println(buf)
-
-	out := new(Node)
-
-	// Convert json to Node struct
-	err = json.NewDecoder(buf).Decode(out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
+	parse(nil, childVal, dataType, offset)
 }
 
+func _s(value interface{}) string {
+	return string(value.([]byte))
+}
 
+func findTagsInTitle(title []byte) {
+	var regex = regexp.MustCompile(RE_TAGS)
+	tags := regex.FindAll(title, -1)
+	debugPrint("%s ---> found following tags: %s", title, tags)
+}
 
-func parseJsonNodes(node *Node) {
+func parse(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
+	parserStat.lastNodeCount++
 
-	//fmt.Println("parsing node ", node.Name)
+	var nodeType, name, url, children []byte
+	var childrenType jsonparser.ValueType
 
-	if (node.Type == "url") {
-		fmt.Println(node.Url)
-	} else if (len(node.Children) != 0) { // If node is Folder
-		for _, _childNode := range node.Children {
-			// Type of childNode is interface{}
-			//childNode := Node{}
-			childNode, err := mapToNode(_childNode)
-			if err != nil {
-				panic(err)
-			}
-			parseJsonNodes(childNode)
+	// Paths to lookup in node payload
+	paths := [][]string{
+		[]string{"type"},
+		[]string{"name"},
+		[]string{"url"},
+		[]string{"children"},
+	}
+
+	jsonparser.EachKey(node, func(idx int, value []byte, vt jsonparser.ValueType, err error) {
+		switch idx {
+		case 0:
+			nodeType = value
+		case 1:
+			name = value
+		case 2:
+			url = value
+		case 3:
+			children, childrenType = value, vt
 		}
+	}, paths...)
+
+	// If node type is string ignore (needed for sync_transaction_version)
+	if dataType == jsonparser.String {
+		return nil
 	}
 
-	return
+	// if node is url(leaf), handle the url
+	if _s(nodeType) == nodeTypes.Url {
+		//debugPrint("%s", url)
+		debugPrint("%s", node)
+		findTagsInTitle(name)
+
+	}
+
+	// if node is a folder with children
+	if childrenType == jsonparser.Array && len(children) > 2 { // if len(children) > len("[]")
+		jsonparser.ArrayEach(node, parseChildren, nodePaths.Children)
+	}
+
+	return nil
 }
