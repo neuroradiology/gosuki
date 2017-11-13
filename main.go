@@ -12,6 +12,8 @@ const (
 )
 
 func main() {
+	initdb()
+	defer db.Close()
 	watcher, err := fsnotify.NewWatcher()
 
 	if err != nil {
