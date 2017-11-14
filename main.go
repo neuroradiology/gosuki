@@ -12,8 +12,12 @@ const (
 )
 
 func main() {
-	initdb()
+
+	// Initialize sqlite database available in global `db` variable
+	initDB()
+	flushToDisk()
 	defer db.Close()
+
 	watcher, err := fsnotify.NewWatcher()
 
 	if err != nil {
