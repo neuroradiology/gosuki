@@ -9,12 +9,14 @@ import (
 )
 
 const (
-	DB_LOCAL_PATH = "bookmarks.db"
-	DB_MEM_PATH   = "file::memory:?cache=shared"
+	DB_LOCAL    = "bookmarks.db"
+	DB_MEMCACHE = "file:memcache?mode=memory&cache=shared"
+	DB_CURRENT  = "file:currentjob?mode=memory&cache=shared&_busy_timeout=5000000"
 )
 
 var (
-	db *sql.DB
+	memCacheDb   *sql.DB
+	currentJobDB *sql.DB
 )
 
 const (
@@ -38,37 +40,67 @@ const (
 	)`
 )
 
-func addBookmark(bookmark *Bookmark) {
-	// TODO
-	// Single out unique urls
-	//debugPrint("%v", bookmark)
+func isEmptyDb(db *sql.DB) bool {
+	var count int
 
-	tx, err := db.Begin()
+	row := db.QueryRow("select count(*) from bookmarks")
+
+	err := row.Scan(&count)
 	logPanic(err)
 
-	stmt, err := tx.Prepare(`INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
-	logPanic(err)
-	defer stmt.Close()
+	if count > 0 {
+		return false
+	}
 
-	_, err = stmt.Exec(bookmark.url, bookmark.metadata, "", "", 0)
+	return true
+}
+
+func printDBCount(db *sql.DB) {
+	var count int
+
+	row := db.QueryRow("select count(*) from bookmarks")
+	err := row.Scan(&count)
 	logPanic(err)
 
-	err = tx.Commit()
-	logPanic(err)
+	debugPrint("%d", count)
+}
+
+func printDB(db *sql.DB) {
+	var url string
+
+	rows, err := db.Query("select url from bookmarks")
+
+	for rows.Next() {
+		err = rows.Scan(&url)
+		logPanic(err)
+		debugPrint(url)
+	}
 
 }
 
 // TODO: Use context when making call from request/api
 func initInMemoryDb() {
+	// Init both cache and current memory dbs
+	// `Cache` is a memory replica of disk db
+	// `Current` is current working job db
+	//
 	//sqlite3conn := []*sqlite3.SQLiteConn{}
 
 	var err error
 
-	db, err = sql.Open("sqlite3", DB_MEM_PATH)
-	debugPrint("in memory db opened")
+	// Create the memory cache db
+	memCacheDb, err = sql.Open("sqlite3", DB_MEMCACHE)
+	debugPrint("in memory memCacheDb opened")
 	logPanic(err)
 
-	_, err = db.Exec(CREATE_MEM_DB_SCHEMA)
+	// Create the current job db
+	currentJobDB, err = sql.Open("sqlite3", DB_CURRENT)
+	debugPrint("in memory currentJobDb opened")
+	logPanic(err)
+
+	_, err = memCacheDb.Exec(CREATE_MEM_DB_SCHEMA)
+	logPanic(err)
+	_, err = currentJobDB.Exec(CREATE_MEM_DB_SCHEMA)
 	logPanic(err)
 
 }
@@ -87,7 +119,7 @@ func initDB() {
 func testInMemoryDb() {
 
 	debugPrint("test in memory")
-	db, err := sql.Open("sqlite3", DB_MEM_PATH)
+	db, err := sql.Open("sqlite3", DB_MEMCACHE)
 	defer db.Close()
 	rows, err := db.Query("select URL from bookmarks")
 	defer rows.Close()
@@ -97,6 +129,39 @@ func testInMemoryDb() {
 		rows.Scan(&URL)
 		log.Println(URL)
 	}
+}
+
+func syncToDB(src string, dst string) {
+
+	conns := []*sqlite3.SQLiteConn{}
+
+	sql.Register("sqlite_with_backup",
+		&sqlite3.SQLiteDriver{
+			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+				conns = append(conns, conn)
+
+				return nil
+			},
+		})
+
+	srcDb, err := sql.Open("sqlite_with_backup", src)
+	logPanic(err)
+	defer srcDb.Close()
+
+	srcDb.Ping()
+
+	dstDb, err := sql.Open("sqlite_with_backup", dst)
+	defer dstDb.Close()
+	logPanic(err)
+	dstDb.Ping()
+
+	bk, err := conns[1].Backup("main", conns[0], "main")
+	logPanic(err)
+
+	_, err = bk.Step(-1)
+	logPanic(err)
+
+	bk.Finish()
 }
 
 func flushToDisk() {
@@ -120,13 +185,13 @@ func flushToDisk() {
 			},
 		})
 
-	memDb, err := sql.Open("sqlite_with_backup", DB_MEM_PATH)
+	memCacheDb, err := sql.Open("sqlite_with_backup", DB_MEMCACHE)
 	logPanic(err)
-	defer memDb.Close()
+	defer memCacheDb.Close()
 
-	memDb.Ping()
+	memCacheDb.Ping()
 
-	bkDb, err := sql.Open("sqlite_with_backup", DB_LOCAL_PATH)
+	bkDb, err := sql.Open("sqlite_with_backup", DB_LOCAL)
 	defer bkDb.Close()
 	logPanic(err)
 	bkDb.Ping()

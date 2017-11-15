@@ -15,7 +15,22 @@ func main() {
 
 	// Initialize sqlite database available in global `db` variable
 	initDB()
-	defer db.Close()
+	defer memCacheDb.Close()
+	defer currentJobDB.Close()
+	//debugPrint("%v", isEmptyDb(currentJobDB))
+	//debugPrint("%v", isEmptyDb(memCacheDb))
+
+	// Preload existing bookmarks
+	debugPrint("Preload bookmarks")
+	googleParseBookmarks(BOOKMARK_FILE)
+
+	//debugPrint("%v", isEmptyDb(currentJobDB))
+	//debugPrint("%v", isEmptyDb(memCacheDb))
+
+	//printDbCount(currentJobDB)
+	//printDbCount(memCacheDb)
+
+	//debugPrint("%v", isEmptyDb(memCacheDb))
 
 	watcher, err := fsnotify.NewWatcher()
 
@@ -33,9 +48,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// Preload existing bookmarks
-	googleParseBookmarks(BOOKMARK_FILE)
 
 	// Flush to disk for testing
 	//flushToDisk()
