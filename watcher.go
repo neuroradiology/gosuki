@@ -8,7 +8,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-func parseBookmark(bookmarkPath string) {
+func googleParseBookmarks(bookmarkPath string) {
 	f, err := ioutil.ReadFile(BOOKMARK_FILE)
 
 	if err != nil {
@@ -19,9 +19,9 @@ func parseBookmark(bookmarkPath string) {
 	// Begin parsing
 	rootsData, _, _, _ := jsonparser.Get(f, "roots")
 
-	jsonparser.ObjectEach(rootsData, parse)
+	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
 	// Finished parsing
-	debugPrint("parsed %d bookmarks", parserStat.lastNodeCount)
+	debugPrint("parsed %d bookmarks", parserStat.lastUrlCount)
 }
 
 func watcherThread(watcher *fsnotify.Watcher) {
@@ -34,7 +34,7 @@ func watcherThread(watcher *fsnotify.Watcher) {
 
 				debugPrint("event: %v| name: %v", event.Op, event.Name)
 				debugPrint("modified file:", event.Name)
-				parseBookmark(BOOKMARK_FILE)
+				googleParseBookmarks(BOOKMARK_FILE)
 
 			}
 		case err := <-watcher.Errors:
