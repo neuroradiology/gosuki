@@ -1,8 +1,10 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"regexp"
+	"time"
 
 	"github.com/buger/jsonparser"
 )
@@ -51,6 +53,42 @@ func findTagsInTitle(title []byte) {
 	var regex = regexp.MustCompile(RE_TAGS)
 	tags := regex.FindAll(title, -1)
 	debugPrint("%s ---> found following tags: %s", title, tags)
+}
+
+func googleParseBookmarks(bookmarkPath string) {
+	// Load bookmark file
+	f, err := ioutil.ReadFile(BOOKMARK_FILE)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//debugPrint("parsing bookmarks")
+	// Begin parsing
+	rootsData, _, _, _ := jsonparser.Get(f, "roots")
+
+	debugPrint("loading bookmarks to currentJobDB")
+
+	// Load bookmarks to currentJobDB
+	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
+
+	// Finished parsing
+	debugPrint("parsed %d bookmarks", parserStat.lastUrlCount)
+
+	// Compare currentDb with memCacheDb for new bookmarks
+
+	// If memCacheDb is empty just copy data to memCacheDb
+	if isEmptyDb(memCacheDb) {
+		debugPrint("first preloading, copying jobdb to cachedb")
+
+		start := time.Now()
+		printDBCount(memCacheDb)
+		syncToDB(DB_CURRENT, DB_MEMCACHE)
+		printDBCount(memCacheDb)
+		elapsed := time.Since(start)
+		debugPrint("%s", elapsed)
+	}
+
 }
 
 func gJsonParseRecursive(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
@@ -107,4 +145,24 @@ func gJsonParseRecursive(key []byte, node []byte, dataType jsonparser.ValueType,
 	}
 
 	return nil
+}
+
+func addBookmark(bookmark *Bookmark) {
+	// TODO
+	// Single out unique urls
+	//debugPrint("%v", bookmark)
+
+	tx, err := currentJobDB.Begin()
+	logPanic(err)
+
+	stmt, err := tx.Prepare(`INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
+	logPanic(err)
+	defer stmt.Close()
+
+	_, err = stmt.Exec(bookmark.url, bookmark.metadata, "", "", 0)
+	logPanic(err)
+
+	err = tx.Commit()
+	logPanic(err)
+
 }

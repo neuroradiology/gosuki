@@ -1,28 +1,10 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 
-	"github.com/buger/jsonparser"
 	"github.com/fsnotify/fsnotify"
 )
-
-func googleParseBookmarks(bookmarkPath string) {
-	f, err := ioutil.ReadFile(BOOKMARK_FILE)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	debugPrint("Parsing bookmarks")
-	// Begin parsing
-	rootsData, _, _, _ := jsonparser.Get(f, "roots")
-
-	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
-	// Finished parsing
-	debugPrint("parsed %d bookmarks", parserStat.lastUrlCount)
-}
 
 func watcherThread(watcher *fsnotify.Watcher) {
 	for {
