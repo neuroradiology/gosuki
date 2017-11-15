@@ -11,16 +11,25 @@ const (
 	RE_TAGS = `\B#\w+`
 )
 
+type Bookmark struct {
+	url      string
+	metadata string
+	tags     []string
+	desc     string
+	//flags int
+}
+
 var parserStat = struct {
 	lastNodeCount int
+	lastUrlCount  int
 	currentCount  int
-}{0, 0}
+}{}
 
-var nodeTypes = struct {
+var jsonNodeTypes = struct {
 	Folder, Url string
 }{"folder", "url"}
 
-var nodePaths = struct {
+var jsonNodePaths = struct {
 	Type, Children, Url string
 }{"type", "children", "url"}
 
@@ -31,7 +40,7 @@ func parseChildren(childVal []byte, dataType jsonparser.ValueType, offset int, e
 		log.Panic(err)
 	}
 
-	parse(nil, childVal, dataType, offset)
+	gJsonParseRecursive(nil, childVal, dataType, offset)
 }
 
 func _s(value interface{}) string {
@@ -44,16 +53,19 @@ func findTagsInTitle(title []byte) {
 	debugPrint("%s ---> found following tags: %s", title, tags)
 }
 
-func parse(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
+func gJsonParseRecursive(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
+	// Core of google chrome bookmark parsing
+	// Any loading to local db is done here
 	parserStat.lastNodeCount++
 
-	var nodeType, name, url, children []byte
+	var nodeType, children []byte
 	var childrenType jsonparser.ValueType
+	bookmark := &Bookmark{}
 
 	// Paths to lookup in node payload
 	paths := [][]string{
 		[]string{"type"},
-		[]string{"name"},
+		[]string{"name"}, // Title of page
 		[]string{"url"},
 		[]string{"children"},
 	}
@@ -62,10 +74,10 @@ func parse(key []byte, node []byte, dataType jsonparser.ValueType, offset int) e
 		switch idx {
 		case 0:
 			nodeType = value
-		case 1:
-			name = value
+		case 1: // name or title
+			bookmark.metadata = _s(value)
 		case 2:
-			url = value
+			bookmark.url = _s(value)
 		case 3:
 			children, childrenType = value, vt
 		}
@@ -77,16 +89,21 @@ func parse(key []byte, node []byte, dataType jsonparser.ValueType, offset int) e
 	}
 
 	// if node is url(leaf), handle the url
-	if _s(nodeType) == nodeTypes.Url {
+	if _s(nodeType) == jsonNodeTypes.Url {
+		// Add bookmark to db here
 		//debugPrint("%s", url)
-		debugPrint("%s", node)
-		findTagsInTitle(name)
+		//debugPrint("%s", node)
+
+		// Find tags in title
+		//findTagsInTitle(name)
+		parserStat.lastUrlCount++
+		addBookmark(bookmark)
 
 	}
 
 	// if node is a folder with children
 	if childrenType == jsonparser.Array && len(children) > 2 { // if len(children) > len("[]")
-		jsonparser.ArrayEach(node, parseChildren, nodePaths.Children)
+		jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
 	}
 
 	return nil

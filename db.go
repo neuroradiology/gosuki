@@ -18,7 +18,8 @@ var (
 )
 
 const (
-	CREATE_DB_SCHEMA = `CREATE TABLE if not exists bookmarks (
+	// metadata: name or title of resource
+	CREATE_LOCAL_DB_SCHEMA = `CREATE TABLE if not exists bookmarks (
 		id integer PRIMARY KEY,
 		URL text NOT NULL UNIQUE,
 		metadata text default '',
@@ -26,7 +27,36 @@ const (
 		desc text default '',
 		flags integer default 0
 	)`
+
+	CREATE_MEM_DB_SCHEMA = `CREATE TABLE if not exists bookmarks (
+		id integer PRIMARY KEY,
+		URL text NOT NULL,
+		metadata text default '',
+		tags text default '',
+		desc text default '',
+		flags integer default 0
+	)`
 )
+
+func addBookmark(bookmark *Bookmark) {
+	// TODO
+	// Single out unique urls
+	//debugPrint("%v", bookmark)
+
+	tx, err := db.Begin()
+	logPanic(err)
+
+	stmt, err := tx.Prepare(`INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
+	logPanic(err)
+	defer stmt.Close()
+
+	_, err = stmt.Exec(bookmark.url, bookmark.metadata, "", "", 0)
+	logPanic(err)
+
+	err = tx.Commit()
+	logPanic(err)
+
+}
 
 // TODO: Use context when making call from request/api
 func initInMemoryDb() {
@@ -38,7 +68,7 @@ func initInMemoryDb() {
 	debugPrint("in memory db opened")
 	logPanic(err)
 
-	_, err = db.Exec(CREATE_DB_SCHEMA)
+	_, err = db.Exec(CREATE_MEM_DB_SCHEMA)
 	logPanic(err)
 
 }
@@ -73,6 +103,10 @@ func flushToDisk() {
 	/// Flush in memory sqlite db to disk
 	/// should happen as often as possible to
 	/// avoid losing data
+
+	// TODO
+	// Memory db and disk db should not be the same
+	// Memory db is used to load all urls even duplicates
 	debugPrint("Flushing to disk")
 
 	conns := []*sqlite3.SQLiteConn{}

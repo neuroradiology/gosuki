@@ -7,15 +7,14 @@ import (
 )
 
 const (
-	BOOKMARK_FILE = "/home/spike/.config/google-chrome-unstable/Default/Bookmarks"
-	BOOKMARK_DIR  = "/home/spike/.config/google-chrome-unstable/Default/"
+	BOOKMARK_FILE = "/home/spike/.config/google-chrome/Default/Bookmarks"
+	BOOKMARK_DIR  = "/home/spike/.config/google-chrome/Default/"
 )
 
 func main() {
 
 	// Initialize sqlite database available in global `db` variable
 	initDB()
-	flushToDisk()
 	defer db.Close()
 
 	watcher, err := fsnotify.NewWatcher()
@@ -29,10 +28,17 @@ func main() {
 
 	go watcherThread(watcher)
 
+	// Watch chrome bookmark dir
 	err = watcher.Add(BOOKMARK_DIR)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Preload existing bookmarks
+	googleParseBookmarks(BOOKMARK_FILE)
+
+	// Flush to disk for testing
+	//flushToDisk()
 
 	<-done
 }
