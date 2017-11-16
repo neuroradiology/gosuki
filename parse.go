@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"log"
+	"path"
 	"regexp"
 	"time"
 
@@ -37,14 +38,6 @@ var jsonNodePaths = struct {
 
 type parseFunc func([]byte, []byte, jsonparser.ValueType, int) error
 
-func parseChildren(childVal []byte, dataType jsonparser.ValueType, offset int, err error) {
-	if err != nil {
-		log.Panic(err)
-	}
-
-	gJsonParseRecursive(nil, childVal, dataType, offset)
-}
-
 func _s(value interface{}) string {
 	return string(value.([]byte))
 }
@@ -55,9 +48,84 @@ func findTagsInTitle(title []byte) {
 	debugPrint("%s ---> found following tags: %s", title, tags)
 }
 
-func googleParseBookmarks(bookmarkPath string) {
+func googleParseBookmarks(bw *bookmarkWatcher) {
+
+	// Create buffer db
+	bufferDB := &DB{"buffer", DB_BUFFER_PATH, nil}
+	defer bufferDB.Close()
+	err := bufferDB.Init()
+	logPanic(err)
+
 	// Load bookmark file
-	f, err := ioutil.ReadFile(BOOKMARK_FILE)
+	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
+	f, err := ioutil.ReadFile(bookmarkPath)
+
+	var parseChildren func([]byte, jsonparser.ValueType, int, error)
+	var gJsonParseRecursive func([]byte, []byte, jsonparser.ValueType, int) error
+
+	parseChildren = func(childVal []byte, dataType jsonparser.ValueType, offset int, err error) {
+		if err != nil {
+			log.Panic(err)
+		}
+
+		gJsonParseRecursive(nil, childVal, dataType, offset)
+	}
+
+	gJsonParseRecursive = func(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
+		// Core of google chrome bookmark parsing
+		// Any loading to local db is done here
+		parserStat.lastNodeCount++
+
+		var nodeType, children []byte
+		var childrenType jsonparser.ValueType
+		bookmark := &Bookmark{}
+
+		// Paths to lookup in node payload
+		paths := [][]string{
+			[]string{"type"},
+			[]string{"name"}, // Title of page
+			[]string{"url"},
+			[]string{"children"},
+		}
+
+		jsonparser.EachKey(node, func(idx int, value []byte, vt jsonparser.ValueType, err error) {
+			switch idx {
+			case 0:
+				nodeType = value
+			case 1: // name or title
+				bookmark.metadata = _s(value)
+			case 2:
+				bookmark.url = _s(value)
+			case 3:
+				children, childrenType = value, vt
+			}
+		}, paths...)
+
+		// If node type is string ignore (needed for sync_transaction_version)
+		if dataType == jsonparser.String {
+			return nil
+		}
+
+		// if node is url(leaf), handle the url
+		if _s(nodeType) == jsonNodeTypes.Url {
+			// Add bookmark to db here
+			//debugPrint("%s", url)
+			//debugPrint("%s", node)
+
+			// Find tags in title
+			//findTagsInTitle(name)
+			parserStat.lastUrlCount++
+			addBookmark(bookmark, bufferDB)
+
+		}
+
+		// if node is a folder with children
+		if childrenType == jsonparser.Array && len(children) > 2 { // if len(children) > len("[]")
+			jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
+		}
+
+		return nil
+	}
 
 	if err != nil {
 		log.Fatal(err)
@@ -67,8 +135,7 @@ func googleParseBookmarks(bookmarkPath string) {
 	// Begin parsing
 	rootsData, _, _, _ := jsonparser.Get(f, "roots")
 
-	debugPrint("loading bookmarks to currentJobDB")
-
+	debugPrint("loading bookmarks to bufferdb")
 	// Load bookmarks to currentJobDB
 	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
 
@@ -77,82 +144,27 @@ func googleParseBookmarks(bookmarkPath string) {
 
 	// Compare currentDb with memCacheDb for new bookmarks
 
-	// If memCacheDb is empty just copy data to memCacheDb
-	if isEmptyDb(memCacheDb) {
-		debugPrint("first preloading, copying jobdb to cachedb")
+	// If CACHE_DB is empty just copy bufferDB to CACHE_DB
+	printDBCount(bufferDB.handle)
+	if isEmptyDb(CACHE_DB.handle) {
+		debugPrint("first preloading, copying bufferdb to cachedb")
 
 		start := time.Now()
-		printDBCount(memCacheDb)
-		syncToDB(DB_CURRENT, DB_MEMCACHE)
-		printDBCount(memCacheDb)
+		bufferDB.SyncTo(CACHE_DB)
+		debugPrint("<%s> is now (%d)", CACHE_DB.name, CACHE_DB.Count())
 		elapsed := time.Since(start)
-		debugPrint("%s", elapsed)
+		debugPrint("copy in %s", elapsed)
 	}
 
 }
 
-func gJsonParseRecursive(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
-	// Core of google chrome bookmark parsing
-	// Any loading to local db is done here
-	parserStat.lastNodeCount++
-
-	var nodeType, children []byte
-	var childrenType jsonparser.ValueType
-	bookmark := &Bookmark{}
-
-	// Paths to lookup in node payload
-	paths := [][]string{
-		[]string{"type"},
-		[]string{"name"}, // Title of page
-		[]string{"url"},
-		[]string{"children"},
-	}
-
-	jsonparser.EachKey(node, func(idx int, value []byte, vt jsonparser.ValueType, err error) {
-		switch idx {
-		case 0:
-			nodeType = value
-		case 1: // name or title
-			bookmark.metadata = _s(value)
-		case 2:
-			bookmark.url = _s(value)
-		case 3:
-			children, childrenType = value, vt
-		}
-	}, paths...)
-
-	// If node type is string ignore (needed for sync_transaction_version)
-	if dataType == jsonparser.String {
-		return nil
-	}
-
-	// if node is url(leaf), handle the url
-	if _s(nodeType) == jsonNodeTypes.Url {
-		// Add bookmark to db here
-		//debugPrint("%s", url)
-		//debugPrint("%s", node)
-
-		// Find tags in title
-		//findTagsInTitle(name)
-		parserStat.lastUrlCount++
-		addBookmark(bookmark)
-
-	}
-
-	// if node is a folder with children
-	if childrenType == jsonparser.Array && len(children) > 2 { // if len(children) > len("[]")
-		jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
-	}
-
-	return nil
-}
-
-func addBookmark(bookmark *Bookmark) {
+func addBookmark(bookmark *Bookmark, db *DB) {
 	// TODO
 	// Single out unique urls
 	//debugPrint("%v", bookmark)
+	_db := db.handle
 
-	tx, err := currentJobDB.Begin()
+	tx, err := _db.Begin()
 	logPanic(err)
 
 	stmt, err := tx.Prepare(`INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
