@@ -59,6 +59,7 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 	// Load bookmark file
 	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
 	f, err := ioutil.ReadFile(bookmarkPath)
+	logPanic(err)
 
 	var parseChildren func([]byte, jsonparser.ValueType, int, error)
 	var gJsonParseRecursive func([]byte, []byte, jsonparser.ValueType, int) error
@@ -127,10 +128,6 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 		return nil
 	}
 
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	//debugPrint("parsing bookmarks")
 	// Begin parsing
 	rootsData, _, _, _ := jsonparser.Get(f, "roots")
@@ -145,8 +142,9 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 	// Compare currentDb with memCacheDb for new bookmarks
 
 	// If CACHE_DB is empty just copy bufferDB to CACHE_DB
-	printDBCount(bufferDB.handle)
-	if isEmptyDb(CACHE_DB.handle) {
+	debugPrint("%d", bufferDB.Count())
+	if empty, err := CACHE_DB.isEmpty(); empty {
+		logPanic(err)
 		debugPrint("first preloading, copying bufferdb to cachedb")
 
 		start := time.Now()

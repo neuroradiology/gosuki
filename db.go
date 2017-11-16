@@ -12,6 +12,7 @@ const (
 	DB_LOCAL_PATH    = "bookmarks.db"
 	DB_MEMCACHE_PATH = "file:memcache?mode=memory&cache=shared"
 	DB_BUFFER_PATH   = "file:buffer?mode=memory&cache=shared"
+	DB_BACKUP_HOOK   = "sqlite_with_backup"
 )
 
 var (
@@ -39,6 +40,8 @@ const (
 	)`
 )
 
+var _sql3conns []*sqlite3.SQLiteConn // Only used for backup hook
+
 type DB struct {
 	name   string
 	path   string
@@ -62,10 +65,32 @@ func (db *DB) Init() error {
 		return err
 	}
 
+	// Check if backup hook has been registered
+	backupHookRegistered := false
+	for _, val := range sql.Drivers() {
+		debugPrint("Checking driver %s", val)
+		if val == DB_BACKUP_HOOK {
+			backupHookRegistered = true
+			break
+		}
+	}
+
+	if !backupHookRegistered {
+		debugPrint("registering driver %s", DB_BACKUP_HOOK)
+		sql.Register(DB_BACKUP_HOOK,
+			&sqlite3.SQLiteDriver{
+				ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+					_sql3conns = append(_sql3conns, conn)
+					return nil
+				},
+			})
+	}
+
 	return nil
 }
 
 func (db *DB) Close() {
+	debugPrint("Closing <%s>", db.name)
 	db.handle.Close()
 }
 
@@ -79,6 +104,40 @@ func (db *DB) Count() int {
 	return count
 }
 
+func (db *DB) Print() error {
+
+	var url string
+
+	rows, err := db.handle.Query("select url from bookmarks")
+
+	for rows.Next() {
+		err = rows.Scan(&url)
+		if err != nil {
+			return err
+		}
+		debugPrint(url)
+	}
+
+	return nil
+}
+
+func (db *DB) isEmpty() (bool, error) {
+	var count int
+
+	row := db.handle.QueryRow("select count(*) from bookmarks")
+
+	err := row.Scan(&count)
+	if err != nil {
+		return false, err
+	}
+
+	if count > 0 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (src *DB) SyncTo(dst *DB) error {
 
 	debugPrint("Syncing <%s>(%d) to <%s>(%d)", src.name,
@@ -86,18 +145,7 @@ func (src *DB) SyncTo(dst *DB) error {
 		dst.name,
 		dst.Count())
 
-	conns := []*sqlite3.SQLiteConn{}
-
-	sql.Register("sqlite_with_backup",
-		&sqlite3.SQLiteDriver{
-			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-				conns = append(conns, conn)
-
-				return nil
-			},
-		})
-
-	srcDb, err := sql.Open("sqlite_with_backup", src.path)
+	srcDb, err := sql.Open(DB_BACKUP_HOOK, src.path)
 	defer srcDb.Close()
 	if err != nil {
 		return err
@@ -105,14 +153,14 @@ func (src *DB) SyncTo(dst *DB) error {
 
 	srcDb.Ping()
 
-	dstDb, err := sql.Open("sqlite_with_backup", dst.path)
+	dstDb, err := sql.Open(DB_BACKUP_HOOK, dst.path)
 	defer dstDb.Close()
 	if err != nil {
 		return err
 	}
 	dstDb.Ping()
 
-	bk, err := conns[1].Backup("main", conns[0], "main")
+	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
 	if err != nil {
 		return err
 	}
@@ -173,6 +221,8 @@ func (db *DB) FlushToDisk() error {
 // TODO: Use context when making call from request/api
 func initDB() error {
 	debugPrint("[NotImplemented] initialize local db if not exists or load it")
+
+	debugPrint("Registered Drivers %v", sql.Drivers())
 	// Check if db exists locally
 
 	// If does not exit create new one in memory
@@ -250,60 +300,4 @@ func isEmptyDb(db *sql.DB) bool {
 	}
 
 	return true
-}
-
-func printDBCount(db *sql.DB) {
-	var count int
-
-	row := db.QueryRow("select count(*) from bookmarks")
-	err := row.Scan(&count)
-	logPanic(err)
-
-	debugPrint("%d", count)
-}
-
-func printDB(db *sql.DB) {
-	var url string
-
-	rows, err := db.Query("select url from bookmarks")
-
-	for rows.Next() {
-		err = rows.Scan(&url)
-		logPanic(err)
-		debugPrint(url)
-	}
-
-}
-
-func syncToDB(src string, dst string) {
-
-	conns := []*sqlite3.SQLiteConn{}
-
-	sql.Register("sqlite_with_backup",
-		&sqlite3.SQLiteDriver{
-			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-				conns = append(conns, conn)
-
-				return nil
-			},
-		})
-
-	srcDb, err := sql.Open("sqlite_with_backup", src)
-	logPanic(err)
-	defer srcDb.Close()
-
-	srcDb.Ping()
-
-	dstDb, err := sql.Open("sqlite_with_backup", dst)
-	defer dstDb.Close()
-	logPanic(err)
-	dstDb.Ping()
-
-	bk, err := conns[1].Backup("main", conns[0], "main")
-	logPanic(err)
-
-	_, err = bk.Step(-1)
-	logPanic(err)
-
-	bk.Finish()
 }
