@@ -50,6 +50,10 @@ type DB struct {
 
 func (db *DB) Init() error {
 
+	// TODO: Use context when making call from request/api
+	// `CACHE_DB` is a memory replica of disk db
+	// `bufferDB` is current working job db
+
 	var err error
 
 	// Create the memory cache db
@@ -242,36 +246,6 @@ func initDB() error {
 	return nil
 }
 
-// TODO: Use context when making call from request/api
-//func initMemCacheDb() {
-// Init both cache and current memory dbs
-// `Cache` is a memory replica of disk db
-// `Current` is current working job db
-//
-//sqlite3conn := []*sqlite3.SQLiteConn{}
-
-//var err error
-//memCacheDb := &DB{"memcache",
-//DB_MEMCACHE}
-
-//// Create the memory cache db
-//memCacheDb.handle, err = sql.Open("sqlite3", memCacheDb.path)
-//debugPrint("in memory memCacheDb opened at %s", memCacheDb.path)
-//logPanic(err)
-
-//_, err = memCacheDb.Exec(CREATE_MEM_DB_SCHEMA)
-//logPanic(err)
-
-// Create the current job db
-//currentJobDB, err = sql.Open("sqlite3", DB_CURRENT)
-//debugPrint("in memory currentJobDb opened")
-//logPanic(err)
-
-//_, err = currentJobDB.Exec(CREATE_MEM_DB_SCHEMA)
-//logPanic(err)
-
-//}
-
 func testInMemoryDb(db *DB) {
 
 	debugPrint("test in memory")
@@ -285,19 +259,4 @@ func testInMemoryDb(db *DB) {
 		rows.Scan(&URL)
 		log.Println(URL)
 	}
-}
-
-func isEmptyDb(db *sql.DB) bool {
-	var count int
-
-	row := db.QueryRow("select count(*) from bookmarks")
-
-	err := row.Scan(&count)
-	logPanic(err)
-
-	if count > 0 {
-		return false
-	}
-
-	return true
 }

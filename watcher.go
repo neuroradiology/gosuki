@@ -9,10 +9,10 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-type MarkTypes int
+type bMarkTypes int
 
 const (
-	Chrome MarkTypes = iota
+	Chrome bMarkTypes = iota
 	Firefox
 )
 
@@ -32,7 +32,7 @@ func (bw *bookmarkWatcher) Close() error {
 	return nil
 }
 
-func (bw *bookmarkWatcher) Init(basedir string, bkfile string, bkType MarkTypes) *bookmarkWatcher {
+func (bw *bookmarkWatcher) Init(basedir string, bkfile string, bkType bMarkTypes) *bookmarkWatcher {
 	var err error
 
 	bw.baseDir = basedir
