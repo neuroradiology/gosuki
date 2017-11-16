@@ -72,8 +72,8 @@ func bWatcherThread(bw *bookmarkWatcher, parseFunc func(bw *bookmarkWatcher)) {
 			if event.Op&fsnotify.Create == fsnotify.Create &&
 				event.Name == bookmarkPath {
 
-				debugPrint("event: %v| name: %v", event.Op, event.Name)
-				debugPrint("modified file:", event.Name)
+				debugPrint("event: %v | eventName: %v", event.Op, event.Name)
+				debugPrint("modified file: %s", event.Name)
 				start := time.Now()
 				parseFunc(bw)
 				elapsed := time.Since(start)
