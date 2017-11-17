@@ -124,7 +124,7 @@ func (db *DB) Init() {
 		BACKUPHOOK_REGISTERED = true
 	}
 
-	//debugPrint("<%s> initialized", db.path)
+	debugPrint("<%s> initialized", db.name)
 }
 
 func (db *DB) Close() {

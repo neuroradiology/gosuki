@@ -15,6 +15,7 @@ func main() {
 
 	chromeWatcher := &bookmarkWatcher{}
 	chromeWatcher.Init(BOOKMARK_DIR, BOOKMARK_FILE, Chrome)
+	chromeWatcher.Preload()
 	chromeWatcher.Start()
 
 	// Flush to disk for testing
