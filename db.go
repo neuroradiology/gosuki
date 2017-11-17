@@ -83,7 +83,7 @@ func (db *DB) Init() {
 
 	// Create the memory cache db
 	db.handle, err = sql.Open("sqlite3", db.path)
-	debugPrint("db <%s> opend at at <%s>", db.name, db.path)
+	//debugPrint("db <%s> opend at at <%s>", db.name, db.path)
 	logPanic(err)
 
 	// Populate db schema
@@ -110,7 +110,7 @@ func (db *DB) Init() {
 	//}
 
 	if !BACKUPHOOK_REGISTERED {
-		debugPrint("backup_hook: registering driver %s", DB_BACKUP_HOOK)
+		//debugPrint("backup_hook: registering driver %s", DB_BACKUP_HOOK)
 		// Register the hook
 		sql.Register(DB_BACKUP_HOOK,
 			&sqlite3.SQLiteDriver{
@@ -124,11 +124,11 @@ func (db *DB) Init() {
 		BACKUPHOOK_REGISTERED = true
 	}
 
-	debugPrint("<%s> initialized", db.path)
+	//debugPrint("<%s> initialized", db.path)
 }
 
 func (db *DB) Close() {
-	debugPrint("Closing <%s>", db.name)
+	//debugPrint("Closing <%s>", db.name)
 	db.handle.Close()
 }
 
@@ -209,7 +209,7 @@ func (src *DB) SyncTo(dst *DB) {
 	bk.Finish()
 }
 
-func (src *DB) FlushToDisk() error {
+func (src *DB) SyncToDisk(dbpath string) error {
 
 	if !BACKUPHOOK_REGISTERED {
 		errMsg := fmt.Sprintf("%s, %s", src.path, "db backup hook is not initialized")
@@ -218,21 +218,55 @@ func (src *DB) FlushToDisk() error {
 
 	//debugPrint("[flush] openeing <%s>", src.path)
 	srcDb, err := sql.Open(DB_BACKUP_HOOK, src.path)
-	defer func() {
-		srcDb.Close()
-		_sql3conns = _sql3conns[:len(_sql3conns)-1]
-	}()
+	defer flushSqliteCon(srcDb)
 	if err != nil {
 		return err
 	}
 	srcDb.Ping()
 
 	//debugPrint("[flush] opening <%s>", DB_FILENAME)
-	bkDb, err := sql.Open(DB_BACKUP_HOOK, DB_FILENAME)
-	defer func() {
-		bkDb.Close()
-		_sql3conns = _sql3conns[:len(_sql3conns)-1]
-	}()
+
+	dbUri := fmt.Sprintf("file:%s", dbpath)
+	bkDb, err := sql.Open(DB_BACKUP_HOOK, dbUri)
+	defer flushSqliteCon(bkDb)
+	if err != nil {
+		return err
+	}
+	bkDb.Ping()
+
+	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
+	if err != nil {
+		return err
+	}
+
+	_, err = bk.Step(-1)
+	if err != nil {
+		return err
+	}
+
+	bk.Finish()
+
+	return nil
+}
+
+func (dst *DB) SyncFromDisk(dbpath string) error {
+
+	if !BACKUPHOOK_REGISTERED {
+		errMsg := fmt.Sprintf("%s, %s", dst.path, "db backup hook is not initialized")
+		return errors.New(errMsg)
+	}
+
+	dbUri := fmt.Sprintf("file:%s", dbpath)
+	srcDb, err := sql.Open(DB_BACKUP_HOOK, dbUri)
+	defer flushSqliteCon(srcDb)
+	if err != nil {
+		return err
+	}
+	srcDb.Ping()
+
+	//debugPrint("[flush] opening <%s>", DB_FILENAME)
+	bkDb, err := sql.Open(DB_BACKUP_HOOK, dst.path)
+	defer flushSqliteCon(bkDb)
 	if err != nil {
 		return err
 	}
@@ -256,33 +290,27 @@ func (src *DB) FlushToDisk() error {
 // TODO: Use context when making call from request/api
 // TODO: Initialize local db
 func initDB() {
-	debugPrint("[NotImplemented] initialize local db if not exists or load it")
-	//debugPrint("Registered Drivers %v", sql.Drivers())
-
-	// If does not exit create new one in memory
-	// Then flush to disk
-
-	// If exists locally, load to memory
 
 	// Initialize memory db with schema
 	CACHE_DB = DB{}.New("memcache", DB_MEMCACHE_PATH)
 	CACHE_DB.Init()
-	debugPrint("Registered Drivers %v", sql.Drivers())
 
 	// Check and initialize local db as last step
-	// after loading the different browser bookmarks to cache
+	// browser bookmarks should already be in cache
 
 	dbdir := getDefaultDBPath()
+	dbpath := filepath.Join(dbdir, DB_FILENAME)
+
+	// Verifiy that local db directory path is writeable
 	err := checkWriteable(dbdir)
 	logPanic(err)
-
-	dbpath := filepath.Join(dbdir, DB_FILENAME)
 
 	// If local db exists load it to CACHE_DB
 	var exists bool
 	if exists, err = checkFileExists(dbpath); exists {
 		logPanic(err)
-		debugPrint("[NOT IMPLEMENTED] preload existing local db")
+		CACHE_DB.SyncFromDisk(dbpath)
+		_ = CACHE_DB.Print()
 	} else {
 		logPanic(err)
 		// Else initialize it
@@ -295,7 +323,7 @@ func initLocalDB(db *DB, dbpath string) {
 
 	debugPrint("Initializing local db at '%s'", dbpath)
 	debugPrint("%s flushing to disk", db.name)
-	err := db.FlushToDisk()
+	err := db.SyncToDisk(dbpath)
 	logPanic(err)
 
 	// DEBUG
@@ -318,4 +346,9 @@ func testInMemoryDb(db *DB) {
 		rows.Scan(&URL)
 		log.Println(URL)
 	}
+}
+
+func flushSqliteCon(con *sql.DB) {
+	con.Close()
+	_sql3conns = _sql3conns[:len(_sql3conns)-1]
 }
