@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"path"
-	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -49,6 +48,22 @@ func (bw *bookmarkWatcher) Init(basedir string, bkfile string, bkType bMarkTypes
 	return bw
 }
 
+func (bw *bookmarkWatcher) Preload() *bookmarkWatcher {
+
+	// Check if cache is initialized
+	if CACHE_DB == nil || CACHE_DB.handle == nil {
+		log.Fatalf("cache is not yet initialized !")
+	}
+
+	if bw.watcher == nil {
+		log.Fatal("please run bookmarkWatcher.Init() first !")
+	}
+
+	bw.parseFunc(bw)
+
+	return bw
+}
+
 func (bw *bookmarkWatcher) Start() error {
 
 	if err := bw.watcher.Add(bw.baseDir); err != nil {
@@ -73,11 +88,11 @@ func bWatcherThread(bw *bookmarkWatcher, parseFunc func(bw *bookmarkWatcher)) {
 				event.Name == bookmarkPath {
 
 				debugPrint("event: %v | eventName: %v", event.Op, event.Name)
-				debugPrint("modified file: %s", event.Name)
-				start := time.Now()
+				//debugPrint("modified file: %s", event.Name)
+				//start := time.Now()
 				parseFunc(bw)
-				elapsed := time.Since(start)
-				debugPrint("parsed in %s", elapsed)
+				//elapsed := time.Since(start)
+				//debugPrint("parsed in %s", elapsed)
 			}
 		case err := <-bw.watcher.Errors:
 			log.Println("error:", err)
