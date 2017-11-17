@@ -21,6 +21,7 @@ type bookmarkWatcher struct {
 	bkFile    string
 	parseFunc func(*bookmarkWatcher)
 	bufferDB  *sql.DB
+	stats     *parserStat
 }
 
 func (bw *bookmarkWatcher) Close() error {
@@ -36,6 +37,8 @@ func (bw *bookmarkWatcher) Init(basedir string, bkfile string, bkType bMarkTypes
 
 	bw.baseDir = basedir
 	bw.bkFile = bkfile
+
+	bw.stats = &parserStat{}
 
 	bw.watcher, err = fsnotify.NewWatcher()
 	logPanic(err)

@@ -21,11 +21,12 @@ type Bookmark struct {
 	//flags int
 }
 
-var parserStat = struct {
-	lastNodeCount int
-	lastUrlCount  int
-	currentCount  int
-}{}
+type parserStat struct {
+	lastNodeCount    int
+	lastUrlCount     int
+	currentNodeCount int
+	currentUrlCount  int
+}
 
 var jsonNodeTypes = struct {
 	Folder, Url string
@@ -74,7 +75,7 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 	gJsonParseRecursive = func(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
 		// Core of google chrome bookmark parsing
 		// Any loading to local db is done here
-		parserStat.lastNodeCount++
+		bw.stats.currentNodeCount++
 
 		var nodeType, children []byte
 		var childrenType jsonparser.ValueType
@@ -114,7 +115,7 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 
 			// Find tags in title
 			//findTagsInTitle(name)
-			parserStat.lastUrlCount++
+			bw.stats.currentUrlCount++
 			addBookmark(bookmark, bufferDB)
 
 		}
@@ -136,7 +137,13 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
 
 	// Finished parsing
-	debugPrint("parsed %d bookmarks", parserStat.lastUrlCount)
+	debugPrint("parsed %d bookmarks", bw.stats.currentUrlCount)
+
+	// Reset parser counter
+	bw.stats.lastUrlCount = bw.stats.currentUrlCount
+	bw.stats.lastNodeCount = bw.stats.currentNodeCount
+	bw.stats.currentNodeCount = 0
+	bw.stats.currentUrlCount = 0
 
 	// Compare currentDb with memCacheDb for new bookmarks
 
