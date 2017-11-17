@@ -23,7 +23,7 @@ const (
 	DB_BACKUP_HOOK   = "sqlite_with_backup"
 )
 
-// DB SCHEMAS
+//  Database schemas used for the creation of new databases
 const (
 	// metadata: name or title of resource
 	CREATE_LOCAL_DB_SCHEMA = `CREATE TABLE if not exists bookmarks (
@@ -50,6 +50,9 @@ const (
 var _sql3conns []*sqlite3.SQLiteConn // Only used for backup hook
 var BACKUPHOOK_REGISTERED bool
 
+// DB encapsulates an sql.DB
+// all itneractions with memory/buffer and disk databases
+// is done through the DB object
 type DB struct {
 	name         string
 	path         string
@@ -319,6 +322,8 @@ func initDB() {
 
 }
 
+//Initialize the database here
+//Bla bla bla
 func initLocalDB(db *DB, dbpath string) {
 
 	debugPrint("Initializing local db at '%s'", dbpath)

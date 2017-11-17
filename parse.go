@@ -5,6 +5,7 @@ import (
 	"log"
 	"path"
 	"regexp"
+	"time"
 
 	"github.com/buger/jsonparser"
 )
@@ -18,6 +19,7 @@ type Bookmark struct {
 	metadata string
 	tags     []string
 	desc     string
+	modifed  time.Time
 	//flags int
 }
 
