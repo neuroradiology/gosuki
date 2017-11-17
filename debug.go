@@ -12,6 +12,6 @@ func IsDebuggin() bool {
 
 func debugPrint(format string, values ...interface{}) {
 	if IsDebuggin() {
-		log.Printf("[GOB-debug] "+format, values...)
+		log.Printf("[debug] "+format, values...)
 	}
 }
