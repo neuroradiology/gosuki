@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -8,6 +9,24 @@ import (
 
 func getDefaultDBPath() string {
 	return "./"
+}
+
+func checkFileExists(file string) (bool, error) {
+	info, err := os.Stat(file)
+	if err == nil {
+		if info.IsDir() {
+			errMsg := fmt.Sprintf("'%s' is a directory", file)
+			return false, errors.New(errMsg)
+		}
+
+		return true, nil
+	}
+
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
 }
 
 func checkWriteable(dir string) error {

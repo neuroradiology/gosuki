@@ -271,24 +271,32 @@ func initDB() {
 
 	// Check and initialize local db as last step
 	// after loading the different browser bookmarks to cache
-	initLocalDB(CACHE_DB)
-}
-
-func initLocalDB(db *DB) {
 
 	dbdir := getDefaultDBPath()
 	err := checkWriteable(dbdir)
 	logPanic(err)
 
 	dbpath := filepath.Join(dbdir, DB_FILENAME)
-	debugPrint("Initializing local db at <%s>", dbpath)
 
-	debugPrint("%s flushing to disk", db.name)
-	err = db.FlushToDisk()
-	if err != nil {
-		logError(err, "flush to disk")
-		return
+	// If local db exists load it to CACHE_DB
+	var exists bool
+	if exists, err = checkFileExists(dbpath); exists {
+		logPanic(err)
+		debugPrint("[NOT IMPLEMENTED] preload existing local db")
+	} else {
+		logPanic(err)
+		// Else initialize it
+		initLocalDB(CACHE_DB, dbpath)
 	}
+
+}
+
+func initLocalDB(db *DB, dbpath string) {
+
+	debugPrint("Initializing local db at '%s'", dbpath)
+	debugPrint("%s flushing to disk", db.name)
+	err := db.FlushToDisk()
+	logPanic(err)
 
 	// DEBUG
 	//debugPrint("flushing again")

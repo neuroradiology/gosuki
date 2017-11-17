@@ -156,8 +156,6 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 	}
 
 	_ = CACHE_DB.Print()
-	initLocalDB(CACHE_DB)
-
 }
 
 func addBookmark(bookmark *Bookmark, db *DB) {
