@@ -5,7 +5,6 @@ import (
 	"log"
 	"path"
 	"regexp"
-	"time"
 
 	"github.com/buger/jsonparser"
 )
@@ -142,20 +141,23 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 	// Compare currentDb with memCacheDb for new bookmarks
 
 	// If CACHE_DB is empty just copy bufferDB to CACHE_DB
-	// Temporrary until we preload bookmarks from disk
-	debugPrint("%d", bufferDB.Count())
+	// until local db is already populated and preloaded
+	//debugPrint("%d", bufferDB.Count())
 	if empty, err := CACHE_DB.isEmpty(); empty {
 		logPanic(err)
-		debugPrint("first preloading, copying bufferdb to cachedb")
+		//debugPrint("first preloading, copying bufferdb to cachedb")
 
-		start := time.Now()
+		//start := time.Now()
 		bufferDB.SyncTo(CACHE_DB)
-		debugPrint("<%s> is now (%d)", CACHE_DB.name, CACHE_DB.Count())
-		elapsed := time.Since(start)
-		debugPrint("copy in %s", elapsed)
+		//debugPrint("<%s> is now (%d)", CACHE_DB.name, CACHE_DB.Count())
+		//elapsed := time.Since(start)
+		//debugPrint("copy in %s", elapsed)
+
+		debugPrint("syncing <%s> to disk", CACHE_DB.name)
+		CACHE_DB.SyncToDisk(getDBFullPath())
 	}
 
-	_ = CACHE_DB.Print()
+	//_ = CACHE_DB.Print()
 }
 
 func addBookmark(bookmark *Bookmark, db *DB) {

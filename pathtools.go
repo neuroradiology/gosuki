@@ -5,10 +5,17 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 func getDefaultDBPath() string {
 	return "./"
+}
+
+func getDBFullPath() string {
+	dbdir := getDefaultDBPath()
+	dbpath := filepath.Join(dbdir, DB_FILENAME)
+	return dbpath
 }
 
 func checkFileExists(file string) (bool, error) {
