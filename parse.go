@@ -51,10 +51,10 @@ func findTagsInTitle(title []byte) {
 func googleParseBookmarks(bw *bookmarkWatcher) {
 
 	// Create buffer db
-	bufferDB := &DB{"buffer", DB_BUFFER_PATH, nil}
+	//bufferDB := DB{"buffer", DB_BUFFER_PATH, nil, false}
+	bufferDB := DB{}.New("buffer", DB_BUFFER_PATH)
 	defer bufferDB.Close()
-	err := bufferDB.Init()
-	logPanic(err)
+	bufferDB.Init()
 
 	// Load bookmark file
 	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
@@ -142,6 +142,7 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 	// Compare currentDb with memCacheDb for new bookmarks
 
 	// If CACHE_DB is empty just copy bufferDB to CACHE_DB
+	// Temporrary until we preload bookmarks from disk
 	debugPrint("%d", bufferDB.Count())
 	if empty, err := CACHE_DB.isEmpty(); empty {
 		logPanic(err)
@@ -153,6 +154,9 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 		elapsed := time.Since(start)
 		debugPrint("copy in %s", elapsed)
 	}
+
+	_ = CACHE_DB.Print()
+	initLocalDB(CACHE_DB)
 
 }
 

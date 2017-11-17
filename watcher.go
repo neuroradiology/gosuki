@@ -77,7 +77,8 @@ func bWatcherThread(bw *bookmarkWatcher, parseFunc func(bw *bookmarkWatcher)) {
 				start := time.Now()
 				parseFunc(bw)
 				elapsed := time.Since(start)
-				debugPrint("parsing in %s", elapsed)
+				debugPrint("parsed in %s", elapsed)
+				debugPrint("%v", _sql3conns)
 
 			}
 		case err := <-bw.watcher.Errors:

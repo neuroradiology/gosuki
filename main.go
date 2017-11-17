@@ -11,8 +11,7 @@ func main() {
 	block := make(chan bool)
 
 	// Initialize sqlite database available in global `CACHE_DB` variable
-	err := initDB()
-	logPanic(err)
+	initDB()
 
 	chromeWatcher := &bookmarkWatcher{}
 	chromeWatcher.Init(BOOKMARK_DIR, BOOKMARK_FILE, Chrome)
