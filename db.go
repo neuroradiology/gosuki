@@ -12,7 +12,9 @@ import (
 
 // Global cache database
 var (
-	cacheDB *DB // Main in memory db, is synced with disc
+	cacheDB              *DB                   // Main in memory db, is synced with disc
+	_sql3conns           []*sqlite3.SQLiteConn // Only used for backup hook
+	backupHookRegistered bool                  // set to true once the backup hook is registered
 )
 
 const (
@@ -45,9 +47,6 @@ const (
 		flags integer default 0
 	)`
 )
-
-var _sql3conns []*sqlite3.SQLiteConn // Only used for backup hook
-var BACKUPHOOK_REGISTERED bool
 
 // DB encapsulates an sql.DB
 // all itneractions with memory/buffer and disk databases
@@ -101,7 +100,7 @@ func (db *DB) Init() {
 	err = tx.Commit()
 	logPanic(err)
 
-	if !BACKUPHOOK_REGISTERED {
+	if !backupHookRegistered {
 		//debugPrint("backup_hook: registering driver %s", DB_BACKUP_HOOK)
 		// Register the hook
 		sql.Register(DB_BACKUP_HOOK,
@@ -113,7 +112,7 @@ func (db *DB) Init() {
 					return nil
 				},
 			})
-		BACKUPHOOK_REGISTERED = true
+		backupHookRegistered = true
 	}
 
 	debugPrint("<%s> initialized", db.name)
@@ -203,7 +202,7 @@ func (src *DB) SyncTo(dst *DB) {
 
 func (src *DB) SyncToDisk(dbpath string) error {
 
-	if !BACKUPHOOK_REGISTERED {
+	if !backupHookRegistered {
 		errMsg := fmt.Sprintf("%s, %s", src.path, "db backup hook is not initialized")
 		return errors.New(errMsg)
 	}
@@ -243,7 +242,7 @@ func (src *DB) SyncToDisk(dbpath string) error {
 
 func (dst *DB) SyncFromDisk(dbpath string) error {
 
-	if !BACKUPHOOK_REGISTERED {
+	if !backupHookRegistered {
 		errMsg := fmt.Sprintf("%s, %s", dst.path, "db backup hook is not initialized")
 		return errors.New(errMsg)
 	}

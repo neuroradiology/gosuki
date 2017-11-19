@@ -27,7 +27,8 @@ var jsonNodePaths = struct {
 	Type, Children, Url string
 }{"type", "children", "url"}
 
-type parseFunc func([]byte, []byte, jsonparser.ValueType, int) error
+type ParseChildFunc func([]byte, jsonparser.ValueType, int, error)
+type RecursiveParseFunc func([]byte, []byte, jsonparser.ValueType, int) error
 
 func _s(value interface{}) string {
 	return string(value.([]byte))
@@ -52,8 +53,8 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 	f, err := ioutil.ReadFile(bookmarkPath)
 	logPanic(err)
 
-	var parseChildren func([]byte, jsonparser.ValueType, int, error)
-	var gJsonParseRecursive func([]byte, []byte, jsonparser.ValueType, int) error
+	var parseChildren ParseChildFunc
+	var gJsonParseRecursive RecursiveParseFunc
 
 	parseChildren = func(childVal []byte, dataType jsonparser.ValueType, offset int, err error) {
 		if err != nil {

@@ -1,6 +1,6 @@
 package main
 
-type BrowserType int
+type BrowserType uint8
 
 const (
 	Chrome BrowserType = iota
