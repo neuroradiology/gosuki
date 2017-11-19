@@ -7,13 +7,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-type BrowserType int
-
-const (
-	Chrome BrowserType = iota
-	Firefox
-)
-
 type bookmarkWatcher struct {
 	watcher   *fsnotify.Watcher
 	baseDir   string
