@@ -1,13 +1,10 @@
 package main
 
-import "time"
-
 type Bookmark struct {
 	url      string
 	metadata string
 	tags     []string
 	desc     string
-	modifed  time.Time
 	//flags int
 }
 
