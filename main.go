@@ -10,7 +10,9 @@ func main() {
 	// Block the main function
 	block := make(chan bool)
 
-	// Initialize sqlite database available in global `CACHE_DB` variable
+	initMode()
+	initLogging()
+	// Initialize sqlite database available in global `cacheDB` variable
 	initDB()
 
 	chromeWatcher := &bookmarkWatcher{}

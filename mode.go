@@ -2,7 +2,7 @@ package main
 
 import "os"
 
-const ENV_GO_BOOKMARK_MODE = "GO_BOOKMARK_MODE"
+const ENV_GOMARK_MODE = "GOMARK_MODE"
 
 const (
 	DebugMode   string = "debug"
@@ -16,11 +16,11 @@ const (
 	testCode
 )
 
-var goBookmarkMode = debugCode
+var gomarkMode = debugCode
 var modeName = DebugMode
 
-func init() {
-	mode := os.Getenv(ENV_GO_BOOKMARK_MODE)
+func initMode() {
+	mode := os.Getenv(ENV_GOMARK_MODE)
 	if mode == "" {
 		SetMode(DebugMode)
 	} else {
@@ -31,11 +31,11 @@ func init() {
 func SetMode(value string) {
 	switch value {
 	case DebugMode:
-		goBookmarkMode = debugCode
+		gomarkMode = debugCode
 	case ReleaseMode:
-		goBookmarkMode = releaseCode
+		gomarkMode = releaseCode
 	case TestMode:
-		goBookmarkMode = testCode
+		gomarkMode = testCode
 	default:
 		panic("go-bookmark mode unknown: " + value)
 	}
