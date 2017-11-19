@@ -2,10 +2,8 @@ package main
 
 import (
 	"io/ioutil"
-	"log"
 	"path"
 	"regexp"
-	"time"
 
 	"github.com/buger/jsonparser"
 )
@@ -13,15 +11,6 @@ import (
 const (
 	RE_TAGS = `\B#\w+`
 )
-
-type Bookmark struct {
-	url      string
-	metadata string
-	tags     []string
-	desc     string
-	modifed  time.Time
-	//flags int
-}
 
 type parserStat struct {
 	lastNodeCount    int
@@ -118,8 +107,7 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 			// Find tags in title
 			//findTagsInTitle(name)
 			bw.stats.currentUrlCount++
-			addBookmark(bookmark, bufferDB)
-
+			bookmark.add(bufferDB)
 		}
 
 		// if node is a folder with children
@@ -139,7 +127,7 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
 
 	// Finished parsing
-	debugPrint("parsed %d bookmarks", bw.stats.currentUrlCount)
+	log.Infof("parsed %d bookmarks", bw.stats.currentUrlCount)
 
 	// Reset parser counter
 	bw.stats.lastUrlCount = bw.stats.currentUrlCount
@@ -149,43 +137,25 @@ func googleParseBookmarks(bw *bookmarkWatcher) {
 
 	// Compare currentDb with memCacheDb for new bookmarks
 
-	// If CACHE_DB is empty just copy bufferDB to CACHE_DB
+	// If cacheDB is empty just copy bufferDB to cacheDB
 	// until local db is already populated and preloaded
 	//debugPrint("%d", bufferDB.Count())
-	if empty, err := CACHE_DB.isEmpty(); empty {
+	if empty, err := cacheDB.isEmpty(); empty {
 		logPanic(err)
-		//debugPrint("first preloading, copying bufferdb to cachedb")
+		debugPrint("cache empty: loading bufferdb to cachedb")
 
 		//start := time.Now()
-		bufferDB.SyncTo(CACHE_DB)
-		//debugPrint("<%s> is now (%d)", CACHE_DB.name, CACHE_DB.Count())
+		bufferDB.SyncTo(cacheDB)
+		//debugPrint("<%s> is now (%d)", cacheDB.name, cacheDB.Count())
 		//elapsed := time.Since(start)
 		//debugPrint("copy in %s", elapsed)
 
-		debugPrint("syncing <%s> to disk", CACHE_DB.name)
-		CACHE_DB.SyncToDisk(getDBFullPath())
+		debugPrint("syncing <%s> to disk", cacheDB.name)
+		cacheDB.SyncToDisk(getDBFullPath())
 	}
 
-	//_ = CACHE_DB.Print()
-}
+	// TODO: Check if new/modified bookmarks in buffer compared to cache
+	debugPrint("TODO: check if new/modified bookmarks in %s compared to %s", bufferDB.name, cacheDB.name)
 
-func addBookmark(bookmark *Bookmark, db *DB) {
-	// TODO
-	// Single out unique urls
-	//debugPrint("%v", bookmark)
-	_db := db.handle
-
-	tx, err := _db.Begin()
-	logPanic(err)
-
-	stmt, err := tx.Prepare(`INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
-	logPanic(err)
-	defer stmt.Close()
-
-	_, err = stmt.Exec(bookmark.url, bookmark.metadata, "", "", 0)
-	logPanic(err)
-
-	err = tx.Commit()
-	logPanic(err)
-
+	//_ = cacheDB.Print()
 }

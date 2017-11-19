@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -13,7 +12,7 @@ import (
 
 // Global cache database
 var (
-	CACHE_DB *DB // Main in memory db, is synced with disc
+	cacheDB *DB // Main in memory db, is synced with disc
 )
 
 const (
@@ -38,7 +37,7 @@ const (
 
 	CREATE_MEM_DB_SCHEMA = `CREATE TABLE if not exists bookmarks (
 		id integer PRIMARY KEY,
-		URL text NOT NULL,
+		URL text NOT NULL UNIQUE,
 		metadata text default '',
 		tags text default '',
 		desc text default '',
@@ -73,24 +72,23 @@ func (db *DB) Error() string {
 func (db *DB) Init() {
 
 	// TODO: Use context when making call from request/api
-	// `CACHE_DB` is a memory replica of disk db
+	// `cacheDB` is a memory replica of disk db
 	// `bufferDB` is current working job db
 
 	var err error
 
 	if db.handle != nil {
-		//dbError = DBError()
-		logError(db, "already initialized")
+		logErrorMsg(db, "already initialized")
 		return
 	}
 
 	// Create the memory cache db
 	db.handle, err = sql.Open("sqlite3", db.path)
 	//debugPrint("db <%s> opend at at <%s>", db.name, db.path)
+	log.Debugf("<%s> opened at <%s>", db.name, db.path)
 	logPanic(err)
 
 	// Populate db schema
-
 	tx, err := db.handle.Begin()
 	logPanic(err)
 
@@ -102,15 +100,6 @@ func (db *DB) Init() {
 
 	err = tx.Commit()
 	logPanic(err)
-
-	// Check if backup hook has been registered
-	//for _, val := range sql.Drivers() {
-	//debugPrint("Checking driver %s", val)
-	//if val == DB_BACKUP_HOOK {
-	//db.backupHookOn == true
-	//break
-	//}
-	//}
 
 	if !BACKUPHOOK_REGISTERED {
 		//debugPrint("backup_hook: registering driver %s", DB_BACKUP_HOOK)
@@ -259,6 +248,8 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 		return errors.New(errMsg)
 	}
 
+	debugPrint("Syncing <%s> to <%s>", dbpath, dst.name)
+
 	dbUri := fmt.Sprintf("file:%s", dbpath)
 	srcDb, err := sql.Open(DB_BACKUP_HOOK, dbUri)
 	defer flushSqliteCon(srcDb)
@@ -291,12 +282,11 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 }
 
 // TODO: Use context when making call from request/api
-// TODO: Initialize local db
 func initDB() {
 
 	// Initialize memory db with schema
-	CACHE_DB = DB{}.New("memcache", DB_MEMCACHE_PATH)
-	CACHE_DB.Init()
+	cacheDB = DB{}.New("memcache", DB_MEMCACHE_PATH)
+	cacheDB.Init()
 
 	// Check and initialize local db as last step
 	// browser bookmarks should already be in cache
@@ -308,16 +298,17 @@ func initDB() {
 	err := checkWriteable(dbdir)
 	logPanic(err)
 
-	// If local db exists load it to CACHE_DB
+	// If local db exists load it to cacheDB
 	var exists bool
 	if exists, err = checkFileExists(dbpath); exists {
 		logPanic(err)
-		CACHE_DB.SyncFromDisk(dbpath)
-		_ = CACHE_DB.Print()
+		debugPrint("localdb exists, preloading to cache")
+		cacheDB.SyncFromDisk(dbpath)
+		//_ = cacheDB.Print()
 	} else {
 		logPanic(err)
 		// Else initialize it
-		initLocalDB(CACHE_DB, dbpath)
+		initLocalDB(cacheDB, dbpath)
 	}
 
 }
@@ -326,34 +317,15 @@ func initDB() {
 //Bla bla bla
 func initLocalDB(db *DB, dbpath string) {
 
-	debugPrint("Initializing local db at '%s'", dbpath)
+	log.Infof("Initializing local db at '%s'", dbpath)
 	debugPrint("%s flushing to disk", db.name)
 	err := db.SyncToDisk(dbpath)
 	logPanic(err)
 
-	// DEBUG
-	//debugPrint("flushing again")
-	//time.Sleep(2 * time.Second)
-	//_ = db.FlushToDisk()
-
-}
-
-func testInMemoryDb(db *DB) {
-
-	debugPrint("test in memory")
-	_db, err := sql.Open("sqlite3", db.path)
-	defer _db.Close()
-	rows, err := _db.Query("select URL from bookmarks")
-	defer rows.Close()
-	logPanic(err)
-	var URL string
-	for rows.Next() {
-		rows.Scan(&URL)
-		log.Println(URL)
-	}
 }
 
 func flushSqliteCon(con *sql.DB) {
 	con.Close()
 	_sql3conns = _sql3conns[:len(_sql3conns)-1]
+	log.Debugf("Flushed sqlite conns %v", _sql3conns)
 }

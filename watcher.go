@@ -2,16 +2,15 @@ package main
 
 import (
 	"database/sql"
-	"log"
 	"path"
 
 	"github.com/fsnotify/fsnotify"
 )
 
-type bMarkTypes int
+type BrowserType int
 
 const (
-	Chrome bMarkTypes = iota
+	Chrome BrowserType = iota
 	Firefox
 )
 
@@ -32,7 +31,7 @@ func (bw *bookmarkWatcher) Close() error {
 	return nil
 }
 
-func (bw *bookmarkWatcher) Init(basedir string, bkfile string, bkType bMarkTypes) *bookmarkWatcher {
+func (bw *bookmarkWatcher) Init(basedir string, bkfile string, bkType BrowserType) *bookmarkWatcher {
 	var err error
 
 	bw.baseDir = basedir
@@ -54,14 +53,16 @@ func (bw *bookmarkWatcher) Init(basedir string, bkfile string, bkType bMarkTypes
 func (bw *bookmarkWatcher) Preload() *bookmarkWatcher {
 
 	// Check if cache is initialized
-	if CACHE_DB == nil || CACHE_DB.handle == nil {
-		log.Fatalf("cache is not yet initialized !")
+	if cacheDB == nil || cacheDB.handle == nil {
+		log.Critical("cache is not yet initialized !")
+		panic("cache is not yet initialized !")
 	}
 
 	if bw.watcher == nil {
 		log.Fatal("please run bookmarkWatcher.Init() first !")
 	}
 
+	debugPrint("preloading bookmarks")
 	bw.parseFunc(bw)
 
 	return bw
@@ -81,7 +82,7 @@ func (bw *bookmarkWatcher) Start() error {
 func bWatcherThread(bw *bookmarkWatcher, parseFunc func(bw *bookmarkWatcher)) {
 
 	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
-	debugPrint("watching %s", bookmarkPath)
+	log.Infof("watching %s", bookmarkPath)
 
 	for {
 		select {
@@ -98,7 +99,7 @@ func bWatcherThread(bw *bookmarkWatcher, parseFunc func(bw *bookmarkWatcher)) {
 				//debugPrint("parsed in %s", elapsed)
 			}
 		case err := <-bw.watcher.Errors:
-			log.Println("error:", err)
+			log.Errorf("error: %s", err)
 		}
 	}
 
