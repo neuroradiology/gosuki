@@ -42,6 +42,6 @@ func SetMode(value string) {
 	modeName = value
 }
 
-func Mode() string {
+func RunMode() string {
 	return modeName
 }

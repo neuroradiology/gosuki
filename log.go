@@ -31,6 +31,8 @@ func initLogging() {
 		leveledBackend.SetLevel(logging.WARNING, "")
 		logging.SetBackend(leveledBackend)
 	}
+
+	log.Debugf("running in %s mode", RunMode())
 }
 
 func IsDebugging() bool {
