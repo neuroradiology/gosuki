@@ -16,12 +16,16 @@ func main() {
 	initDB()
 
 	chromeWatcher := &bookmarkWatcher{}
-	chromeWatcher.Init(BOOKMARK_DIR, BOOKMARK_FILE, Chrome)
+	chromeWatcher.Init(BOOKMARK_DIR, BOOKMARK_FILE, TChromeBrowser)
 	chromeWatcher.Preload()
 	chromeWatcher.Start()
 
 	// Flush to disk for testing
 	//flushToDisk()
+
+	//var chrome Browser
+	//chrome = browsers.New()
+	//chrome.Watch()
 
 	<-block
 }

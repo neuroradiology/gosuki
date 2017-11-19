@@ -13,7 +13,7 @@ type bookmarkWatcher struct {
 	bkFile    string
 	parseFunc func(*bookmarkWatcher)
 	bufferDB  *sql.DB
-	stats     *parserStat
+	stats     *parserStats
 }
 
 func (bw *bookmarkWatcher) Close() error {
@@ -24,19 +24,19 @@ func (bw *bookmarkWatcher) Close() error {
 	return nil
 }
 
-func (bw *bookmarkWatcher) Init(basedir string, bkfile string, bkType BrowserType) *bookmarkWatcher {
+func (bw *bookmarkWatcher) Init(basedir string, bkfile string, browserType BrowserType) *bookmarkWatcher {
 	var err error
 
 	bw.baseDir = basedir
 	bw.bkFile = bkfile
 
-	bw.stats = &parserStat{}
+	bw.stats = &parserStats{}
 
 	bw.watcher, err = fsnotify.NewWatcher()
 	logPanic(err)
 
-	switch bkType {
-	case Chrome:
+	switch browserType {
+	case TChromeBrowser:
 		bw.parseFunc = googleParseBookmarks
 	}
 

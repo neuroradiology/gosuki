@@ -12,7 +12,7 @@ const (
 	RE_TAGS = `\B#\w+`
 )
 
-type parserStat struct {
+type parserStats struct {
 	lastNodeCount    int
 	lastUrlCount     int
 	currentNodeCount int
