@@ -5,9 +5,9 @@ import (
 )
 
 type IWatchable interface {
-	Watch() bool
+	Watch() bool                // starts watching linked watcher
 	Watcher() *fsnotify.Watcher // returns linked watcher
-	Parse()                     // Main parsing method
+	Parse()                     // Main parsing method when event fired
 	GetPath() string            // returns watched path
 	GetDir() string             // returns watched dir
 }

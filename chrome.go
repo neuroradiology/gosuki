@@ -19,7 +19,7 @@ type ParseChildFunc func([]byte, jsonparser.ValueType, int, error)
 type RecursiveParseFunc func([]byte, []byte, jsonparser.ValueType, int) error
 
 type ChromeBrowser struct {
-	BaseBrowser //embidding
+	BaseBrowser //embedding
 }
 
 func NewChromeBrowser() IBrowser {
