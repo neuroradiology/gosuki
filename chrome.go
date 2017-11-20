@@ -58,10 +58,10 @@ func (bw *ChromeBrowser) Load() {
 	}
 
 	debugPrint("preloading bookmarks")
-	bw.Parse()
+	bw.Run()
 }
 
-func (bw *ChromeBrowser) Parse() {
+func (bw *ChromeBrowser) Run() {
 
 	// Create buffer db
 	//bufferDB := DB{"buffer", DB_BUFFER_PATH, nil, false}
@@ -129,6 +129,8 @@ func (bw *ChromeBrowser) Parse() {
 			//findTagsInTitle(name)
 			bw.stats.currentUrlCount++
 			bookmark.add(bw.bufferDB)
+
+			bw.RunParseHooks(bookmark)
 		}
 
 		// if node is a folder with children
