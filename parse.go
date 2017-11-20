@@ -1,34 +1,19 @@
 package main
 
 import (
-	"io/ioutil"
-	"path"
 	"regexp"
-
-	"github.com/buger/jsonparser"
 )
 
 const (
 	RE_TAGS = `\B#\w+`
 )
 
-type parserStats struct {
+type ParserStats struct {
 	lastNodeCount    int
-	lastUrlCount     int
+	lastURLCount     int
 	currentNodeCount int
 	currentUrlCount  int
 }
-
-var jsonNodeTypes = struct {
-	Folder, Url string
-}{"folder", "url"}
-
-var jsonNodePaths = struct {
-	Type, Children, Url string
-}{"type", "children", "url"}
-
-type ParseChildFunc func([]byte, jsonparser.ValueType, int, error)
-type RecursiveParseFunc func([]byte, []byte, jsonparser.ValueType, int) error
 
 func _s(value interface{}) string {
 	return string(value.([]byte))
@@ -38,125 +23,4 @@ func findTagsInTitle(title []byte) {
 	var regex = regexp.MustCompile(RE_TAGS)
 	tags := regex.FindAll(title, -1)
 	debugPrint("%s ---> found following tags: %s", title, tags)
-}
-
-func googleParseBookmarks(bw *bookmarkWatcher) {
-
-	// Create buffer db
-	//bufferDB := DB{"buffer", DB_BUFFER_PATH, nil, false}
-	bufferDB := DB{}.New("buffer", DB_BUFFER_PATH)
-	defer bufferDB.Close()
-	bufferDB.Init()
-
-	// Load bookmark file
-	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
-	f, err := ioutil.ReadFile(bookmarkPath)
-	logPanic(err)
-
-	var parseChildren ParseChildFunc
-	var gJsonParseRecursive RecursiveParseFunc
-
-	parseChildren = func(childVal []byte, dataType jsonparser.ValueType, offset int, err error) {
-		if err != nil {
-			log.Panic(err)
-		}
-
-		gJsonParseRecursive(nil, childVal, dataType, offset)
-	}
-
-	gJsonParseRecursive = func(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
-		// Core of google chrome bookmark parsing
-		// Any loading to local db is done here
-		bw.stats.currentNodeCount++
-
-		var nodeType, children []byte
-		var childrenType jsonparser.ValueType
-		bookmark := &Bookmark{}
-
-		// Paths to lookup in node payload
-		paths := [][]string{
-			[]string{"type"},
-			[]string{"name"}, // Title of page
-			[]string{"url"},
-			[]string{"children"},
-		}
-
-		jsonparser.EachKey(node, func(idx int, value []byte, vt jsonparser.ValueType, err error) {
-			switch idx {
-			case 0:
-				nodeType = value
-			case 1: // name or title
-				bookmark.metadata = _s(value)
-			case 2:
-				bookmark.url = _s(value)
-			case 3:
-				children, childrenType = value, vt
-			}
-		}, paths...)
-
-		// If node type is string ignore (needed for sync_transaction_version)
-		if dataType == jsonparser.String {
-			return nil
-		}
-
-		// if node is url(leaf), handle the url
-		if _s(nodeType) == jsonNodeTypes.Url {
-			// Add bookmark to db here
-			//debugPrint("%s", url)
-			//debugPrint("%s", node)
-
-			// Find tags in title
-			//findTagsInTitle(name)
-			bw.stats.currentUrlCount++
-			bookmark.add(bufferDB)
-		}
-
-		// if node is a folder with children
-		if childrenType == jsonparser.Array && len(children) > 2 { // if len(children) > len("[]")
-			jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
-		}
-
-		return nil
-	}
-
-	//debugPrint("parsing bookmarks")
-	// Begin parsing
-	rootsData, _, _, _ := jsonparser.Get(f, "roots")
-
-	debugPrint("loading bookmarks to bufferdb")
-	// Load bookmarks to currentJobDB
-	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
-
-	// Finished parsing
-	log.Infof("parsed %d bookmarks", bw.stats.currentUrlCount)
-
-	// Reset parser counter
-	bw.stats.lastUrlCount = bw.stats.currentUrlCount
-	bw.stats.lastNodeCount = bw.stats.currentNodeCount
-	bw.stats.currentNodeCount = 0
-	bw.stats.currentUrlCount = 0
-
-	// Compare currentDb with memCacheDb for new bookmarks
-
-	// If cacheDB is empty just copy bufferDB to cacheDB
-	// until local db is already populated and preloaded
-	//debugPrint("%d", bufferDB.Count())
-	if empty, err := cacheDB.isEmpty(); empty {
-		logPanic(err)
-		debugPrint("cache empty: loading bufferdb to cachedb")
-
-		//start := time.Now()
-		bufferDB.SyncTo(cacheDB)
-		//debugPrint("<%s> is now (%d)", cacheDB.name, cacheDB.Count())
-		//elapsed := time.Since(start)
-		//debugPrint("copy in %s", elapsed)
-
-		debugPrint("syncing <%s> to disk", cacheDB.name)
-		cacheDB.SyncToDisk(getDBFullPath())
-	}
-
-	// TODO: Check if new/modified bookmarks in buffer compared to cache
-	debugPrint("TODO: check if new/modified bookmarks in %s compared to %s", bufferDB.name, cacheDB.name)
-
-	//_ = cacheDB.Print()
 }
