@@ -4,6 +4,14 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+type IWatchable interface {
+	Watch() bool
+	Watcher() *fsnotify.Watcher // returns linked watcher
+	Parse()                     // Main parsing method
+	GetPath() string            // returns watched path
+	GetDir() string             // returns watched dir
+}
+
 func WatcherThread(w IWatchable) {
 
 	bookmarkPath := w.GetPath()

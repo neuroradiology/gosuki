@@ -24,14 +24,6 @@ var Chrome = struct {
 	"/home/spike/.config/google-chrome/Default/",
 }
 
-type IWatchable interface {
-	Watch() bool
-	Watcher() *fsnotify.Watcher // returns browser watcher
-	Parse()                     // Main parsing method
-	GetPath() string            //returns bookmark path
-	GetDir() string             // returns bookmarks dir
-}
-
 type IBrowser interface {
 	SetupWatcher() // Starts watching bookmarks and runs Load on change
 	Watch() bool
