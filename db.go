@@ -20,7 +20,7 @@ var (
 const (
 	DB_FILENAME      = "gomarks.db"
 	DB_MEMCACHE_PATH = "file:memcache?mode=memory&cache=shared"
-	DB_BUFFER_PATH   = "file:buffer?mode=memory&cache=shared"
+	DBBufferFmt      = "file:%s?mode=memory&cache=shared"
 	DB_BACKUP_HOOK   = "sqlite_with_backup"
 )
 
@@ -119,7 +119,7 @@ func (db *DB) Init() {
 }
 
 func (db *DB) Close() {
-	//debugPrint("Closing <%s>", db.name)
+	debugPrint("Closing <%s>", db.name)
 	db.handle.Close()
 }
 

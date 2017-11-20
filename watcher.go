@@ -1,100 +1,32 @@
 package main
 
 import (
-	"database/sql"
-	"path"
-
 	"github.com/fsnotify/fsnotify"
 )
 
-type bookmarkWatcher struct {
-	watcher   *fsnotify.Watcher
-	baseDir   string
-	bkFile    string
-	parseFunc func(*bookmarkWatcher)
-	bufferDB  *sql.DB
-	stats     *parserStats
-}
+func WatcherThread(w IWatchable) {
 
-func (bw *bookmarkWatcher) Close() error {
-	if err := bw.watcher.Close(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (bw *bookmarkWatcher) Init(basedir string, bkfile string, browserType BrowserType) *bookmarkWatcher {
-	var err error
-
-	bw.baseDir = basedir
-	bw.bkFile = bkfile
-
-	bw.stats = &parserStats{}
-
-	bw.watcher, err = fsnotify.NewWatcher()
-	logPanic(err)
-
-	switch browserType {
-	case TChromeBrowser:
-		bw.parseFunc = googleParseBookmarks
-	}
-
-	return bw
-}
-
-func (bw *bookmarkWatcher) Preload() *bookmarkWatcher {
-
-	// Check if cache is initialized
-	if cacheDB == nil || cacheDB.handle == nil {
-		log.Critical("cache is not yet initialized !")
-		panic("cache is not yet initialized !")
-	}
-
-	if bw.watcher == nil {
-		log.Fatal("please run bookmarkWatcher.Init() first !")
-	}
-
-	debugPrint("preloading bookmarks")
-	bw.parseFunc(bw)
-
-	return bw
-}
-
-func (bw *bookmarkWatcher) Start() error {
-
-	if err := bw.watcher.Add(bw.baseDir); err != nil {
-		return err
-	}
-
-	go bWatcherThread(bw, bw.parseFunc)
-
-	return nil
-}
-
-func bWatcherThread(bw *bookmarkWatcher, parseFunc func(bw *bookmarkWatcher)) {
-
-	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
+	bookmarkPath := w.GetPath()
 	log.Infof("watching %s", bookmarkPath)
+
+	watcher := w.Watcher()
 
 	for {
 		select {
-		case event := <-bw.watcher.Events:
-
+		case event := <-watcher.Events:
 			if event.Op&fsnotify.Create == fsnotify.Create &&
 				event.Name == bookmarkPath {
 
 				debugPrint("event: %v | eventName: %v", event.Op, event.Name)
 				//debugPrint("modified file: %s", event.Name)
 				//start := time.Now()
-				parseFunc(bw)
+				//parseFunc(bw)
+				w.Parse()
 				//elapsed := time.Since(start)
 				//debugPrint("parsed in %s", elapsed)
 			}
-		case err := <-bw.watcher.Errors:
+		case err := <-watcher.Errors:
 			log.Errorf("error: %s", err)
 		}
 	}
-
-	debugPrint("Exiting watch thread")
 }

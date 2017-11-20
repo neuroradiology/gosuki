@@ -15,16 +15,15 @@ func main() {
 	// Initialize sqlite database available in global `cacheDB` variable
 	initDB()
 
-	chromeWatcher := &bookmarkWatcher{}
-	chromeWatcher.Init(BOOKMARK_DIR, BOOKMARK_FILE, TChromeBrowser)
-	chromeWatcher.Preload()
-	chromeWatcher.Start()
+	cb := NewChromeBrowser()
+	cb.Load()
+	_ = cb.Watch()
 
 	// Flush to disk for testing
 	//flushToDisk()
 
 	//var chrome Browser
-	//chrome = browsers.New()
+	//chrome = browsers.New(browsres.TChrome)
 	//chrome.Watch()
 
 	<-block

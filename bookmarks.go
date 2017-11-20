@@ -1,5 +1,6 @@
 package main
 
+// Bookmark type
 type Bookmark struct {
 	url      string
 	metadata string
@@ -9,9 +10,7 @@ type Bookmark struct {
 }
 
 func (bk *Bookmark) add(db *DB) {
-	// TODO
-	// Single out unique urls
-	//debugPrint("%v", bk)
+	//log.Debugf("Adding bookmark %s", bk.url)
 	_db := db.handle
 
 	tx, err := _db.Begin()
