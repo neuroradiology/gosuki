@@ -5,9 +5,10 @@ import (
 )
 
 type IWatchable interface {
+	SetupWatcher()              // Starts watching bookmarks and runs Load on change
 	Watch() bool                // starts watching linked watcher
+	Run()                       // Callback fired on event
 	Watcher() *fsnotify.Watcher // returns linked watcher
-	Parse()                     // Main parsing method when event fired
 	GetPath() string            // returns watched path
 	GetDir() string             // returns watched dir
 }
@@ -29,7 +30,7 @@ func WatcherThread(w IWatchable) {
 				//debugPrint("modified file: %s", event.Name)
 				//start := time.Now()
 				//parseFunc(bw)
-				w.Parse()
+				w.Run()
 				//elapsed := time.Since(start)
 				//debugPrint("parsed in %s", elapsed)
 			}

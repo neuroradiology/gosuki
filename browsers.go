@@ -25,10 +25,10 @@ var Chrome = struct {
 }
 
 type IBrowser interface {
-	SetupWatcher() // Starts watching bookmarks and runs Load on change
-	Watch() bool
+	IWatchable
 	InitBuffer() // init buffer db, should be defered to close after call
-	Load()       // Loads bookmarks to db without watching
+	RegisterHooks(...ParseHook)
+	Load() // Loads bookmarks to db without watching
 	//Parse(...ParseHook) // Main parsing method with different parsing hooks
 	Close() // Gracefully finish work and stop watching
 }
@@ -47,6 +47,7 @@ type BaseBrowser struct {
 	bType      BrowserType
 	name       string
 	isWatching bool
+	parseHooks []ParseHook
 }
 
 func (bw *BaseBrowser) Watcher() *fsnotify.Watcher {
@@ -84,4 +85,18 @@ func (b *BaseBrowser) InitBuffer() {
 	bufferPath := fmt.Sprintf(DBBufferFmt, bufferName)
 	b.bufferDB = DB{}.New(bufferName, bufferPath)
 	b.bufferDB.Init()
+}
+
+func (b *BaseBrowser) RegisterHooks(hooks ...ParseHook) {
+	log.Debug("Registering hooks")
+	for _, hook := range hooks {
+		b.parseHooks = append(b.parseHooks, hook)
+	}
+}
+
+// Runs browsed defined hooks on bookmark
+func (b *BaseBrowser) RunParseHooks(bk *Bookmark) {
+	for _, hook := range b.parseHooks {
+		hook(bk)
+	}
 }

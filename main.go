@@ -17,6 +17,9 @@ func main() {
 	initDB()
 
 	cb := NewChromeBrowser()
+
+	cb.RegisterHooks(ParseTags)
+
 	cb.Load()
 	_ = cb.Watch()
 
