@@ -12,11 +12,11 @@ func logPanic(err error) {
 
 func sqlErrorMsg(err error, msg string) {
 	if err != nil {
-
 		sqliteErr := err.(sqlite3.Error)
 
 		if sqliteErr.Code == sqlite3.ErrConstraint {
-			log.Warningf("%s : %s", err, msg)
+			// Ingore ErrConstraint for now
+			//log.Warningf("%s : %s", err, msg)
 			return
 		}
 

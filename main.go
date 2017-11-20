@@ -18,7 +18,7 @@ func main() {
 
 	cb := NewChromeBrowser()
 
-	cb.RegisterHooks(ParseTags)
+	//cb.RegisterHooks(ParseTags)
 
 	cb.Load()
 	_ = cb.Watch()

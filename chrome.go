@@ -57,7 +57,7 @@ func (bw *ChromeBrowser) Load() {
 		log.Fatal("watcher not initialized SetupWatcher() !")
 	}
 
-	debugPrint("preloading bookmarks")
+	log.Debug("preloading bookmarks")
 	bw.Run()
 }
 
@@ -129,7 +129,6 @@ func (bw *ChromeBrowser) Run() {
 			//findTagsInTitle(name)
 			bw.stats.currentUrlCount++
 			bookmark.add(bw.bufferDB)
-
 			bw.RunParseHooks(bookmark)
 		}
 
@@ -145,12 +144,12 @@ func (bw *ChromeBrowser) Run() {
 	// Begin parsing
 	rootsData, _, _, _ := jsonparser.Get(f, "roots")
 
-	debugPrint("loading bookmarks to bufferdb")
+	log.Debug("loading bookmarks to bufferdb")
 	// Load bookmarks to currentJobDB
 	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
 
 	// Finished parsing
-	log.Infof("parsed %d bookmarks", bw.stats.currentUrlCount)
+	log.Debugf("parsed %d bookmarks", bw.stats.currentUrlCount)
 
 	// Reset parser counter
 	bw.stats.lastURLCount = bw.stats.currentUrlCount
@@ -165,7 +164,7 @@ func (bw *ChromeBrowser) Run() {
 	//debugPrint("%d", bufferDB.Count())
 	if empty, err := cacheDB.isEmpty(); empty {
 		logPanic(err)
-		debugPrint("cache empty: loading bufferdb to cachedb")
+		log.Debug("cache empty: loading bufferdb to cachedb")
 
 		//start := time.Now()
 		bw.bufferDB.SyncTo(cacheDB)
@@ -178,6 +177,6 @@ func (bw *ChromeBrowser) Run() {
 	}
 
 	// TODO: Check if new/modified bookmarks in buffer compared to cache
-	debugPrint("TODO: check if new/modified bookmarks in %s compared to %s", bw.bufferDB.name, cacheDB.name)
+	log.Debugf("TODO: check if new/modified bookmarks in %s compared to %s", bw.bufferDB.name, cacheDB.name)
 
 }
