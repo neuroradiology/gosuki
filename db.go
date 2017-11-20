@@ -83,7 +83,7 @@ func (db *DB) Init() {
 
 	// Create the memory cache db
 	db.handle, err = sql.Open("sqlite3", db.path)
-	//debugPrint("db <%s> opend at at <%s>", db.name, db.path)
+	//log.Debugf("db <%s> opend at at <%s>", db.name, db.path)
 	log.Debugf("<%s> opened at <%s>", db.name, db.path)
 	logPanic(err)
 
@@ -101,25 +101,25 @@ func (db *DB) Init() {
 	logPanic(err)
 
 	if !backupHookRegistered {
-		//debugPrint("backup_hook: registering driver %s", DB_BACKUP_HOOK)
+		//log.Debugf("backup_hook: registering driver %s", DB_BACKUP_HOOK)
 		// Register the hook
 		sql.Register(DB_BACKUP_HOOK,
 			&sqlite3.SQLiteDriver{
 				ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-					//debugPrint("[HOOK] registering new connection")
+					//log.Debugf("[HOOK] registering new connection")
 					_sql3conns = append(_sql3conns, conn)
-					//debugPrint("%v", _sql3conns)
+					//log.Debugf("%v", _sql3conns)
 					return nil
 				},
 			})
 		backupHookRegistered = true
 	}
 
-	debugPrint("<%s> initialized", db.name)
+	log.Debugf("<%s> initialized", db.name)
 }
 
 func (db *DB) Close() {
-	debugPrint("Closing <%s>", db.name)
+	log.Debugf("Closing <%s>", db.name)
 	db.handle.Close()
 }
 
@@ -144,7 +144,7 @@ func (db *DB) Print() error {
 		if err != nil {
 			return err
 		}
-		debugPrint("%s", url)
+		log.Debugf("%s", url)
 	}
 
 	return nil
@@ -169,7 +169,7 @@ func (db *DB) isEmpty() (bool, error) {
 
 func (src *DB) SyncTo(dst *DB) {
 
-	debugPrint("Syncing <%s>(%d) to <%s>(%d)", src.name,
+	log.Debugf("Syncing <%s>(%d) to <%s>(%d)", src.name,
 		src.Count(),
 		dst.name,
 		dst.Count())
@@ -207,7 +207,7 @@ func (src *DB) SyncToDisk(dbpath string) error {
 		return errors.New(errMsg)
 	}
 
-	//debugPrint("[flush] openeing <%s>", src.path)
+	//log.Debugf("[flush] openeing <%s>", src.path)
 	srcDb, err := sql.Open(DB_BACKUP_HOOK, src.path)
 	defer flushSqliteCon(srcDb)
 	if err != nil {
@@ -215,7 +215,7 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	}
 	srcDb.Ping()
 
-	//debugPrint("[flush] opening <%s>", DB_FILENAME)
+	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
 
 	dbUri := fmt.Sprintf("file:%s", dbpath)
 	bkDb, err := sql.Open(DB_BACKUP_HOOK, dbUri)
@@ -247,7 +247,7 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 		return errors.New(errMsg)
 	}
 
-	debugPrint("Syncing <%s> to <%s>", dbpath, dst.name)
+	log.Debugf("Syncing <%s> to <%s>", dbpath, dst.name)
 
 	dbUri := fmt.Sprintf("file:%s", dbpath)
 	srcDb, err := sql.Open(DB_BACKUP_HOOK, dbUri)
@@ -257,7 +257,7 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	}
 	srcDb.Ping()
 
-	//debugPrint("[flush] opening <%s>", DB_FILENAME)
+	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
 	bkDb, err := sql.Open(DB_BACKUP_HOOK, dst.path)
 	defer flushSqliteCon(bkDb)
 	if err != nil {
@@ -301,7 +301,7 @@ func initDB() {
 	var exists bool
 	if exists, err = checkFileExists(dbpath); exists {
 		logPanic(err)
-		debugPrint("localdb exists, preloading to cache")
+		log.Debugf("localdb exists, preloading to cache")
 		cacheDB.SyncFromDisk(dbpath)
 		//_ = cacheDB.Print()
 	} else {
@@ -317,7 +317,7 @@ func initDB() {
 func initLocalDB(db *DB, dbpath string) {
 
 	log.Infof("Initializing local db at '%s'", dbpath)
-	debugPrint("%s flushing to disk", db.name)
+	log.Debugf("%s flushing to disk", db.name)
 	err := db.SyncToDisk(dbpath)
 	logPanic(err)
 
