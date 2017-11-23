@@ -1,14 +1,14 @@
 package main
 
-const (
-	BOOKMARK_FILE = "Bookmarks"
-	BOOKMARK_DIR  = "/home/spike/.config/google-chrome/Default/"
-)
+import "github.com/gin-gonic/gin"
 
 func main() {
-
 	// Block the main function
-	block := make(chan bool)
+	//block := make(chan bool)
+
+	r := gin.Default()
+
+	r.GET("/urls", getBookmarks)
 
 	initMode()
 	initLogging()
@@ -18,10 +18,13 @@ func main() {
 
 	cb := NewChromeBrowser()
 
-	//cb.RegisterHooks(ParseTags)
+	cb.RegisterHooks(ParseTags)
 
 	cb.Load()
+
 	_ = cb.Watch()
 
-	<-block
+	r.Run("127.0.0.1:4242")
+
+	//<-block
 }

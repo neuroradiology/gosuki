@@ -18,10 +18,10 @@ var (
 )
 
 const (
-	DB_FILENAME      = "gomarks.db"
-	DB_MEMCACHE_PATH = "file:memcache?mode=memory&cache=shared"
-	DBBufferFmt      = "file:%s?mode=memory&cache=shared"
-	DB_BACKUP_HOOK   = "sqlite_with_backup"
+	DB_FILENAME    = "gomarks.db"
+	DBMemcacheFmt  = "file:%s?mode=memory&cache=shared"
+	DBBufferFmt    = "file:%s?mode=memory&cache=shared"
+	DB_BACKUP_HOOK = "sqlite_with_backup"
 )
 
 //  Database schemas used for the creation of new databases
@@ -118,6 +118,28 @@ func (db *DB) Init() {
 	log.Debugf("<%s> initialized", db.name)
 }
 
+func (db *DB) Attach(attached *DB) {
+
+	stmtStr := fmt.Sprintf("ATTACH DATABASE '%s' AS '%s'", attached.path, attached.name)
+	_, err := db.handle.Exec(stmtStr)
+	logPanic(err)
+
+	/////////////////
+	// For debug only
+	/////////////////
+	//var idx int
+	//var dt string
+	//var name string
+
+	//rows, err := db.handle.Query("PRAGMA database_list;")
+	//logPanic(err)
+	//for rows.Next() {
+	//err = rows.Scan(&idx, &dt, &name)
+	//logPanic(err)
+	//log.Debugf("pragmalist: %s", dt)
+	//}
+}
+
 func (db *DB) Close() {
 	log.Debugf("Closing <%s>", db.name)
 	db.handle.Close()
@@ -137,7 +159,7 @@ func (db *DB) Print() error {
 
 	var url string
 
-	rows, err := db.handle.Query("select url, modified from bookmarks")
+	rows, err := db.handle.Query("select url from bookmarks")
 
 	for rows.Next() {
 		err = rows.Scan(&url)
@@ -284,7 +306,9 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 func initDB() {
 
 	// Initialize memory db with schema
-	cacheDB = DB{}.New("memcache", DB_MEMCACHE_PATH)
+	cacheName := "memcache"
+	cachePath := fmt.Sprintf(DBMemcacheFmt, cacheName)
+	cacheDB = DB{}.New(cacheName, cachePath)
 	cacheDB.Init()
 
 	// Check and initialize local db as last step
@@ -312,8 +336,7 @@ func initDB() {
 
 }
 
-//Initialize the database here
-//Bla bla bla
+//Initialize the local database file
 func initLocalDB(db *DB, dbpath string) {
 
 	log.Infof("Initializing local db at '%s'", dbpath)
