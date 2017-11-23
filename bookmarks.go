@@ -6,10 +6,10 @@ import (
 
 // Bookmark type
 type Bookmark struct {
-	Url      string
-	Metadata string
-	Tags     []string
-	Desc     string
+	Url      string   `json:"url"`
+	Metadata string   `json:"metadata"`
+	Tags     []string `json:"tags"`
+	Desc     string   `json:"desc"`
 	//flags int
 }
 
