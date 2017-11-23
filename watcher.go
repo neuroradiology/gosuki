@@ -4,6 +4,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+// Used as input to WatcherThread
+// It does not have to be a browser as long is the interface is implemented
 type IWatchable interface {
 	SetupWatcher()              // Starts watching bookmarks and runs Load on change
 	Watch() bool                // starts watching linked watcher

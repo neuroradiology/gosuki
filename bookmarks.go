@@ -1,11 +1,15 @@
 package main
 
+import (
+	"strings"
+)
+
 // Bookmark type
 type Bookmark struct {
-	url      string
-	metadata string
-	tags     []string
-	desc     string
+	Url      string
+	Metadata string
+	Tags     []string
+	Desc     string
 	//flags int
 }
 
@@ -20,8 +24,8 @@ func (bk *Bookmark) add(db *DB) {
 	logError(err)
 	defer stmt.Close()
 
-	_, err = stmt.Exec(bk.url, bk.metadata, "", "", 0)
-	sqlErrorMsg(err, bk.url)
+	_, err = stmt.Exec(bk.Url, bk.Metadata, strings.Join(bk.Tags, " "), "", 0)
+	sqlErrorMsg(err, bk.Url)
 
 	err = tx.Commit()
 	logError(err)

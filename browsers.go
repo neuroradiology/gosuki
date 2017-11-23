@@ -21,7 +21,7 @@ var Chrome = struct {
 	BookmarkDir  string
 }{
 	"Bookmarks",
-	"/home/spike/.config/google-chrome/Default/",
+	"/home/spike/.config/google-chrome-unstable/Default/",
 }
 
 type IBrowser interface {
@@ -37,7 +37,6 @@ type IBrowser interface {
 // Browser should contain enough data internally to not rely on any global
 // variable or constant if possible.
 // To create new browsers, you must implement a New<BrowserType>() function
-
 type BaseBrowser struct {
 	watcher    *fsnotify.Watcher
 	baseDir    string
@@ -81,10 +80,14 @@ func (bw *BaseBrowser) Close() {
 }
 
 func (b *BaseBrowser) InitBuffer() {
+
 	bufferName := fmt.Sprintf("buffer_%s", b.name)
 	bufferPath := fmt.Sprintf(DBBufferFmt, bufferName)
+
 	b.bufferDB = DB{}.New(bufferName, bufferPath)
 	b.bufferDB.Init()
+
+	b.bufferDB.Attach(cacheDB)
 }
 
 func (b *BaseBrowser) RegisterHooks(hooks ...ParseHook) {

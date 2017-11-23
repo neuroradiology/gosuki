@@ -106,9 +106,9 @@ func (bw *ChromeBrowser) Run() {
 			case 0:
 				nodeType = value
 			case 1: // name or title
-				bookmark.metadata = _s(value)
+				bookmark.Metadata = _s(value)
 			case 2:
-				bookmark.url = _s(value)
+				bookmark.Url = _s(value)
 			case 3:
 				children, childrenType = value, vt
 			}
@@ -128,8 +128,12 @@ func (bw *ChromeBrowser) Run() {
 			// Find tags in title
 			//findTagsInTitle(name)
 			bw.stats.currentUrlCount++
-			bookmark.add(bw.bufferDB)
+
+			// Run parsehoos before adding bookmark
 			bw.RunParseHooks(bookmark)
+
+			// Add bookmark
+			bookmark.add(bw.bufferDB)
 		}
 
 		// if node is a folder with children
