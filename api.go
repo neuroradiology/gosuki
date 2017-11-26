@@ -17,7 +17,7 @@ func getBookmarks(c *gin.Context) {
 	var tags string
 	for rows.Next() {
 		bookmark := Bookmark{}
-		err = rows.Scan(&bookmark.Url, &bookmark.Metadata, &tags)
+		err = rows.Scan(&bookmark.URL, &bookmark.Metadata, &tags)
 		logPanic(err)
 
 		bookmark.Tags = strings.Split(tags, " ")
