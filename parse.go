@@ -8,6 +8,15 @@ const (
 	RE_TAGS = `\B#\w+`
 )
 
+type NodeType uint8
+
+type Node struct {
+	Type     string
+	Name     string
+	URL      string
+	Children []*Node
+}
+
 type ParserStats struct {
 	lastNodeCount    int
 	lastURLCount     int
@@ -16,6 +25,16 @@ type ParserStats struct {
 }
 
 type ParseHook func(bk *Bookmark)
+
+func WalkNode(node *Node) {
+	log.Debugf("Node --> %s | %s", node.Name, node.Type)
+
+	if len(node.Children) > 0 {
+		for _, node := range node.Children {
+			go WalkNode(node)
+		}
+	}
+}
 
 func ParseTags(bk *Bookmark) {
 

@@ -84,10 +84,22 @@ func (bw *ChromeBrowser) Run() {
 		gJsonParseRecursive(nil, childVal, dataType, offset)
 	}
 
+	rootsNode := new(Node)
+	currentNode := rootsNode
+	//gRecursiveParse = func(isRoot bool) RecursiveParseFunc {
+
+	//if isRoot {
+	//currentNode = rootsNode
+	//}
+	//}
+
 	gJsonParseRecursive = func(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
 		// Core of google chrome bookmark parsing
 		// Any loading to local db is done here
 		bw.stats.currentNodeCount++
+
+		parentNode := currentNode
+		currentNode := new(Node)
 
 		var nodeType, children []byte
 		var childrenType jsonparser.ValueType
@@ -105,14 +117,19 @@ func (bw *ChromeBrowser) Run() {
 			switch idx {
 			case 0:
 				nodeType = value
+				currentNode.Type = _s(value)
+
 			case 1: // name or title
-				bookmark.Metadata = _s(value)
+				currentNode.Name = _s(value)
 			case 2:
-				bookmark.Url = _s(value)
+				currentNode.URL = _s(value)
 			case 3:
 				children, childrenType = value, vt
 			}
 		}, paths...)
+
+		bookmark.Metadata = currentNode.Name
+		bookmark.URL = currentNode.URL
 
 		// If node type is string ignore (needed for sync_transaction_version)
 		if dataType == jsonparser.String {
@@ -136,6 +153,8 @@ func (bw *ChromeBrowser) Run() {
 			bookmark.add(bw.bufferDB)
 		}
 
+		parentNode.Children = append(parentNode.Children, currentNode)
+
 		// if node is a folder with children
 		if childrenType == jsonparser.Array && len(children) > 2 { // if len(children) > len("[]")
 			jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
@@ -151,6 +170,8 @@ func (bw *ChromeBrowser) Run() {
 	log.Debug("loading bookmarks to bufferdb")
 	// Load bookmarks to currentJobDB
 	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
+
+	go WalkNode(rootsNode)
 
 	// Finished parsing
 	log.Debugf("parsed %d bookmarks", bw.stats.currentUrlCount)
