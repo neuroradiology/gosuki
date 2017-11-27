@@ -14,6 +14,7 @@ type Node struct {
 	Type     string
 	Name     string
 	URL      string
+	Parent   *Node
 	Children []*Node
 }
 
