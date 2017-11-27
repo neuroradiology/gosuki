@@ -86,12 +86,6 @@ func (bw *ChromeBrowser) Run() {
 
 	rootsNode := new(Node)
 	currentNode := rootsNode
-	//gRecursiveParse = func(isRoot bool) RecursiveParseFunc {
-
-	//if isRoot {
-	//currentNode = rootsNode
-	//}
-	//}
 
 	gJsonParseRecursive = func(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
 		// Core of google chrome bookmark parsing
@@ -100,6 +94,7 @@ func (bw *ChromeBrowser) Run() {
 
 		parentNode := currentNode
 		currentNode := new(Node)
+		currentNode.Parent = parentNode
 
 		var nodeType, children []byte
 		var childrenType jsonparser.ValueType
@@ -171,7 +166,8 @@ func (bw *ChromeBrowser) Run() {
 	// Load bookmarks to currentJobDB
 	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
 
-	go WalkNode(rootsNode)
+	// Debug walk tree
+	//go WalkNode(rootsNode)
 
 	// Finished parsing
 	log.Debugf("parsed %d bookmarks", bw.stats.currentUrlCount)
