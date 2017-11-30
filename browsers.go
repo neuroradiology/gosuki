@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/sp4ke/hashmap"
 )
 
 type BrowserType uint8
@@ -27,6 +28,7 @@ var Chrome = struct {
 type IBrowser interface {
 	IWatchable
 	InitBuffer() // init buffer db, should be defered to close after call
+	InitIndex()  // Creates in memory Index
 	RegisterHooks(...ParseHook)
 	Load() // Loads bookmarks to db without watching
 	//Parse(...ParseHook) // Main parsing method with different parsing hooks
@@ -42,6 +44,9 @@ type BaseBrowser struct {
 	baseDir    string
 	bkFile     string
 	bufferDB   *DB
+	URLIndex   *hashmap.RBTree
+	nodeTree   *Node
+	cNode      *Node //current node
 	stats      *ParserStats
 	bType      BrowserType
 	name       string
@@ -79,6 +84,10 @@ func (bw *BaseBrowser) Close() {
 	logPanic(err)
 }
 
+func (b *BaseBrowser) InitIndex() {
+	b.URLIndex = NewIndex()
+}
+
 func (b *BaseBrowser) InitBuffer() {
 
 	bufferName := fmt.Sprintf("buffer_%s", b.name)
@@ -98,8 +107,8 @@ func (b *BaseBrowser) RegisterHooks(hooks ...ParseHook) {
 }
 
 // Runs browsed defined hooks on bookmark
-func (b *BaseBrowser) RunParseHooks(bk *Bookmark) {
+func (b *BaseBrowser) RunParseHooks(node *Node) {
 	for _, hook := range b.parseHooks {
-		hook(bk)
+		hook(node)
 	}
 }

@@ -20,7 +20,7 @@ func getBookmarks(c *gin.Context) {
 		err = rows.Scan(&bookmark.URL, &bookmark.Metadata, &tags)
 		logPanic(err)
 
-		bookmark.Tags = strings.Split(tags, " ")
+		bookmark.Tags = strings.Split(tags, TagJoinSep)
 
 		//log.Debugf("GET %s", tags)
 		//log.Debugf("%v", bookmark)

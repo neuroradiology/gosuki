@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"path"
 
+	"github.com/OneOfOne/xxhash"
 	"github.com/buger/jsonparser"
 )
 
@@ -29,6 +30,8 @@ func NewChromeBrowser() IBrowser {
 	browser.baseDir = Chrome.BookmarkDir
 	browser.bkFile = Chrome.BookmarkFile
 	browser.stats = &ParserStats{}
+	browser.nodeTree = &Node{Name: "root", Parent: nil}
+	browser.cNode = browser.nodeTree
 
 	browser.SetupWatcher()
 
@@ -46,6 +49,8 @@ func (bw *ChromeBrowser) Watch() bool {
 }
 
 func (bw *ChromeBrowser) Load() {
+
+	bw.InitIndex()
 
 	// Check if cache is initialized
 	if cacheDB == nil || cacheDB.handle == nil {
@@ -84,21 +89,22 @@ func (bw *ChromeBrowser) Run() {
 		gJsonParseRecursive(nil, childVal, dataType, offset)
 	}
 
-	rootsNode := new(Node)
-	currentNode := rootsNode
-
 	gJsonParseRecursive = func(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
 		// Core of google chrome bookmark parsing
 		// Any loading to local db is done here
 		bw.stats.currentNodeCount++
 
-		parentNode := currentNode
+		//log.Debugf("moving current node %v as parent", currentNode.Name)
 		currentNode := new(Node)
-		currentNode.Parent = parentNode
 
-		var nodeType, children []byte
+		currentNode.Parent = bw.cNode
+		bw.cNode.Children = append(bw.cNode.Children, currentNode)
+		bw.cNode = currentNode
+
+		var nodeType, nodeName, nodeURL, children []byte
 		var childrenType jsonparser.ValueType
-		bookmark := &Bookmark{}
+
+		//log.Debugf("parent %v", parentNode)
 
 		// Paths to lookup in node payload
 		paths := [][]string{
@@ -112,48 +118,100 @@ func (bw *ChromeBrowser) Run() {
 			switch idx {
 			case 0:
 				nodeType = value
-				currentNode.Type = _s(value)
+				//currentNode.Type = _s(value)
 
 			case 1: // name or title
-				currentNode.Name = _s(value)
+				//currentNode.Name = _s(value)
+				nodeName = value
 			case 2:
-				currentNode.URL = _s(value)
+				//currentNode.URL = _s(value)
+				nodeURL = value
 			case 3:
 				children, childrenType = value, vt
 			}
 		}, paths...)
 
-		bookmark.Metadata = currentNode.Name
-		bookmark.URL = currentNode.URL
+		log.Debugf("parsing node %s", nodeName)
 
 		// If node type is string ignore (needed for sync_transaction_version)
 		if dataType == jsonparser.String {
 			return nil
 		}
 
-		// if node is url(leaf), handle the url
-		if _s(nodeType) == jsonNodeTypes.URL {
-			// Add bookmark to db here
-			//debugPrint("%s", url)
-			//debugPrint("%s", node)
-
-			// Find tags in title
-			//findTagsInTitle(name)
-			bw.stats.currentUrlCount++
-
-			// Run parsehoos before adding bookmark
-			bw.RunParseHooks(bookmark)
-
-			// Add bookmark
-			bookmark.add(bw.bufferDB)
-		}
-
-		parentNode.Children = append(parentNode.Children, currentNode)
-
 		// if node is a folder with children
 		if childrenType == jsonparser.Array && len(children) > 2 { // if len(children) > len("[]")
 			jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
+
+			// Finished parsing all children
+			// Add them into current node ?
 		}
+
+		currentNode.Type = _s(nodeType)
+		currentNode.Name = _s(nodeName)
+
+		// if node is url(leaf), handle the url
+		if _s(nodeType) == jsonNodeTypes.URL {
+
+			currentNode.URL = _s(nodeURL)
+
+			bw.stats.currentUrlCount++
+
+			// Check if url-node already in index
+			var nodeVal *Node
+			iVal, found := bw.URLIndex.Get(currentNode.URL)
+
+			nameHash := xxhash.ChecksumString64(currentNode.Name)
+			// If node url not in index, add it to index
+			if !found {
+				//log.Debugf("Not found")
+
+				// store hash(name)
+				currentNode.NameHash = nameHash
+
+				// The value in the index will be a
+				// pointer to currentNode
+				//log.Debugf("Inserting url %s to index", nodeURL)
+				bw.URLIndex.Insert(currentNode.URL, currentNode)
+
+				// If we find the node already in index
+				// we check if the hash(name) changed  meaning
+				// the data changed
+			} else {
+				//log.Debugf("Found")
+				nodeVal = iVal.(*Node)
+
+				// hash(name) is different, we will update the
+				// index and parse the bookmark
+				if nodeVal.NameHash != nameHash {
+
+					// Update node in index
+					currentNode.NameHash = nameHash
+
+					if currentNode.NameHash != nodeVal.NameHash {
+						panic("currentNode.NameHash != indexValue.NameHash")
+					}
+
+					// Run parse hooks on node
+					bw.RunParseHooks(currentNode)
+
+				}
+
+				// Else we do nothing, the node will not
+				// change
+			}
+
+			// If parent is folder, add it as tag and add current node as child
+			// And add this link as child
+			if currentNode.Parent.Type == jsonNodeTypes.Folder {
+				log.Debug("Parent is folder, parsing as tag ...")
+				currentNode.Tags = append(currentNode.Tags, currentNode.Parent.Name)
+			}
+
+		}
+
+		//log.Debugf("Adding current node %v to parent %v", currentNode.Name, parentNode)
+		//parentNode.Children = append(parentNode.Children, currentNode)
+		//currentNode.Parent = parentNode
 
 		return nil
 	}
@@ -162,12 +220,12 @@ func (bw *ChromeBrowser) Run() {
 	// Begin parsing
 	rootsData, _, _, _ := jsonparser.Get(f, "roots")
 
-	log.Debug("loading bookmarks to bufferdb")
-	// Load bookmarks to currentJobDB
+	log.Debug("loading bookmarks to index")
+
 	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
 
 	// Debug walk tree
-	//go WalkNode(rootsNode)
+	go WalkNode(bw.nodeTree)
 
 	// Finished parsing
 	log.Debugf("parsed %d bookmarks", bw.stats.currentUrlCount)
@@ -178,7 +236,9 @@ func (bw *ChromeBrowser) Run() {
 	bw.stats.currentNodeCount = 0
 	bw.stats.currentUrlCount = 0
 
-	// Compare currentDb with memCacheDb for new bookmarks
+	// Compare currentDb with index for new bookmarks
+
+	log.Debug("TODO: Compare cacheDB with index")
 
 	// If cacheDB is empty just copy bufferDB to cacheDB
 	// until local db is already populated and preloaded
