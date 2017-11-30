@@ -10,7 +10,7 @@ type Bookmark struct {
 	Metadata string   `json:"metadata"`
 	Tags     []string `json:"tags"`
 	Desc     string   `json:"desc"`
-	Node     Node
+	Node     Node     `json:"-"`
 	//flags int
 }
 
@@ -25,7 +25,7 @@ func (bk *Bookmark) add(db *DB) {
 	logError(err)
 	defer stmt.Close()
 
-	_, err = stmt.Exec(bk.URL, bk.Metadata, strings.Join(bk.Tags, " "), "", 0)
+	_, err = stmt.Exec(bk.URL, bk.Metadata, strings.Join(bk.Tags, TagJoinSep), "", 0)
 	sqlErrorMsg(err, bk.URL)
 
 	err = tx.Commit()

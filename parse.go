@@ -5,15 +5,22 @@ import (
 )
 
 const (
-	RE_TAGS = `\B#\w+`
+	// First group is tag
+	// TODO: use named groups
+	// [named groups](https://github.com/StefanSchroeder/Golang-Regex-Tutorial/blob/master/01-chapter2.markdown)
+
+	ReTags     = "\\B#(?P<tag>\\w+)"
+	TagJoinSep = "|"
 )
 
 type NodeType uint8
 
 type Node struct {
-	Type     string
 	Name     string
+	Type     string
 	URL      string
+	Tags     []string
+	NameHash uint64 // hash of the metadata
 	Parent   *Node
 	Children []*Node
 }
@@ -25,10 +32,12 @@ type ParserStats struct {
 	currentUrlCount  int
 }
 
-type ParseHook func(bk *Bookmark)
+type ParseHook func(node *Node)
 
+// Debuggin bookmark node tree
+// TODO: Better usage of node trees
 func WalkNode(node *Node) {
-	log.Debugf("Node --> %s | %s", node.Name, node.Type)
+	log.Debugf("Node --> %s | %s | children: %d | parent: %v", node.Name, node.Type, len(node.Children), node.Parent)
 
 	if len(node.Children) > 0 {
 		for _, node := range node.Children {
@@ -37,28 +46,22 @@ func WalkNode(node *Node) {
 	}
 }
 
-func ParseTags(bk *Bookmark) {
+func ParseTags(node *Node) {
 
-	var regex = regexp.MustCompile(RE_TAGS)
+	var regex = regexp.MustCompile(ReTags)
 
-	bk.Tags = regex.FindAllString(bk.Metadata, -1)
+	matches := regex.FindAllStringSubmatch(node.Name, -1)
+	for _, m := range matches {
+		node.Tags = append(node.Tags, _s(m[1]))
+	}
+	//res := regex.FindAllStringSubmatch(bk.Metadata, -1)
 
-	if len(bk.Tags) > 0 {
-		log.Debugf("[Title] found following tags: %s", bk.Tags)
+	if len(node.Tags) > 0 {
+		log.Debugf("[Title] found following tags: %s", node.Tags)
 	}
 
-	//bk.tags = regex.FindAllString(bk.url, -1)
-	//if len(tags) > 0 {
-	//log.Debugf("[URL] found following tags: %s", tags)
-	//}
 }
 
 func _s(value interface{}) string {
 	return string(value.([]byte))
-}
-
-func findTagsInTitle(title []byte) {
-	var regex = regexp.MustCompile(RE_TAGS)
-	tags := regex.FindAll(title, -1)
-	debugPrint("%s ---> found following tags: %s", title, tags)
 }
