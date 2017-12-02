@@ -13,8 +13,6 @@ const (
 	TagJoinSep = "|"
 )
 
-type NodeType uint8
-
 type Node struct {
 	Name     string
 	Type     string
