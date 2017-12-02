@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"path"
+	"time"
 
 	"github.com/OneOfOne/xxhash"
 	"github.com/buger/jsonparser"
@@ -18,6 +19,51 @@ var jsonNodePaths = struct {
 
 type ParseChildFunc func([]byte, jsonparser.ValueType, int, error)
 type RecursiveParseFunc func([]byte, []byte, jsonparser.ValueType, int) error
+
+type RawNode struct {
+	name         []byte
+	nType        []byte
+	url          []byte
+	children     []byte
+	childrenType jsonparser.ValueType
+}
+
+func (rawNode *RawNode) parseItems(nodeData []byte) {
+
+	// Paths to lookup in node payload
+	paths := [][]string{
+		[]string{"type"},
+		[]string{"name"}, // Title of page
+		[]string{"url"},
+		[]string{"children"},
+	}
+
+	jsonparser.EachKey(nodeData, func(idx int, value []byte, vt jsonparser.ValueType, err error) {
+		switch idx {
+		case 0:
+			rawNode.nType = value
+			//currentNode.Type = _s(value)
+
+		case 1: // name or title
+			//currentNode.Name = _s(value)
+			rawNode.name = value
+		case 2:
+			//currentNode.URL = _s(value)
+			rawNode.url = value
+		case 3:
+			rawNode.children, rawNode.childrenType = value, vt
+		}
+	}, paths...)
+}
+
+// Returns *Node from *RawNode
+func (rawNode *RawNode) getNode() *Node {
+	node := new(Node)
+	node.Type = _s(rawNode.nType)
+	node.Name = _s(rawNode.name)
+
+	return node
+}
 
 type ChromeBrowser struct {
 	BaseBrowser //embedding
@@ -79,80 +125,102 @@ func (bw *ChromeBrowser) Run() {
 	logPanic(err)
 
 	var parseChildren ParseChildFunc
-	var gJsonParseRecursive RecursiveParseFunc
+	var jsonParseRecursive RecursiveParseFunc
 
 	parseChildren = func(childVal []byte, dataType jsonparser.ValueType, offset int, err error) {
 		if err != nil {
 			log.Panic(err)
 		}
 
-		gJsonParseRecursive(nil, childVal, dataType, offset)
+		jsonParseRecursive(nil, childVal, dataType, offset)
 	}
 
-	gJsonParseRecursive = func(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
-		// Core of google chrome bookmark parsing
-		// Any loading to local db is done here
-		bw.stats.currentNodeCount++
+	// Needed to store the parent of each child node
+	var parentNodes []*Node
 
-		//log.Debugf("moving current node %v as parent", currentNode.Name)
-		currentNode := new(Node)
-
-		currentNode.Parent = bw.cNode
-		bw.cNode.Children = append(bw.cNode.Children, currentNode)
-		bw.cNode = currentNode
-
-		var nodeType, nodeName, nodeURL, children []byte
-		var childrenType jsonparser.ValueType
-
-		//log.Debugf("parent %v", parentNode)
-
-		// Paths to lookup in node payload
-		paths := [][]string{
-			[]string{"type"},
-			[]string{"name"}, // Title of page
-			[]string{"url"},
-			[]string{"children"},
-		}
-
-		jsonparser.EachKey(node, func(idx int, value []byte, vt jsonparser.ValueType, err error) {
-			switch idx {
-			case 0:
-				nodeType = value
-				//currentNode.Type = _s(value)
-
-			case 1: // name or title
-				//currentNode.Name = _s(value)
-				nodeName = value
-			case 2:
-				//currentNode.URL = _s(value)
-				nodeURL = value
-			case 3:
-				children, childrenType = value, vt
-			}
-		}, paths...)
-
-		log.Debugf("parsing node %s", nodeName)
+	jsonParseRoots := func(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
 
 		// If node type is string ignore (needed for sync_transaction_version)
 		if dataType == jsonparser.String {
 			return nil
 		}
 
-		// if node is a folder with children
-		if childrenType == jsonparser.Array && len(children) > 2 { // if len(children) > len("[]")
-			jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
+		bw.stats.currentNodeCount++
 
-			// Finished parsing all children
-			// Add them into current node ?
+		rawNode := new(RawNode)
+		rawNode.parseItems(node)
+		log.Debugf("Parsing root folder %s", rawNode.name)
+
+		currentNode := rawNode.getNode()
+
+		// Process this node as parent node later
+		parentNodes = append(parentNodes, currentNode)
+
+		// add the root node as parent to this node
+		currentNode.Parent = bw.nodeTree
+
+		// Add this root node as a child of the root node
+		bw.nodeTree.Children = append(bw.nodeTree.Children, currentNode)
+
+		// Call recursive parsing of this node which must
+		// a root folder node
+		jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
+
+		// Finished parsing this root, it is not anymore a parent
+		_, parentNodes = parentNodes[len(parentNodes)-1], parentNodes[:len(parentNodes)-1]
+
+		log.Debugf("Parsed root %s folder", rawNode.name)
+
+		return nil
+	}
+
+	// Main recursive parsing function that parses underneath
+	// each root folder
+	jsonParseRecursive = func(key []byte, node []byte, dataType jsonparser.ValueType, offset int) error {
+
+		// If node type is string ignore (needed for sync_transaction_version)
+		if dataType == jsonparser.String {
+			return nil
 		}
 
-		currentNode.Type = _s(nodeType)
-		currentNode.Name = _s(nodeName)
+		bw.stats.currentNodeCount++
+
+		rawNode := new(RawNode)
+		rawNode.parseItems(node)
+
+		currentNode := rawNode.getNode()
+		log.Debugf("parsing node %s", currentNode.Name)
+
+		// if parents array is not empty
+		if len(parentNodes) != 0 {
+			parent := parentNodes[len(parentNodes)-1]
+			log.Debugf("Adding current node to parent %s", parent.Name)
+
+			// Add current node to closest parent
+			currentNode.Parent = parent
+
+			// add as parent children
+			currentNode.Parent.Children = append(currentNode.Parent.Children, currentNode)
+		}
+
+		// if node is a folder with children
+		if rawNode.childrenType == jsonparser.Array && len(rawNode.children) > 2 { // if len(children) > len("[]")
+
+			log.Debugf("Started folder %s", rawNode.name)
+			parentNodes = append(parentNodes, currentNode)
+
+			// Process recursively all child nodes of this folder node
+			jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
+
+			log.Debugf("Finished folder %s", rawNode.name)
+			_, parentNodes = parentNodes[len(parentNodes)-1], parentNodes[:len(parentNodes)-1]
+
+		}
 
 		// if node is url(leaf), handle the url
-		if _s(nodeType) == jsonNodeTypes.URL {
+		if _s(rawNode.nType) == jsonNodeTypes.URL {
 
-			currentNode.URL = _s(nodeURL)
+			currentNode.URL = _s(rawNode.url)
 
 			bw.stats.currentUrlCount++
 
@@ -200,18 +268,14 @@ func (bw *ChromeBrowser) Run() {
 				// change
 			}
 
-			// If parent is folder, add it as tag and add current node as child
-			// And add this link as child
+			//If parent is folder, add it as tag and add current node as child
+			//And add this link as child
 			if currentNode.Parent.Type == jsonNodeTypes.Folder {
 				log.Debug("Parent is folder, parsing as tag ...")
 				currentNode.Tags = append(currentNode.Tags, currentNode.Parent.Name)
 			}
 
 		}
-
-		//log.Debugf("Adding current node %v to parent %v", currentNode.Name, parentNode)
-		//parentNode.Children = append(parentNode.Children, currentNode)
-		//currentNode.Parent = parentNode
 
 		return nil
 	}
@@ -221,8 +285,12 @@ func (bw *ChromeBrowser) Run() {
 	rootsData, _, _, _ := jsonparser.Get(f, "roots")
 
 	log.Debug("loading bookmarks to index")
+	log.Debugf("cNode: %s", bw.cNode.Name)
 
-	jsonparser.ObjectEach(rootsData, gJsonParseRecursive)
+	start := time.Now()
+	jsonparser.ObjectEach(rootsData, jsonParseRoots)
+	elapsed := time.Since(start)
+	log.Debugf("Parsing tree in %s", elapsed)
 
 	// Debug walk tree
 	go WalkNode(bw.nodeTree)
