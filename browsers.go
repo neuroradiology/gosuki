@@ -45,8 +45,7 @@ type BaseBrowser struct {
 	bkFile     string
 	bufferDB   *DB
 	URLIndex   *hashmap.RBTree
-	nodeTree   *Node
-	cNode      *Node //current node
+	nodeTree   *Node // pointer to root of the node tree
 	stats      *ParserStats
 	bType      BrowserType
 	name       string

@@ -77,7 +77,6 @@ func NewChromeBrowser() IBrowser {
 	browser.bkFile = Chrome.BookmarkFile
 	browser.stats = &ParserStats{}
 	browser.nodeTree = &Node{Name: "root", Parent: nil}
-	browser.cNode = browser.nodeTree
 
 	browser.SetupWatcher()
 
@@ -280,12 +279,7 @@ func (bw *ChromeBrowser) Run() {
 		return nil
 	}
 
-	//debugPrint("parsing bookmarks")
-	// Begin parsing
 	rootsData, _, _, _ := jsonparser.Get(f, "roots")
-
-	log.Debug("loading bookmarks to index")
-	log.Debugf("cNode: %s", bw.cNode.Name)
 
 	start := time.Now()
 	jsonparser.ObjectEach(rootsData, jsonParseRoots)
