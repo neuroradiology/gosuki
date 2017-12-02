@@ -95,19 +95,9 @@ func (bw *ChromeBrowser) Watch() bool {
 
 func (bw *ChromeBrowser) Load() {
 
-	bw.InitIndex()
+	// BaseBrowser load method
+	bw.BaseBrowser.Load()
 
-	// Check if cache is initialized
-	if cacheDB == nil || cacheDB.handle == nil {
-		log.Critical("cache is not yet initialized !")
-		panic("cache is not yet initialized !")
-	}
-
-	if bw.watcher == nil {
-		log.Fatal("watcher not initialized SetupWatcher() !")
-	}
-
-	log.Debug("preloading bookmarks")
 	bw.Run()
 }
 

@@ -59,6 +59,19 @@ func (bw *BaseBrowser) Watcher() *fsnotify.Watcher {
 
 func (bw *BaseBrowser) Load() {
 	log.Debug("BaseBrowser Load()")
+	bw.InitIndex()
+
+	// Check if cache is initialized
+	if cacheDB == nil || cacheDB.handle == nil {
+		log.Critical("cache is not yet initialized !")
+		panic("cache is not yet initialized !")
+	}
+
+	if bw.watcher == nil {
+		log.Fatal("watcher not initialized, use SetupWatcher() when creating the browser !")
+	}
+
+	log.Debug("preloading bookmarks")
 }
 
 func (bw *BaseBrowser) GetPath() string {
