@@ -288,7 +288,12 @@ func (bw *ChromeBrowser) Run() {
 	bw.stats.currentNodeCount = 0
 	bw.stats.currentUrlCount = 0
 
-	// Compare currentDb with index for new bookmarks
+	// Compare cacheDB with index for new bookmarks
+	// cacheDB is an sqlite and buffer is a RBTree hash map
+	// I need to implement the cache in a RBTree also to
+	// keep everything in a tree,
+	//
+	// or compare between tree and sqlite
 
 	log.Debug("TODO: Compare cacheDB with index")
 
