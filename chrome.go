@@ -237,8 +237,9 @@ func (bw *ChromeBrowser) Run() {
 				log.Debugf("URL Found in index")
 				nodeVal = iVal.(*Node)
 
-				// hash(name) is different, we need to update the index and
-				// buffer tree:
+				// hash(name) is different meaning new commands/tags could
+				// be added, we need to update the index and buffer tree:
+				//
 				// 1- update the index by updating the name and namehash
 				// 2- Run the hooks on the node in case of new commands
 				if nodeVal.NameHash != nameHash {
@@ -299,22 +300,27 @@ func (bw *ChromeBrowser) Run() {
 	bw.stats.currentNodeCount = 0
 	bw.stats.currentUrlCount = 0
 
-	// Compare cacheDB with buffer(nodeTree) for new bookmarks
-	// cacheDB is an sqlite and buffer is tree
+	// cacheDB represents bookmarks across all browsers
+	// From browsers it should support: add/update
+	// Delete method should only be possible through admin interface
+	// We could have an @ignore command to ignore a bookmark
 
-	// I need to implement the cache also in a tree to
-	// keep everything in a tree.
-	//
-	// Or compare between tree and sqlite
+	// URLIndex is a hashmap index of all URLS representing current state
+	// of the browser
+
+	// nodeTree is current state of the browser as tree
+
+	// Buffer is the current state of the browser represetned by
+	// URLIndex and nodeTree
 
 	log.Debug("TODO: Compare cacheDB with index")
 
-	// If cacheDB is empty just copy bufferDB to cacheDB
+	// If cacheDB is empty just copy buffer to cacheDB
 	// until local db is already populated and preloaded
 	//debugPrint("%d", bufferDB.Count())
 	if empty, err := cacheDB.isEmpty(); empty {
 		logPanic(err)
-		log.Debug("cache empty: loading bufferdb to cachedb")
+		log.Debug("cache empty: loading buffer to cachedb")
 
 		//start := time.Now()
 		bw.bufferDB.SyncTo(cacheDB)
