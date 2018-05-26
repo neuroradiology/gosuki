@@ -188,7 +188,7 @@ func (bw *ChromeBrowser) Run() {
 			// Add current node to closest parent
 			currentNode.Parent = parent
 
-			// add as parent children
+			// Add current node as child to parent
 			currentNode.Parent.Children = append(currentNode.Parent.Children, currentNode)
 		}
 
@@ -237,15 +237,16 @@ func (bw *ChromeBrowser) Run() {
 				log.Debugf("URL Found in index")
 				nodeVal = iVal.(*Node)
 
-				// hash(name) is different, we will:
+				// hash(name) is different, we need to update the index and
+				// buffer tree:
 				// 1- update the index by updating the name and namehash
 				// 2- Run the hooks on the node in case of new commands
 				if nodeVal.NameHash != nameHash {
-					log.Debugf("URL name changed !")
+					//log.Debugf("URL name changed !")
 
 					// Update node in index
-					log.Debugf("Current node: name: %s | hash: %v", currentNode.Name, currentNode.NameHash)
-					log.Debugf("Index node: name: %s | hash: %v", nodeVal.Name, nodeVal.NameHash)
+					//log.Debugf("Current node: name: %s | hash: %v", currentNode.Name, currentNode.NameHash)
+					//log.Debugf("Index node: name: %s | hash: %v", nodeVal.Name, nodeVal.NameHash)
 
 					currentNode.NameHash = nameHash
 					nodeVal.Name = currentNode.Name
@@ -298,12 +299,13 @@ func (bw *ChromeBrowser) Run() {
 	bw.stats.currentNodeCount = 0
 	bw.stats.currentUrlCount = 0
 
-	// Compare cacheDB with index for new bookmarks
-	// cacheDB is an sqlite and buffer is a RBTree hash map
-	// I need to implement the cache in a RBTree also to
-	// keep everything in a tree,
+	// Compare cacheDB with buffer(nodeTree) for new bookmarks
+	// cacheDB is an sqlite and buffer is tree
+
+	// I need to implement the cache also in a tree to
+	// keep everything in a tree.
 	//
-	// or compare between tree and sqlite
+	// Or compare between tree and sqlite
 
 	log.Debug("TODO: Compare cacheDB with index")
 
