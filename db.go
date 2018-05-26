@@ -49,7 +49,7 @@ const (
 )
 
 // DB encapsulates an sql.DB
-// all itneractions with memory/buffer and disk databases
+// all interactions with memory/buffer and disk databases
 // is done through the DB object
 type DB struct {
 	name         string
@@ -72,7 +72,6 @@ func (db *DB) Init() {
 
 	// TODO: Use context when making call from request/api
 	// `cacheDB` is a memory replica of disk db
-	// `bufferDB` is current working job db
 
 	var err error
 
