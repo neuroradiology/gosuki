@@ -28,7 +28,7 @@ var Chrome = struct {
 type IBrowser interface {
 	IWatchable
 	InitBuffer() // init buffer db, should be defered to close after call
-	InitIndex()  // Creates in memory Index
+	InitIndex()  // Creates in memory Index (RB-Tree)
 	RegisterHooks(...ParseHook)
 	Load() // Loads bookmarks to db without watching
 	//Parse(...ParseHook) // Main parsing method with different parsing hooks
@@ -38,14 +38,18 @@ type IBrowser interface {
 // Base browser class serves as reference for implmented browser types
 // Browser should contain enough data internally to not rely on any global
 // variable or constant if possible.
-// To create new browsers, you must implement a New<BrowserType>() function
+// To create new browsers, you must implement a New<BrowserType>() IBrowser function
+// URLIndex (HashMap RBTree):
+// Used as fast query db representing the last known browser bookmarks.
+// nodeTree (Tree DAG):
+// Used as buffer. Represents current Browser bookmarks
 type BaseBrowser struct {
 	watcher    *fsnotify.Watcher
 	baseDir    string
 	bkFile     string
 	bufferDB   *DB
-	URLIndex   *hashmap.RBTree
-	nodeTree   *Node // pointer to root of the node tree
+	URLIndex   *hashmap.RBTree // Fast query of last browser state
+	nodeTree   *Node           // pointer to root of the node tree
 	stats      *ParserStats
 	bType      BrowserType
 	name       string
@@ -98,6 +102,12 @@ func (bw *BaseBrowser) Close() {
 
 func (b *BaseBrowser) InitIndex() {
 	b.URLIndex = NewIndex()
+}
+
+func (b *BaseBrowser) RebuildIndex() {
+	log.Debugf("Rebuilding index based on current nodeTree")
+	b.URLIndex = NewIndex()
+	WalkBuildIndex(b.nodeTree, b)
 }
 
 func (b *BaseBrowser) InitBuffer() {

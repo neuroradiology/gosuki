@@ -234,18 +234,25 @@ func (bw *ChromeBrowser) Run() {
 				// we check if the hash(name) changed  meaning
 				// the data changed
 			} else {
-				//log.Debugf("Found")
+				log.Debugf("URL Found in index")
 				nodeVal = iVal.(*Node)
 
-				// hash(name) is different, we will update the
-				// index and parse the bookmark
+				// hash(name) is different, we will:
+				// 1- update the index by updating the name and namehash
+				// 2- Run the hooks on the node in case of new commands
 				if nodeVal.NameHash != nameHash {
+					log.Debugf("URL name changed !")
 
 					// Update node in index
+					log.Debugf("Current node: name: %s | hash: %v", currentNode.Name, currentNode.NameHash)
+					log.Debugf("Index node: name: %s | hash: %v", nodeVal.Name, nodeVal.NameHash)
+
 					currentNode.NameHash = nameHash
+					nodeVal.Name = currentNode.Name
+					nodeVal.NameHash = nameHash
 
 					if currentNode.NameHash != nodeVal.NameHash {
-						panic("currentNode.NameHash != indexValue.NameHash")
+						panic("currentNode.NameHash != nodeVal.NameHash")
 					}
 
 					// Run parse hooks on node
@@ -277,7 +284,10 @@ func (bw *ChromeBrowser) Run() {
 	log.Debugf("Parsing tree in %s", elapsed)
 
 	// Debug walk tree
-	go WalkNode(bw.nodeTree)
+	//go WalkNode(bw.nodeTree)
+
+	// Reset the index to represent the nodetree
+	bw.RebuildIndex()
 
 	// Finished parsing
 	log.Debugf("parsed %d bookmarks", bw.stats.currentUrlCount)

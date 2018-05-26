@@ -44,6 +44,21 @@ func WalkNode(node *Node) {
 	}
 }
 
+func WalkBuildIndex(node *Node, b *BaseBrowser) {
+
+	if node.Type == "url" {
+		b.URLIndex.Insert(node.URL, node)
+		//log.Debugf("Inserted URL: %s and Hash: %v", node.URL, node.NameHash)
+	}
+
+	if len(node.Children) > 0 {
+		for _, node := range node.Children {
+			go WalkBuildIndex(node, b)
+		}
+
+	}
+}
+
 func ParseTags(node *Node) {
 
 	var regex = regexp.MustCompile(ReTags)
