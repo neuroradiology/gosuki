@@ -75,8 +75,8 @@ func NewChromeBrowser() IBrowser {
 	browser.bType = TChrome
 	browser.baseDir = Chrome.BookmarkDir
 	browser.bkFile = Chrome.BookmarkFile
-	browser.stats = &ParserStats{}
-	browser.nodeTree = &Node{Name: "root", Parent: nil}
+	browser.Stats = &ParserStats{}
+	browser.NodeTree = &Node{Name: "root", Parent: nil}
 
 	// Across jobs buffer
 	browser.InitBuffer()
@@ -107,7 +107,7 @@ func (bw *ChromeBrowser) Load() {
 func (bw *ChromeBrowser) Run() {
 
 	// Rebuild node tree
-	bw.nodeTree = &Node{Name: "root", Parent: nil}
+	bw.NodeTree = &Node{Name: "root", Parent: nil}
 
 	// Load bookmark file
 	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
@@ -135,7 +135,7 @@ func (bw *ChromeBrowser) Run() {
 			return nil
 		}
 
-		bw.stats.currentNodeCount++
+		bw.Stats.currentNodeCount++
 
 		rawNode := new(RawNode)
 		rawNode.parseItems(node)
@@ -147,10 +147,10 @@ func (bw *ChromeBrowser) Run() {
 		parentNodes = append(parentNodes, currentNode)
 
 		// add the root node as parent to this node
-		currentNode.Parent = bw.nodeTree
+		currentNode.Parent = bw.NodeTree
 
 		// Add this root node as a child of the root node
-		bw.nodeTree.Children = append(bw.nodeTree.Children, currentNode)
+		bw.NodeTree.Children = append(bw.NodeTree.Children, currentNode)
 
 		// Call recursive parsing of this node which must
 		// a root folder node
@@ -173,7 +173,7 @@ func (bw *ChromeBrowser) Run() {
 			return nil
 		}
 
-		bw.stats.currentNodeCount++
+		bw.Stats.currentNodeCount++
 
 		rawNode := new(RawNode)
 		rawNode.parseItems(node)
@@ -212,7 +212,7 @@ func (bw *ChromeBrowser) Run() {
 
 			currentNode.URL = _s(rawNode.url)
 
-			bw.stats.currentUrlCount++
+			bw.Stats.currentUrlCount++
 
 			// Check if url-node already in index
 			var nodeVal *Node
@@ -286,20 +286,20 @@ func (bw *ChromeBrowser) Run() {
 	bw.RebuildIndex()
 
 	// Finished parsing
-	log.Debugf("parsed %d bookmarks", bw.stats.currentUrlCount)
+	log.Debugf("parsed %d bookmarks", bw.Stats.currentUrlCount)
 
 	// Reset parser counter
-	bw.stats.lastURLCount = bw.stats.currentUrlCount
-	bw.stats.lastNodeCount = bw.stats.currentNodeCount
-	bw.stats.currentNodeCount = 0
-	bw.stats.currentUrlCount = 0
+	bw.Stats.lastURLCount = bw.Stats.currentUrlCount
+	bw.Stats.lastNodeCount = bw.Stats.currentNodeCount
+	bw.Stats.currentNodeCount = 0
+	bw.Stats.currentUrlCount = 0
 
 	//Add nodeTree to Cache
 	log.Debugf("Buffer content")
 	bw.bufferDB.Print()
 
 	log.Debugf("syncing to buffer")
-	syncTreeToBuffer(bw.nodeTree, bw.bufferDB)
+	syncTreeToBuffer(bw.NodeTree, bw.bufferDB)
 	log.Debugf("Tree synced to buffer")
 
 	bw.bufferDB.Print()
