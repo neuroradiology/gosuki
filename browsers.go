@@ -4,7 +4,7 @@
 //
 // For *browser specific* implementation create a new file for that browser.
 //
-// You must then implement a `New[BrowserType]()` IBrowser function and
+// You must then implement a `func New[BrowserType]() IBrowser` function and
 // implement parsing.
 package main
 
