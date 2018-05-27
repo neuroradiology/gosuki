@@ -322,26 +322,26 @@ func (bw *ChromeBrowser) Run() {
 	// If cacheDB is empty just copy buffer to cacheDB
 	// until local db is already populated and preloaded
 	//debugPrint("%d", bufferDB.Count())
-	if empty, err := cacheDB.isEmpty(); empty {
+	if empty, err := CacheDB.isEmpty(); empty {
 		logPanic(err)
-		log.Debug("cache empty: loading buffer to cachedb")
+		log.Debug("cache empty: loading buffer to Cachedb")
 
 		//start := time.Now()
-		bw.bufferDB.SyncTo(cacheDB)
-		//debugPrint("<%s> is now (%d)", cacheDB.name, cacheDB.Count())
+		bw.bufferDB.SyncTo(CacheDB)
+		//debugPrint("<%s> is now (%d)", CacheDB.name, cacheDB.Count())
 		//elapsed := time.Since(start)
 		//debugPrint("copy in %s", elapsed)
 
-		debugPrint("syncing <%s> to disk", cacheDB.name)
-		cacheDB.SyncToDisk(getDBFullPath())
+		debugPrint("syncing <%s> to disk", CacheDB.name)
+		CacheDB.SyncToDisk(getDBFullPath())
 	}
 
 	// Implement incremental sync by doing INSERTs
-	bw.bufferDB.SyncTo(cacheDB)
+	bw.bufferDB.SyncTo(CacheDB)
 
-	cacheDB.SyncToDisk(getDBFullPath())
+	CacheDB.SyncToDisk(getDBFullPath())
 
 	// TODO: Check if new/modified bookmarks in buffer compared to cache
-	log.Debugf("TODO: check if new/modified bookmarks in %s compared to %s", bw.bufferDB.name, cacheDB.name)
+	log.Debugf("TODO: check if new/modified bookmarks in %s compared to %s", bw.bufferDB.name, CacheDB.name)
 
 }

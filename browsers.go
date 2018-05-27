@@ -70,7 +70,7 @@ func (bw *BaseBrowser) Load() {
 	bw.InitIndex()
 
 	// Check if cache is initialized
-	if cacheDB == nil || cacheDB.handle == nil {
+	if CacheDB == nil || CacheDB.handle == nil {
 		log.Critical("cache is not yet initialized !")
 		panic("cache is not yet initialized !")
 	}
@@ -122,7 +122,7 @@ func (b *BaseBrowser) InitBuffer() {
 	b.bufferDB = DB{}.New(bufferName, bufferPath)
 	b.bufferDB.Init()
 
-	b.bufferDB.Attach(cacheDB)
+	b.bufferDB.Attach(CacheDB)
 }
 
 func (b *BaseBrowser) RegisterHooks(hooks ...ParseHook) {
