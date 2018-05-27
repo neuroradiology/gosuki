@@ -3,7 +3,8 @@
 // All constants and common API for browsers should be implemented here.
 //
 // For *browser specific* implementation create a new file for that browser.
-// You must then implement a New<BrowserType>() IBrowser function. Then
+//
+// You must then implement a `New[BrowserType]()` IBrowser function and
 // implement parsing.
 package main
 
