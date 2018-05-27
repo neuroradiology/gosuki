@@ -9,7 +9,7 @@ import (
 
 func getBookmarks(c *gin.Context) {
 
-	rows, err := cacheDB.handle.QueryContext(c, "SELECT URL, metadata, tags FROM bookmarks")
+	rows, err := CacheDB.handle.QueryContext(c, "SELECT URL, metadata, tags FROM bookmarks")
 	logPanic(err)
 
 	var bookmarks []Bookmark

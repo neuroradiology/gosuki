@@ -12,7 +12,7 @@ import (
 
 // Global cache database
 var (
-	cacheDB              *DB                   // Main in memory db, is synced with disc
+	CacheDB              *DB                   // Main in memory db, is synced with disc
 	_sql3conns           []*sqlite3.SQLiteConn // Only used for backup hook
 	backupHookRegistered bool                  // set to true once the backup hook is registered
 )
@@ -308,8 +308,8 @@ func initDB() {
 	// Initialize memory db with schema
 	cacheName := "memcache"
 	cachePath := fmt.Sprintf(DBMemcacheFmt, cacheName)
-	cacheDB = DB{}.New(cacheName, cachePath)
-	cacheDB.Init()
+	CacheDB = DB{}.New(cacheName, cachePath)
+	CacheDB.Init()
 
 	// Check and initialize local db as last step
 	// browser bookmarks should already be in cache
@@ -326,12 +326,12 @@ func initDB() {
 	if exists, err = checkFileExists(dbpath); exists {
 		logPanic(err)
 		log.Debugf("localdb exists, preloading to cache")
-		cacheDB.SyncFromDisk(dbpath)
+		CacheDB.SyncFromDisk(dbpath)
 		//_ = cacheDB.Print()
 	} else {
 		logPanic(err)
 		// Else initialize it
-		initLocalDB(cacheDB, dbpath)
+		initLocalDB(CacheDB, dbpath)
 	}
 
 }
