@@ -65,7 +65,7 @@ type BaseBrowser struct {
 	BufferDB *DB
 
 	// Fast query db using an RB-Tree hashmap.
-	// It represents the last job index of bookmarks
+	// It represents a URL index of the last running job
 	URLIndex *hashmap.RBTree
 
 	// Pointer to the root of the node tree
