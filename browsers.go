@@ -54,13 +54,19 @@ type IBrowser interface {
 // `nodeTree` (Tree DAG):
 // Used in each job to represent bookmarks in a tree
 //
-// `bufferDB`: sqlite buffer used across jobs
+// `BufferDB`: sqlite buffer used across jobs
 type BaseBrowser struct {
-	watcher  *fsnotify.Watcher
-	baseDir  string
-	bkFile   string
-	bufferDB *DB
-	URLIndex *hashmap.RBTree // Fast query of last browser state
+	watcher *fsnotify.Watcher
+	baseDir string
+	bkFile  string
+
+	// In memory sqlite db (named `memcache`).
+	// Used to keep a browser's state of bookmarks across jobs.
+	BufferDB *DB
+
+	// Fast query db using an RB-Tree hashmap.
+	// It represents the last job index of bookmarks
+	URLIndex *hashmap.RBTree
 
 	// Pointer to the root of the node tree
 	// The node tree is built again for every Run job on a browser
@@ -113,7 +119,7 @@ func (bw *BaseBrowser) SetupWatcher() {
 
 func (bw *BaseBrowser) Close() {
 	err := bw.watcher.Close()
-	bw.bufferDB.Close()
+	bw.BufferDB.Close()
 	logPanic(err)
 }
 
@@ -132,10 +138,10 @@ func (b *BaseBrowser) InitBuffer() {
 	bufferName := fmt.Sprintf("buffer_%s", b.name)
 	bufferPath := fmt.Sprintf(DBBufferFmt, bufferName)
 
-	b.bufferDB = DB{}.New(bufferName, bufferPath)
-	b.bufferDB.Init()
+	b.BufferDB = DB{}.New(bufferName, bufferPath)
+	b.BufferDB.Init()
 
-	b.bufferDB.Attach(CacheDB)
+	b.BufferDB.Attach(CacheDB)
 }
 
 func (b *BaseBrowser) RegisterHooks(hooks ...ParseHook) {

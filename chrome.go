@@ -296,13 +296,13 @@ func (bw *ChromeBrowser) Run() {
 
 	//Add nodeTree to Cache
 	log.Debugf("Buffer content")
-	bw.bufferDB.Print()
+	bw.BufferDB.Print()
 
 	log.Debugf("syncing to buffer")
-	syncTreeToBuffer(bw.NodeTree, bw.bufferDB)
+	syncTreeToBuffer(bw.NodeTree, bw.BufferDB)
 	log.Debugf("Tree synced to buffer")
 
-	bw.bufferDB.Print()
+	bw.BufferDB.Print()
 
 	// cacheDB represents bookmarks across all browsers
 	// From browsers it should support: add/update
@@ -321,13 +321,13 @@ func (bw *ChromeBrowser) Run() {
 
 	// If cacheDB is empty just copy buffer to cacheDB
 	// until local db is already populated and preloaded
-	//debugPrint("%d", bufferDB.Count())
+	//debugPrint("%d", BufferDB.Count())
 	if empty, err := CacheDB.isEmpty(); empty {
 		logPanic(err)
 		log.Debug("cache empty: loading buffer to Cachedb")
 
 		//start := time.Now()
-		bw.bufferDB.SyncTo(CacheDB)
+		bw.BufferDB.SyncTo(CacheDB)
 		//debugPrint("<%s> is now (%d)", CacheDB.name, cacheDB.Count())
 		//elapsed := time.Since(start)
 		//debugPrint("copy in %s", elapsed)
@@ -337,11 +337,11 @@ func (bw *ChromeBrowser) Run() {
 	}
 
 	// Implement incremental sync by doing INSERTs
-	bw.bufferDB.SyncTo(CacheDB)
+	bw.BufferDB.SyncTo(CacheDB)
 
 	CacheDB.SyncToDisk(getDBFullPath())
 
 	// TODO: Check if new/modified bookmarks in buffer compared to cache
-	log.Debugf("TODO: check if new/modified bookmarks in %s compared to %s", bw.bufferDB.Name, CacheDB.Name)
+	log.Debugf("TODO: check if new/modified bookmarks in %s compared to %s", bw.BufferDB.Name, CacheDB.Name)
 
 }
