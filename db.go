@@ -48,9 +48,8 @@ const (
 	)`
 )
 
-// DB encapsulates an sql.DB
-// all interactions with memory/buffer and disk databases
-// is done through the DB object
+// DB encapsulates an sql.DB struct. All interactions with memory/buffer and
+// disk databases are done through the DB object
 type DB struct {
 	Name   string
 	Path   string
