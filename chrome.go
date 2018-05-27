@@ -332,7 +332,7 @@ func (bw *ChromeBrowser) Run() {
 		//elapsed := time.Since(start)
 		//debugPrint("copy in %s", elapsed)
 
-		debugPrint("syncing <%s> to disk", CacheDB.name)
+		debugPrint("syncing <%s> to disk", CacheDB.Name)
 		CacheDB.SyncToDisk(getDBFullPath())
 	}
 
@@ -342,6 +342,6 @@ func (bw *ChromeBrowser) Run() {
 	CacheDB.SyncToDisk(getDBFullPath())
 
 	// TODO: Check if new/modified bookmarks in buffer compared to cache
-	log.Debugf("TODO: check if new/modified bookmarks in %s compared to %s", bw.bufferDB.name, CacheDB.name)
+	log.Debugf("TODO: check if new/modified bookmarks in %s compared to %s", bw.bufferDB.Name, CacheDB.Name)
 
 }

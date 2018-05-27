@@ -70,7 +70,7 @@ func (bw *BaseBrowser) Load() {
 	bw.InitIndex()
 
 	// Check if cache is initialized
-	if CacheDB == nil || CacheDB.handle == nil {
+	if CacheDB == nil || CacheDB.Handle == nil {
 		log.Critical("cache is not yet initialized !")
 		panic("cache is not yet initialized !")
 	}

@@ -16,7 +16,7 @@ type Bookmark struct {
 
 func (bk *Bookmark) add(db *DB) {
 	//log.Debugf("Adding bookmark %s", bk.URL)
-	_db := db.handle
+	_db := db.Handle
 
 	tx, err := _db.Begin()
 	logPanic(err)
