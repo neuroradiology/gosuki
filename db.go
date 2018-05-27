@@ -52,18 +52,17 @@ const (
 // all interactions with memory/buffer and disk databases
 // is done through the DB object
 type DB struct {
-	name         string
-	path         string
-	handle       *sql.DB
-	backupHookOn bool
+	Name   string
+	Path   string
+	Handle *sql.DB
 }
 
 func (db DB) New(name string, path string) *DB {
-	return &DB{name, path, nil, false}
+	return &DB{name, path, nil}
 }
 
 func (db *DB) Error() string {
-	errMsg := fmt.Sprintf("[error][db] name <%s>", db.name)
+	errMsg := fmt.Sprintf("[error][db] name <%s>", db.Name)
 	return errMsg
 }
 
@@ -75,19 +74,19 @@ func (db *DB) Init() {
 
 	var err error
 
-	if db.handle != nil {
+	if db.Handle != nil {
 		logErrorMsg(db, "already initialized")
 		return
 	}
 
 	// Create the memory cache db
-	db.handle, err = sql.Open("sqlite3", db.path)
+	db.Handle, err = sql.Open("sqlite3", db.Path)
 	//log.Debugf("db <%s> opend at at <%s>", db.name, db.path)
-	log.Debugf("<%s> opened at <%s>", db.name, db.path)
+	log.Debugf("<%s> opened at <%s>", db.Name, db.Path)
 	logPanic(err)
 
 	// Populate db schema
-	tx, err := db.handle.Begin()
+	tx, err := db.Handle.Begin()
 	logPanic(err)
 
 	stmt, err := tx.Prepare(CREATE_MEM_DB_SCHEMA)
@@ -114,13 +113,13 @@ func (db *DB) Init() {
 		backupHookRegistered = true
 	}
 
-	log.Debugf("<%s> initialized", db.name)
+	log.Debugf("<%s> initialized", db.Name)
 }
 
 func (db *DB) Attach(attached *DB) {
 
-	stmtStr := fmt.Sprintf("ATTACH DATABASE '%s' AS '%s'", attached.path, attached.name)
-	_, err := db.handle.Exec(stmtStr)
+	stmtStr := fmt.Sprintf("ATTACH DATABASE '%s' AS '%s'", attached.Path, attached.Name)
+	_, err := db.Handle.Exec(stmtStr)
 	logPanic(err)
 
 	/////////////////
@@ -140,14 +139,14 @@ func (db *DB) Attach(attached *DB) {
 }
 
 func (db *DB) Close() {
-	log.Debugf("Closing <%s>", db.name)
-	db.handle.Close()
+	log.Debugf("Closing <%s>", db.Name)
+	db.Handle.Close()
 }
 
 func (db *DB) Count() int {
 	var count int
 
-	row := db.handle.QueryRow("select count(*) from bookmarks")
+	row := db.Handle.QueryRow("select count(*) from bookmarks")
 	err := row.Scan(&count)
 	logPanic(err)
 
@@ -158,7 +157,7 @@ func (db *DB) Print() error {
 
 	var url string
 
-	rows, err := db.handle.Query("select url from bookmarks")
+	rows, err := db.Handle.Query("select url from bookmarks")
 
 	for rows.Next() {
 		err = rows.Scan(&url)
@@ -174,7 +173,7 @@ func (db *DB) Print() error {
 func (db *DB) isEmpty() (bool, error) {
 	var count int
 
-	row := db.handle.QueryRow("select count(*) from bookmarks")
+	row := db.Handle.QueryRow("select count(*) from bookmarks")
 
 	err := row.Scan(&count)
 	if err != nil {
@@ -190,12 +189,12 @@ func (db *DB) isEmpty() (bool, error) {
 
 func (src *DB) SyncTo(dst *DB) {
 
-	log.Debugf("Syncing <%s>(%d) to <%s>(%d)", src.name,
+	log.Debugf("Syncing <%s>(%d) to <%s>(%d)", src.Name,
 		src.Count(),
-		dst.name,
+		dst.Name,
 		dst.Count())
 
-	srcDb, err := sql.Open(DB_BACKUP_HOOK, src.path)
+	srcDb, err := sql.Open(DB_BACKUP_HOOK, src.Path)
 	defer func() {
 		srcDb.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
@@ -204,7 +203,7 @@ func (src *DB) SyncTo(dst *DB) {
 
 	srcDb.Ping()
 
-	dstDb, err := sql.Open(DB_BACKUP_HOOK, dst.path)
+	dstDb, err := sql.Open(DB_BACKUP_HOOK, dst.Path)
 	defer func() {
 		dstDb.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
@@ -222,15 +221,15 @@ func (src *DB) SyncTo(dst *DB) {
 }
 
 func (src *DB) SyncToDisk(dbpath string) error {
-	log.Debugf("Syncing <%s> to <%s>", src.name, dbpath)
+	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
 
 	if !backupHookRegistered {
-		errMsg := fmt.Sprintf("%s, %s", src.path, "db backup hook is not initialized")
+		errMsg := fmt.Sprintf("%s, %s", src.Path, "db backup hook is not initialized")
 		return errors.New(errMsg)
 	}
 
 	//log.Debugf("[flush] openeing <%s>", src.path)
-	srcDb, err := sql.Open(DB_BACKUP_HOOK, src.path)
+	srcDb, err := sql.Open(DB_BACKUP_HOOK, src.Path)
 	defer flushSqliteCon(srcDb)
 	if err != nil {
 		return err
@@ -265,11 +264,11 @@ func (src *DB) SyncToDisk(dbpath string) error {
 func (dst *DB) SyncFromDisk(dbpath string) error {
 
 	if !backupHookRegistered {
-		errMsg := fmt.Sprintf("%s, %s", dst.path, "db backup hook is not initialized")
+		errMsg := fmt.Sprintf("%s, %s", dst.Path, "db backup hook is not initialized")
 		return errors.New(errMsg)
 	}
 
-	log.Debugf("Syncing <%s> to <%s>", dbpath, dst.name)
+	log.Debugf("Syncing <%s> to <%s>", dbpath, dst.Name)
 
 	dbUri := fmt.Sprintf("file:%s", dbpath)
 	srcDb, err := sql.Open(DB_BACKUP_HOOK, dbUri)
@@ -280,7 +279,7 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	srcDb.Ping()
 
 	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
-	bkDb, err := sql.Open(DB_BACKUP_HOOK, dst.path)
+	bkDb, err := sql.Open(DB_BACKUP_HOOK, dst.Path)
 	defer flushSqliteCon(bkDb)
 	if err != nil {
 		return err
@@ -340,7 +339,7 @@ func initDB() {
 func initLocalDB(db *DB, dbpath string) {
 
 	log.Infof("Initializing local db at '%s'", dbpath)
-	log.Debugf("%s flushing to disk", db.name)
+	log.Debugf("%s flushing to disk", db.Name)
 	err := db.SyncToDisk(dbpath)
 	logPanic(err)
 
