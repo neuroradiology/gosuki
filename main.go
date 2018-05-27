@@ -1,4 +1,8 @@
-// ### Gomark API Documentation
+// ### API Usage:
+// - Init Mode (debug, release) and Logging
+// - Create a Browser object for each browser using New<BrowserType>()
+// - Call `Load()` and `Watch()` on every browser
+// - Run the gin server
 package main
 
 import "github.com/gin-gonic/gin"
