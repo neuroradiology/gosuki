@@ -39,10 +39,14 @@ type IBrowser interface {
 // Browser should contain enough data internally to not rely on any global
 // variable or constant if possible.
 // To create new browsers, you must implement a New<BrowserType>() IBrowser function
+//
 // URLIndex (HashMap RBTree):
 // Used as fast query db representing the last known browser bookmarks.
+//
 // nodeTree (Tree DAG):
-// Used as buffer. Represents current Browser bookmarks
+// Used in each job to represent bookmarks in a tree
+//
+// bufferDB: across jobs sqlite buffer
 type BaseBrowser struct {
 	watcher    *fsnotify.Watcher
 	baseDir    string

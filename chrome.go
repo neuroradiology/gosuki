@@ -78,6 +78,9 @@ func NewChromeBrowser() IBrowser {
 	browser.stats = &ParserStats{}
 	browser.nodeTree = &Node{Name: "root", Parent: nil}
 
+	// Across jobs buffer
+	browser.InitBuffer()
+
 	browser.SetupWatcher()
 
 	return browser
@@ -103,10 +106,8 @@ func (bw *ChromeBrowser) Load() {
 
 func (bw *ChromeBrowser) Run() {
 
-	// Create buffer db
-	//bufferDB := DB{"buffer", DB_BUFFER_PATH, nil, false}
-	bw.InitBuffer()
-	defer bw.bufferDB.Close()
+	// Rebuild node tree
+	bw.nodeTree = &Node{Name: "root", Parent: nil}
 
 	// Load bookmark file
 	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
@@ -230,6 +231,9 @@ func (bw *ChromeBrowser) Run() {
 				//log.Debugf("Inserting url %s to index", nodeURL)
 				bw.URLIndex.Insert(currentNode.URL, currentNode)
 
+				// Run tag parsing hooks
+				bw.RunParseHooks(currentNode)
+
 				// If we find the node already in index
 				// we check if the hash(name) changed  meaning
 				// the data changed
@@ -238,24 +242,12 @@ func (bw *ChromeBrowser) Run() {
 				nodeVal = iVal.(*Node)
 
 				// hash(name) is different meaning new commands/tags could
-				// be added, we need to update the index and buffer tree:
-				//
-				// 1- update the index by updating the name and namehash
-				// 2- Run the hooks on the node in case of new commands
+				// be added, we need to mark this bookmark as `has_changed`
 				if nodeVal.NameHash != nameHash {
 					//log.Debugf("URL name changed !")
 
-					// Update node in index
-					//log.Debugf("Current node: name: %s | hash: %v", currentNode.Name, currentNode.NameHash)
-					//log.Debugf("Index node: name: %s | hash: %v", nodeVal.Name, nodeVal.NameHash)
-
-					currentNode.NameHash = nameHash
-					nodeVal.Name = currentNode.Name
-					nodeVal.NameHash = nameHash
-
-					if currentNode.NameHash != nodeVal.NameHash {
-						panic("currentNode.NameHash != nodeVal.NameHash")
-					}
+					// Mark current node (BK) as changed
+					currentNode.HasChanged = true
 
 					// Run parse hooks on node
 					bw.RunParseHooks(currentNode)
@@ -280,10 +272,12 @@ func (bw *ChromeBrowser) Run() {
 
 	rootsData, _, _, _ := jsonparser.Get(f, "roots")
 
+	// Start a new node tree building job
 	start := time.Now()
 	jsonparser.ObjectEach(rootsData, jsonParseRoots)
 	elapsed := time.Since(start)
 	log.Debugf("Parsing tree in %s", elapsed)
+	// Finished node tree building job
 
 	// Debug walk tree
 	//go WalkNode(bw.nodeTree)
@@ -299,6 +293,16 @@ func (bw *ChromeBrowser) Run() {
 	bw.stats.lastNodeCount = bw.stats.currentNodeCount
 	bw.stats.currentNodeCount = 0
 	bw.stats.currentUrlCount = 0
+
+	//Add nodeTree to Cache
+	log.Debugf("Buffer content")
+	bw.bufferDB.Print()
+
+	log.Debugf("syncing to buffer")
+	syncTreeToBuffer(bw.nodeTree, bw.bufferDB)
+	log.Debugf("Tree synced to buffer")
+
+	bw.bufferDB.Print()
 
 	// cacheDB represents bookmarks across all browsers
 	// From browsers it should support: add/update
@@ -331,6 +335,11 @@ func (bw *ChromeBrowser) Run() {
 		debugPrint("syncing <%s> to disk", cacheDB.name)
 		cacheDB.SyncToDisk(getDBFullPath())
 	}
+
+	// Implement incremental sync by doing INSERTs
+	bw.bufferDB.SyncTo(cacheDB)
+
+	cacheDB.SyncToDisk(getDBFullPath())
 
 	// TODO: Check if new/modified bookmarks in buffer compared to cache
 	log.Debugf("TODO: check if new/modified bookmarks in %s compared to %s", bw.bufferDB.name, cacheDB.name)

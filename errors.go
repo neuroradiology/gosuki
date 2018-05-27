@@ -1,9 +1,5 @@
 package main
 
-import (
-	sqlite3 "github.com/mattn/go-sqlite3"
-)
-
 func logPanic(err error) {
 	if err != nil {
 		log.Panic(err)
@@ -12,13 +8,13 @@ func logPanic(err error) {
 
 func sqlErrorMsg(err error, msg string) {
 	if err != nil {
-		sqliteErr := err.(sqlite3.Error)
+		//sqliteErr := err.(sqlite3.Error)
 
-		if sqliteErr.Code == sqlite3.ErrConstraint {
-			// Ingore ErrConstraint for now
-			//log.Warningf("%s : %s", err, msg)
-			return
-		}
+		//if sqliteErr.Code == sqlite3.ErrConstraint {
+		//// Ingore ErrConstraint for now
+		////log.Warningf("%s : %s", err, msg)
+		//return
+		//}
 
 		log.Error(err)
 	}

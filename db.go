@@ -222,6 +222,7 @@ func (src *DB) SyncTo(dst *DB) {
 }
 
 func (src *DB) SyncToDisk(dbpath string) error {
+	log.Debugf("Syncing <%s> to <%s>", src.name, dbpath)
 
 	if !backupHookRegistered {
 		errMsg := fmt.Sprintf("%s, %s", src.path, "db backup hook is not initialized")
