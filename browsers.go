@@ -5,7 +5,6 @@
 // For *browser specific* implementation create a new file for that browser.
 // You must then implement a New<BrowserType>() IBrowser function. Then
 // implement parsing.
-
 package main
 
 import (
