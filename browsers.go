@@ -48,21 +48,26 @@ type IBrowser interface {
 // variable or constant if possible.
 // To create new browsers, you must implement a New<BrowserType>() IBrowser function
 //
-// URLIndex (HashMap RBTree):
+// `URLIndex` (HashMap RBTree):
 // Used as fast query db representing the last known browser bookmarks.
 //
-// nodeTree (Tree DAG):
+// `nodeTree` (Tree DAG):
 // Used in each job to represent bookmarks in a tree
 //
-// bufferDB: across jobs sqlite buffer
+// `bufferDB`: sqlite buffer used across jobs
 type BaseBrowser struct {
-	watcher    *fsnotify.Watcher
-	baseDir    string
-	bkFile     string
-	bufferDB   *DB
-	URLIndex   *hashmap.RBTree // Fast query of last browser state
-	nodeTree   *Node           // pointer to root of the node tree
-	stats      *ParserStats
+	watcher  *fsnotify.Watcher
+	baseDir  string
+	bkFile   string
+	bufferDB *DB
+	URLIndex *hashmap.RBTree // Fast query of last browser state
+
+	// Pointer to the root of the node tree
+	// The node tree is built again for every Run job on a browser
+	NodeTree *Node
+
+	// Various parsing and timing stats
+	Stats      *ParserStats
 	bType      BrowserType
 	name       string
 	isWatching bool
@@ -119,7 +124,7 @@ func (b *BaseBrowser) InitIndex() {
 func (b *BaseBrowser) RebuildIndex() {
 	log.Debugf("Rebuilding index based on current nodeTree")
 	b.URLIndex = NewIndex()
-	WalkBuildIndex(b.nodeTree, b)
+	WalkBuildIndex(b.NodeTree, b)
 }
 
 func (b *BaseBrowser) InitBuffer() {
