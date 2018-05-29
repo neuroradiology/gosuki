@@ -33,7 +33,7 @@ func syncTreeToBuffer(node *Node, buffer *DB) {
 
 	if node.Type == "url" {
 		bk := node.GetBookmark()
-		bk.add(buffer)
+		bk.InsertOrUpdateInDB(buffer)
 	}
 
 	if len(node.Children) > 0 {

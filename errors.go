@@ -16,7 +16,7 @@ func sqlErrorMsg(err error, msg string) {
 		//return
 		//}
 
-		log.Error(err)
+		log.Errorf("%s : %s", err, msg)
 	}
 }
 

@@ -9,7 +9,15 @@ const (
 	// TODO: use named groups
 	// [named groups](https://github.com/StefanSchroeder/Golang-Regex-Tutorial/blob/master/01-chapter2.markdown)
 
-	ReTags     = "\\B#(?P<tag>\\w+)"
+	// Regex matching tests:
+
+	//#start test2 #test3 elol
+	//#start word with #end
+	//word in the #middle of sentence
+	//tags with a #dot.caracter
+	//this is a end of sentence #tag
+
+	ReTags     = "\\B#(?P<tag>\\w+\\.?\\w+)"
 	TagJoinSep = "|"
 )
 
