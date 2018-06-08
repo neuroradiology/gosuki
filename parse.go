@@ -30,28 +30,6 @@ type ParserStats struct {
 
 type ParseHook func(node *Node)
 
-type Node struct {
-	Name       string
-	Type       string
-	URL        string
-	Tags       []string
-	Desc       string
-	HasChanged bool
-	NameHash   uint64 // hash of the metadata
-	Parent     *Node
-	Children   []*Node
-}
-
-func (node *Node) GetBookmark() *Bookmark {
-	return &Bookmark{
-		URL:      node.URL,
-		Metadata: node.Name,
-		Desc:     node.Desc,
-		Tags:     node.Tags,
-		Node:     node,
-	}
-}
-
 func ParseTags(node *Node) {
 
 	var regex = regexp.MustCompile(ReTags)

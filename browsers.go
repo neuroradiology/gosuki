@@ -24,13 +24,11 @@ const (
 	TFirefox
 )
 
-// Chrome details
-var Chrome = struct {
+// Used to store bookmark paths and other
+// data related to a particular browser kind
+type BrowserPaths struct {
 	BookmarkFile string
 	BookmarkDir  string
-}{
-	"Bookmarks",
-	"/home/spike/.config/google-chrome-unstable/Default/",
 }
 
 type IBrowser interface {

@@ -15,6 +15,7 @@ type IWatchable interface {
 	GetDir() string             // returns watched dir
 }
 
+// Main thread for watching file changes
 func WatcherThread(w IWatchable) {
 
 	bookmarkPath := w.GetPath()
@@ -25,6 +26,9 @@ func WatcherThread(w IWatchable) {
 	for {
 		select {
 		case event := <-watcher.Events:
+
+			// On Chrome like browsers the bookmarks file is created
+			// at every change.
 			if event.Op&fsnotify.Create == fsnotify.Create &&
 				event.Name == bookmarkPath {
 
@@ -35,6 +39,14 @@ func WatcherThread(w IWatchable) {
 				w.Run()
 				//elapsed := time.Since(start)
 				//debugPrint("parsed in %s", elapsed)
+			}
+
+			// Firefox keeps the file open and makes changes on it
+			if event.Op&fsnotify.Write == fsnotify.Write &&
+				event.Name == bookmarkPath {
+				debugPrint("event: %v | eventName: %v", event.Op, event.Name)
+
+				w.Run()
 			}
 		case err := <-watcher.Errors:
 			log.Errorf("error: %s", err)

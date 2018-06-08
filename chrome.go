@@ -9,6 +9,15 @@ import (
 	"github.com/buger/jsonparser"
 )
 
+var Chrome = BrowserPaths{
+	"Bookmarks",
+	"/home/spike/.config/google-chrome-unstable/Default/",
+}
+
+type ChromeBrowser struct {
+	BaseBrowser //embedding
+}
+
 var jsonNodeTypes = struct {
 	Folder, URL string
 }{"folder", "url"}
@@ -63,10 +72,6 @@ func (rawNode *RawNode) getNode() *Node {
 	node.Name = _s(rawNode.name)
 
 	return node
-}
-
-type ChromeBrowser struct {
-	BaseBrowser //embedding
 }
 
 func NewChromeBrowser() IBrowser {
