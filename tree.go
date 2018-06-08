@@ -1,5 +1,27 @@
 package main
 
+type Node struct {
+	Name       string
+	Type       string
+	URL        string
+	Tags       []string
+	Desc       string
+	HasChanged bool
+	NameHash   uint64 // hash of the metadata
+	Parent     *Node
+	Children   []*Node
+}
+
+func (node *Node) GetBookmark() *Bookmark {
+	return &Bookmark{
+		URL:      node.URL,
+		Metadata: node.Name,
+		Desc:     node.Desc,
+		Tags:     node.Tags,
+		Node:     node,
+	}
+}
+
 // Debuggin bookmark node tree
 // TODO: Better usage of node trees
 func WalkNode(node *Node) {
