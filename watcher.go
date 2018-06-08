@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -17,6 +19,8 @@ type IWatchable interface {
 
 // Main thread for watching file changes
 func WatcherThread(w IWatchable) {
+
+	spammyEventsChannel := make(chan fsnotify.Event)
 
 	bookmarkPath := w.GetPath()
 	log.Infof("watching %s", bookmarkPath)
@@ -45,8 +49,9 @@ func WatcherThread(w IWatchable) {
 			if event.Op&fsnotify.Write == fsnotify.Write &&
 				event.Name == bookmarkPath {
 				debugPrint("event: %v | eventName: %v", event.Op, event.Name)
-
-				w.Run()
+				go debounce(1000*time.Millisecond, spammyEventsChannel, w)
+				spammyEventsChannel <- event
+				//w.Run()
 			}
 		case err := <-watcher.Errors:
 			log.Errorf("error: %s", err)
