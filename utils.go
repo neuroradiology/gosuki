@@ -11,21 +11,30 @@ import (
 // It receives a struct{event, func} and runs the func only once in the interval
 func debouncer(interval time.Duration, input chan fsnotify.Event, w IWatchable) {
 	log.Debug("Running debouncer")
-	//var event fsnotify.Event
-
-	ticker := time.NewTicker(interval)
+	var event fsnotify.Event
+	var isResting bool
+	timer := time.NewTimer(interval)
 
 	for {
 		select {
-		//case event = <-input:
-		//log.Debugf("received an event %v on the spammy events channel", event.Op)
+		case event = <-input:
+			log.Debugf("received an event %v on the events channel", event.Op)
 
-		//// Run the job
-		////w.Run()
+			if !isResting {
+				// Run the job
+				log.Debug("Not resting, running job")
+				w.Run()
+				log.Debug("Restting timer")
+				timer.Reset(interval)
+				log.Debug("Is resting now")
+				isResting = true
+			} else {
+				log.Debug("Resting, will not run job")
+			}
 
-		case <-ticker.C:
-			log.Debugf("debouncer ticker ... events len: %v", len(input))
-			log.Debug("implement a queue ! Should not use channels as queues")
+		case <-timer.C:
+			log.Debugf("timer done, not resting")
+			isResting = false
 		}
 	}
 }
