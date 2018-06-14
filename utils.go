@@ -23,7 +23,9 @@ func debouncer(interval time.Duration, input chan fsnotify.Event, w IWatchable) 
 			if !isResting {
 				// Run the job
 				//log.Debug("Not resting, running job")
-				w.Run()
+				time.AfterFunc(1*time.Second, func() {
+					w.Run()
+				})
 				//log.Debug("Restting timer")
 				timer.Reset(interval)
 				//log.Debug("Is resting now")
