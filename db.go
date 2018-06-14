@@ -65,7 +65,22 @@ func (db *DB) Error() string {
 	return errMsg
 }
 
-// Initialize a sqlite database
+// Initialize sqlite database for read only operations
+func (db *DB) InitRO() {
+	var err error
+
+	if db.Handle != nil {
+		logErrorMsg(db, "already initialized")
+		return
+	}
+
+	// Create the sqlite connection
+	db.Handle, err = sql.Open("sqlite3", db.Path)
+	log.Debugf("<%s> opened at <%s>", db.Name, db.Path)
+	logPanic(err)
+}
+
+// Initialize a sqlite database with Gomark Schema
 func (db *DB) Init() {
 
 	// TODO: Use context when making call from request/api

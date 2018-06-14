@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -56,5 +57,22 @@ func (bw *FFBrowser) Load() {
 func (bw *FFBrowser) Run() {
 
 	log.Infof("Parsing Firefox bookmarks\n")
+
+	// Rebuild node tree
+	bw.NodeTree = &Node{Name: "root", Parent: nil}
+
+	// Open firefox sqlite db
+	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
+	placesDB := DB{}.New("Places", bookmarkPath)
+	placesDB.InitRO()
+	defer placesDB.Close()
+
+	// Start parsing from the root node (id = 1, type = 2) and down the tree
+
+	// Needed to store the parent of each child node
+	var parentNodes []*Node
+
+	root := getRoot(placesDB)
+	recursiveParse(root)
 
 }
