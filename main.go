@@ -21,16 +21,16 @@ func main() {
 	// Initialize sqlite database available in global `cacheDB` variable
 	initDB()
 
-	cb := NewChromeBrowser()
+	//cb := NewChromeBrowser()
 	ff := NewFFBrowser()
 
-	cb.RegisterHooks(ParseTags)
+	//cb.RegisterHooks(ParseTags)
 	ff.RegisterHooks(ParseTags)
 
-	cb.Load()
+	//cb.Load()
 	ff.Load()
 
-	_ = cb.Watch()
+	//_ = cb.Watch()
 	_ = ff.Watch()
 
 	r.Run("127.0.0.1:4242")
