@@ -9,16 +9,23 @@ import (
 // TODO
 // Run debounce in it's own thread when the watcher is started
 // It receives a struct{event, func} and runs the func only once in the interval
-func debounce(interval time.Duration, input chan fsnotify.Event, w IWatchable) {
-	var item fsnotify.Event
+func debouncer(interval time.Duration, input chan fsnotify.Event, w IWatchable) {
+	log.Debug("Running debouncer")
+	//var event fsnotify.Event
+
+	ticker := time.NewTicker(interval)
 
 	for {
 		select {
-		case item = <-input:
-			log.Debugf("received an event %v on the spammy events channel", item.Op)
-		case <-time.After(interval):
-			log.Debug("Runngin parse method")
-			w.Run()
+		//case event = <-input:
+		//log.Debugf("received an event %v on the spammy events channel", event.Op)
+
+		//// Run the job
+		////w.Run()
+
+		case <-ticker.C:
+			log.Debugf("debouncer ticker ... events len: %v", len(input))
+			log.Debug("implement a queue ! Should not use channels as queues")
 		}
 	}
 }

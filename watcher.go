@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -15,12 +13,11 @@ type IWatchable interface {
 	Watcher() *fsnotify.Watcher // returns linked watcher
 	GetPath() string            // returns watched path
 	GetDir() string             // returns watched dir
+	EventsChan() chan fsnotify.Event
 }
 
 // Main thread for watching file changes
 func WatcherThread(w IWatchable) {
-
-	spammyEventsChannel := make(chan fsnotify.Event)
 
 	bookmarkPath := w.GetPath()
 	log.Infof("watching %s", bookmarkPath)
@@ -46,11 +43,12 @@ func WatcherThread(w IWatchable) {
 			}
 
 			// Firefox keeps the file open and makes changes on it
-			if event.Op&fsnotify.Write == fsnotify.Write &&
-				event.Name == bookmarkPath {
+			// It needs a debouncer
+			if event.Name == bookmarkPath {
 				debugPrint("event: %v | eventName: %v", event.Op, event.Name)
-				go debounce(1000*time.Millisecond, spammyEventsChannel, w)
-				spammyEventsChannel <- event
+				//go debounce(1000*time.Millisecond, spammyEventsChannel, w)
+				ch := w.EventsChan()
+				ch <- event
 				//w.Run()
 			}
 		case err := <-watcher.Errors:
