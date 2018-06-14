@@ -24,6 +24,9 @@ const (
 	TFirefox
 )
 
+// Channel parameters
+const EventsChanLen = 1000
+
 // Used to store bookmark paths and other
 // data related to a particular browser kind
 type BrowserPaths struct {
@@ -54,9 +57,10 @@ type IBrowser interface {
 //
 // `BufferDB`: sqlite buffer used across jobs
 type BaseBrowser struct {
-	watcher *fsnotify.Watcher
-	baseDir string
-	bkFile  string
+	watcher    *fsnotify.Watcher
+	eventsChan chan fsnotify.Event
+	baseDir    string
+	bkFile     string
 
 	// In memory sqlite db (named `memcache`).
 	// Used to keep a browser's state of bookmarks across jobs.
@@ -101,6 +105,10 @@ func (bw *BaseBrowser) Load() {
 
 func (bw *BaseBrowser) GetPath() string {
 	return path.Join(bw.baseDir, bw.bkFile)
+}
+
+func (bw *BaseBrowser) EventsChan() chan fsnotify.Event {
+	return bw.eventsChan
 }
 
 func (bw *BaseBrowser) GetDir() string {
