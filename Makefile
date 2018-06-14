@@ -2,6 +2,7 @@
 
 TARGET=gomark
 
+
 all: build docs
 
 run: 
@@ -14,5 +15,5 @@ docs:
 	@godoc2md gomark > API.md
 
 build:
-	@go build -o $TARGET 
+	@go build -o $(TARGET) *.go
 
