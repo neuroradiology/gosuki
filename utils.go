@@ -22,18 +22,19 @@ func debouncer(interval time.Duration, input chan fsnotify.Event, w IWatchable) 
 
 			if !isResting {
 				// Run the job
-				log.Debug("Not resting, running job")
+				//log.Debug("Not resting, running job")
 				w.Run()
-				log.Debug("Restting timer")
+				//log.Debug("Restting timer")
 				timer.Reset(interval)
-				log.Debug("Is resting now")
+				//log.Debug("Is resting now")
 				isResting = true
-			} else {
-				log.Debug("Resting, will not run job")
 			}
+			//else {
+			//log.Debug("Resting, will not run job")
+			//}
 
 		case <-timer.C:
-			log.Debugf("timer done, not resting")
+			//log.Debugf("timer done, not resting")
 			isResting = false
 		}
 	}
