@@ -100,7 +100,7 @@ func (bw *BaseBrowser) Load() {
 		log.Fatal("watcher not initialized, use SetupWatcher() when creating the browser !")
 	}
 
-	log.Debug("preloading bookmarks")
+	log.Debugf("<%s> preloading bookmarks", bw.name)
 }
 
 func (bw *BaseBrowser) GetPath() string {

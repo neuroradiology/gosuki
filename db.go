@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	_ "github.com/mattn/go-sqlite3"
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
@@ -27,7 +26,7 @@ const (
 //  Database schemas used for the creation of new databases
 const (
 	// metadata: name or title of resource
-	CREATE_LOCAL_DB_SCHEMA = `CREATE TABLE if not exists bookmarks (
+	QCreateLocalDbSchema = `CREATE TABLE if not exists bookmarks (
 		id integer PRIMARY KEY,
 		URL text NOT NULL UNIQUE,
 		metadata text default '',
@@ -37,7 +36,7 @@ const (
 		flags integer default 0
 	)`
 
-	CREATE_MEM_DB_SCHEMA = `CREATE TABLE if not exists bookmarks (
+	QCreateMemDbSchema = `CREATE TABLE if not exists bookmarks (
 		id integer PRIMARY KEY,
 		URL text NOT NULL UNIQUE,
 		metadata text default '',
@@ -103,7 +102,7 @@ func (db *DB) Init() {
 	tx, err := db.Handle.Begin()
 	logPanic(err)
 
-	stmt, err := tx.Prepare(CREATE_MEM_DB_SCHEMA)
+	stmt, err := tx.Prepare(QCreateMemDbSchema)
 	logPanic(err)
 
 	_, err = stmt.Exec()
