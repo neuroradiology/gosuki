@@ -9,7 +9,7 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-var Chrome = BrowserPaths{
+var ChromeData = BrowserPaths{
 	"Bookmarks",
 	"/home/spike/.config/google-chrome-unstable/Default/",
 }
@@ -78,8 +78,8 @@ func NewChromeBrowser() IBrowser {
 	browser := &ChromeBrowser{}
 	browser.name = "chrome"
 	browser.bType = TChrome
-	browser.baseDir = Chrome.BookmarkDir
-	browser.bkFile = Chrome.BookmarkFile
+	browser.baseDir = ChromeData.BookmarkDir
+	browser.bkFile = ChromeData.BookmarkFile
 	browser.Stats = &ParserStats{}
 	browser.NodeTree = &Node{Name: "root", Parent: nil}
 
