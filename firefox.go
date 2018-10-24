@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"path"
+
+	"github.com/OneOfOne/xxhash"
 )
 
 var Firefox = BrowserPaths{
@@ -69,20 +70,90 @@ func (bw *FFBrowser) Load() {
 	bw.Run()
 }
 
-func getTags(bw *FFBrowser) {
-	var tags []*FFTag
-	QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
+func getFFBookmarks(bw *FFBrowser) {
 
-	rows, err := bw._places.Handle.Query(fmt.Sprintf(QGetTags, MozPlacesTagsRootID))
+	QGetBookmarks := `WITH bookmarks AS
+
+	(SELECT moz_places.url AS url,
+			moz_places.description as desc,
+			moz_places.title as urlTitle,
+			moz_bookmarks.parent AS tagId
+		FROM moz_places LEFT OUTER JOIN moz_bookmarks
+		ON moz_places.id = moz_bookmarks.fk
+		WHERE moz_bookmarks.parent
+		IN (SELECT id FROM moz_bookmarks WHERE parent = ? ))
+
+	SELECT url, IFNULL(urlTitle, ''), IFNULL(desc,''),
+			tagId, moz_bookmarks.title AS tagTitle
+
+	FROM bookmarks LEFT OUTER JOIN moz_bookmarks
+	ON tagId = moz_bookmarks.id
+	ORDER BY url`
+
+	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
+
+	rows, err := bw._places.Handle.Query(QGetBookmarks, MozPlacesTagsRootID)
 	logPanic(err)
 
+	tagMap := make(map[int]*Node)
+
+	// Rebuild node tree
+	rootNode := bw.NodeTree
+
 	for rows.Next() {
-		tag := &FFTag{}
-		err = rows.Scan(&tag.id, &tag.title)
+		var url, title, tagTitle, desc string
+		var tagId int
+		//tag := &FFTag{}
+		//err = rows.Scan(&tag.id, &tag.title)
+		err = rows.Scan(&url, &title, &desc, &tagId, &tagTitle)
 		logPanic(err)
-		tags = append(tags, tag)
+		//log.Debugf("%s - %s - %s - %d - %s", url, title, desc, tagId, tagTitle)
+		//log.Debugf("%s", desc)
+
+		/*
+		 * If this is the first time we see this tag
+		 * add it to the tagMap and create its node
+		 */
+		tagNode, tagNodeExists := tagMap[tagId]
+		if !tagNodeExists {
+			// Add the tag as a node
+			tagNode = new(Node)
+			tagNode.Type = "tag"
+			tagNode.Name = tagTitle
+			tagNode.Parent = rootNode
+			rootNode.Children = append(rootNode.Children, tagNode)
+			tagMap[tagId] = tagNode
+			bw.Stats.currentNodeCount++
+		}
+
+		// Add the url to the tag
+		urlNode := new(Node)
+		urlNode.Type = "url"
+		urlNode.URL = url
+		urlNode.Name = title
+		urlNode.Desc = desc
+		urlNode.Parent = tagMap[tagId]
+		tagMap[tagId].Children = append(tagMap[tagId].Children, urlNode)
+
+		// Check if url already in index
+		iVal, found := bw.URLIndex.Get(urlNode.URL)
+
+		/*
+		 * The fields where tags may change are hashed together
+		 * to detect changes in futre parses
+		 * To handle tag changes we need to get all parent nodes
+		 *  (tags) for this url then hash their concatenation
+		 */
+
+		nameHash := xxhash.ChecksumString64(urlNode.Name)
+
+		bw.Stats.currentUrlCount++
+		bw.Stats.currentNodeCount++
 	}
-	log.Debug(len(tags))
+
+	//go WalkNode(bw.NodeTree)
+	//log.Debug(len(tags))
+
 	//bookmarksToBufferFromTags(bw, tag)
 }
 
@@ -96,7 +167,6 @@ func bookmarksToBufferFromTag(bw *FFBrowser, tag *FFTag) {
 						ON moz_places.id = moz_bookmarks.fk
 						WHERE moz_bookmarks.parent = ?`
 
-	// WITH bookmarks AS (SELECT moz_places.url , moz_bookmarks.parent AS tagId FROM moz_places LEFT OUTER JOIN moz_bookmarks ON moz_places.id = moz_bookmarks.fk WHERE moz_bookmarks.parent IN (SELECT id FROM moz_bookmarks WHERE parent = 4 )) SELECT url, tagId, moz_bookmarks.title FROM bookmarks LEFT OUTER JOIN moz_bookmarks ON tagId = moz_bookmarks.id ORDER BY moz_bookmarks.title WHERE title = 'bitcoin'
 	rows, err := bw._places.Handle.Query(QGetBookmarksForTag, tag.id)
 	logPanic(err)
 	//log.Debugf("Query is %s", fmt.Sprintf(QGetBookmarksForTag, tag.id))
@@ -131,10 +201,11 @@ func (bw *FFBrowser) Run() {
 
 	bw._places = placesDB
 
-	// Start parsing from the root node (id = 1, type = 2) and down the tree
+	// Parse bookmarks to a flat tree (for compatibility with tree system)
+	getFFBookmarks(bw)
 
-	// First get all tags and register them as nodes under the root node
-	getTags(bw)
-	log.Debugf("<%s> finished parsing tags", bw.name)
+	// Finished parsing
+	log.Debugf("<%s> parsed %d bookmarks and %d nodes", bw.name, bw.Stats.currentUrlCount, bw.Stats.currentNodeCount)
+	bw.ResetStats()
 
 }

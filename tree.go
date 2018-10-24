@@ -2,7 +2,7 @@ package main
 
 type Node struct {
 	Name       string
-	Type       string
+	Type       string // folder, tag, url
 	URL        string
 	Tags       []string
 	Desc       string
@@ -25,7 +25,11 @@ func (node *Node) GetBookmark() *Bookmark {
 // Debuggin bookmark node tree
 // TODO: Better usage of node trees
 func WalkNode(node *Node) {
-	log.Debugf("Node --> %s | %s | children: %d | parent: %v", node.Name, node.Type, len(node.Children), node.Parent)
+	if node.Name == "root" {
+		log.Debugf("Node --> <name: %s> | <type: %s> | children: %d | parent: %v", node.Name, node.Type, len(node.Children), node.Name)
+	} else {
+		log.Debugf("Node --> <name: %s> | <type: %s> | children: %d | parent: %v", node.Name, node.Type, len(node.Children), node.Parent.Name)
+	}
 
 	if len(node.Children) > 0 {
 		for _, node := range node.Children {

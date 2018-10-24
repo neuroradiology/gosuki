@@ -157,6 +157,13 @@ func (b *BaseBrowser) RegisterHooks(hooks ...ParseHook) {
 	}
 }
 
+func (b *BaseBrowser) ResetStats() {
+	b.Stats.lastURLCount = b.Stats.currentUrlCount
+	b.Stats.lastNodeCount = b.Stats.currentNodeCount
+	b.Stats.currentNodeCount = 0
+	b.Stats.currentUrlCount = 0
+}
+
 // Runs browsed defined hooks on bookmark
 func (b *BaseBrowser) RunParseHooks(node *Node) {
 	for _, hook := range b.parseHooks {

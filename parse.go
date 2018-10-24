@@ -2,6 +2,7 @@ package main
 
 import (
 	"regexp"
+	"time"
 )
 
 const (
@@ -22,6 +23,7 @@ const (
 )
 
 type ParserStats struct {
+	lastParseTime    time.Duration
 	lastNodeCount    int
 	lastURLCount     int
 	currentNodeCount int
