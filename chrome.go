@@ -280,8 +280,8 @@ func (bw *ChromeBrowser) Run() {
 	// Start a new node tree building job
 	start := time.Now()
 	jsonparser.ObjectEach(rootsData, jsonParseRoots)
-	elapsed := time.Since(start)
-	log.Debugf("Parsing tree in %s", elapsed)
+	bw.Stats.lastParseTime = time.Since(start)
+	log.Debugf("Parsed tree in %s", bw.Stats.lastParseTime)
 	// Finished node tree building job
 
 	// Debug walk tree
@@ -291,13 +291,10 @@ func (bw *ChromeBrowser) Run() {
 	bw.RebuildIndex()
 
 	// Finished parsing
-	log.Debugf("parsed %d bookmarks", bw.Stats.currentUrlCount)
+	log.Debugf("<%s> parsed %d bookmarks and %d nodes", bw.name, bw.Stats.currentUrlCount, bw.Stats.currentNodeCount)
 
 	// Reset parser counter
-	bw.Stats.lastURLCount = bw.Stats.currentUrlCount
-	bw.Stats.lastNodeCount = bw.Stats.currentNodeCount
-	bw.Stats.currentNodeCount = 0
-	bw.Stats.currentUrlCount = 0
+	bw.ResetStats()
 
 	//Add nodeTree to Cache
 	log.Debugf("Buffer content")
