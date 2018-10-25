@@ -169,33 +169,6 @@ func getFFBookmarks(bw *FFBrowser) {
 	//bookmarksToBufferFromTags(bw, tag)
 }
 
-func bookmarksToBufferFromTag(bw *FFBrowser, tag *FFTag) {
-	log.Debugf("db cons: %d", bw._places.Handle.Stats().OpenConnections)
-
-	//log.Debugf("bookmarks for %s", tag.title)
-	QGetBookmarksForTag := `SELECT moz_places.url, IFNULL(moz_places.title, '')
-						FROM moz_places
-						LEFT OUTER JOIN moz_bookmarks
-						ON moz_places.id = moz_bookmarks.fk
-						WHERE moz_bookmarks.parent = ?`
-
-	rows, err := bw._places.Handle.Query(QGetBookmarksForTag, tag.id)
-	logPanic(err)
-	//log.Debugf("Query is %s", fmt.Sprintf(QGetBookmarksForTag, tag.id))
-
-	for rows.Next() {
-		var url string
-		var title string
-		err = rows.Scan(&url, &title)
-		logPanic(err)
-		//log.Debugf("%s ---> %s", tag.title, url)
-
-	}
-
-	//bk := new(Bookmark)
-	//bk.Tags = append(bk.Tags, tag.title)
-}
-
 func (bw *FFBrowser) Run() {
 
 	log.Debugf("<%s> start bookmark parsing", bw.name)
