@@ -2,8 +2,7 @@ package main
 
 import (
 	"path"
-
-	"github.com/OneOfOne/xxhash"
+	"time"
 )
 
 var Firefox = BrowserPaths{
@@ -34,7 +33,7 @@ func NewFFBrowser() IBrowser {
 	browser.baseDir = Firefox.BookmarkDir
 	browser.bkFile = Firefox.BookmarkFile
 	browser.Stats = &ParserStats{}
-	browser.NodeTree = &Node{Name: "root", Parent: nil}
+	browser.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
 
 	// Across jobs buffer
 	browser.InitBuffer()
@@ -135,8 +134,8 @@ func getFFBookmarks(bw *FFBrowser) {
 		urlNode.Parent = tagMap[tagId]
 		tagMap[tagId].Children = append(tagMap[tagId].Children, urlNode)
 
-		// Check if url already in index
-		iVal, found := bw.URLIndex.Get(urlNode.URL)
+		// Check if url already in index TODO: should be done in new pass
+		//iVal, found := bw.URLIndex.Get(urlNode.URL)
 
 		/*
 		 * The fields where tags may change are hashed together
@@ -145,7 +144,20 @@ func getFFBookmarks(bw *FFBrowser) {
 		 *  (tags) for this url then hash their concatenation
 		 */
 
-		nameHash := xxhash.ChecksumString64(urlNode.Name)
+		//nameHash := xxhash.ChecksumString64(urlNode.Name)
+		// TODO: No guarantee we finished gathering tags !!
+		// We should check again against index in a new pass
+		// This pass needs to finish until we have full count
+		// of tags for each bookmark
+		//parents := urlNode.GetParentTags()
+		//if len(parents) > 4 {
+		//tags := make([]string, 0)
+		//for _, v := range parents {
+		//tags = append(tags, v.Name)
+		//}
+		////log.Debugf("<%s> --> [%s]", urlNode.URL, strings.Join(tags, "|"))
+
+		//}
 
 		bw.Stats.currentUrlCount++
 		bw.Stats.currentNodeCount++
@@ -202,10 +214,16 @@ func (bw *FFBrowser) Run() {
 	bw._places = placesDB
 
 	// Parse bookmarks to a flat tree (for compatibility with tree system)
+	start := time.Now()
 	getFFBookmarks(bw)
 
 	// Finished parsing
+	bw.Stats.lastParseTime = time.Since(start)
 	log.Debugf("<%s> parsed %d bookmarks and %d nodes", bw.name, bw.Stats.currentUrlCount, bw.Stats.currentNodeCount)
+	log.Debugf("<%s> parsed tree in %s", bw.name, bw.Stats.lastParseTime)
+
+	//go PrintTree(bw.NodeTree)
+
 	bw.ResetStats()
 
 }

@@ -3,7 +3,7 @@
 TARGET=gomark
 
 
-all: build docs
+all: build
 
 run: 
 	@go run *.go
