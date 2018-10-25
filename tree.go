@@ -85,7 +85,7 @@ func PrintTree(root *Node) {
 			t = t.AddBranch(fmt.Sprintf("%s <%s>", node.Type, node.Name))
 
 			for _, child := range node.Children {
-				walk(child, t)
+				go walk(child, t)
 			}
 		} else {
 			t.AddNode(fmt.Sprintf("%s <%s>", node.Type, node.URL))
@@ -98,7 +98,7 @@ func PrintTree(root *Node) {
 }
 
 // Debuggin bookmark node tree
-// TODO: Better usage of node trees
+// TODO: Old function should get removed
 func WalkNode(node *Node) {
 	if node.Name == "root" {
 		log.Debugf("Node --> <name: %s> | <type: %s> | children: %d | parent: %v", node.Name, node.Type, len(node.Children), node.Name)

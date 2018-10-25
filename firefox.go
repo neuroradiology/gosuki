@@ -218,11 +218,10 @@ func (bw *FFBrowser) Run() {
 	getFFBookmarks(bw)
 
 	// Finished parsing
+	//go PrintTree(bw.NodeTree) // debugging
 	bw.Stats.lastParseTime = time.Since(start)
 	log.Debugf("<%s> parsed %d bookmarks and %d nodes", bw.name, bw.Stats.currentUrlCount, bw.Stats.currentNodeCount)
 	log.Debugf("<%s> parsed tree in %s", bw.name, bw.Stats.lastParseTime)
-
-	//go PrintTree(bw.NodeTree)
 
 	bw.ResetStats()
 
