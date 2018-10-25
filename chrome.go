@@ -81,7 +81,7 @@ func NewChromeBrowser() IBrowser {
 	browser.baseDir = ChromeData.BookmarkDir
 	browser.bkFile = ChromeData.BookmarkFile
 	browser.Stats = &ParserStats{}
-	browser.NodeTree = &Node{Name: "root", Parent: nil}
+	browser.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
 
 	// Across jobs buffer
 	browser.InitBuffer()
@@ -112,7 +112,7 @@ func (bw *ChromeBrowser) Load() {
 func (bw *ChromeBrowser) Run() {
 
 	// Rebuild node tree
-	bw.NodeTree = &Node{Name: "root", Parent: nil}
+	bw.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
 
 	// Load bookmark file
 	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
@@ -144,7 +144,7 @@ func (bw *ChromeBrowser) Run() {
 
 		rawNode := new(RawNode)
 		rawNode.parseItems(node)
-		log.Debugf("Parsing root folder %s", rawNode.name)
+		//log.Debugf("Parsing root folder %s", rawNode.name)
 
 		currentNode := rawNode.getNode()
 
@@ -164,7 +164,7 @@ func (bw *ChromeBrowser) Run() {
 		// Finished parsing this root, it is not anymore a parent
 		_, parentNodes = parentNodes[len(parentNodes)-1], parentNodes[:len(parentNodes)-1]
 
-		log.Debugf("Parsed root %s folder", rawNode.name)
+		//log.Debugf("Parsed root %s folder", rawNode.name)
 
 		return nil
 	}
@@ -184,12 +184,12 @@ func (bw *ChromeBrowser) Run() {
 		rawNode.parseItems(node)
 
 		currentNode := rawNode.getNode()
-		log.Debugf("parsing node %s", currentNode.Name)
+		//log.Debugf("parsing node %s", currentNode.Name)
 
 		// if parents array is not empty
 		if len(parentNodes) != 0 {
 			parent := parentNodes[len(parentNodes)-1]
-			log.Debugf("Adding current node to parent %s", parent.Name)
+			//log.Debugf("Adding current node to parent %s", parent.Name)
 
 			// Add current node to closest parent
 			currentNode.Parent = parent
@@ -201,13 +201,13 @@ func (bw *ChromeBrowser) Run() {
 		// if node is a folder with children
 		if rawNode.childrenType == jsonparser.Array && len(rawNode.children) > 2 { // if len(children) > len("[]")
 
-			log.Debugf("Started folder %s", rawNode.name)
+			//log.Debugf("Started folder %s", rawNode.name)
 			parentNodes = append(parentNodes, currentNode)
 
 			// Process recursively all child nodes of this folder node
 			jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
 
-			log.Debugf("Finished folder %s", rawNode.name)
+			//log.Debugf("Finished folder %s", rawNode.name)
 			_, parentNodes = parentNodes[len(parentNodes)-1], parentNodes[:len(parentNodes)-1]
 
 		}
@@ -243,7 +243,7 @@ func (bw *ChromeBrowser) Run() {
 				// we check if the hash(name) changed  meaning
 				// the data changed
 			} else {
-				log.Debugf("URL Found in index")
+				//log.Debugf("URL Found in index")
 				nodeVal = iVal.(*Node)
 
 				// hash(name) is different meaning new commands/tags could
@@ -266,7 +266,7 @@ func (bw *ChromeBrowser) Run() {
 			//If parent is folder, add it as tag and add current node as child
 			//And add this link as child
 			if currentNode.Parent.Type == jsonNodeTypes.Folder {
-				log.Debug("Parent is folder, parsing as tag ...")
+				//log.Debug("Parent is folder, parsing as tag ...")
 				currentNode.Tags = append(currentNode.Tags, currentNode.Parent.Name)
 			}
 
@@ -281,11 +281,12 @@ func (bw *ChromeBrowser) Run() {
 	start := time.Now()
 	jsonparser.ObjectEach(rootsData, jsonParseRoots)
 	bw.Stats.lastParseTime = time.Since(start)
-	log.Debugf("Parsed tree in %s", bw.Stats.lastParseTime)
+	log.Debugf("<%s> parsed tree in %s", bw.name, bw.Stats.lastParseTime)
 	// Finished node tree building job
 
 	// Debug walk tree
-	//go WalkNode(bw.nodeTree)
+	//go WalkNode(bw.NodeTree)
+	go PrintTree(bw.NodeTree)
 
 	// Reset the index to represent the nodetree
 	bw.RebuildIndex()
@@ -297,14 +298,14 @@ func (bw *ChromeBrowser) Run() {
 	bw.ResetStats()
 
 	//Add nodeTree to Cache
-	log.Debugf("Buffer content")
-	bw.BufferDB.Print()
+	//log.Debugf("<%s> buffer content", bw.name)
+	//bw.BufferDB.Print()
 
-	log.Debugf("syncing to buffer")
+	log.Debugf("<%s> syncing to buffer", bw.name)
 	syncTreeToBuffer(bw.NodeTree, bw.BufferDB)
-	log.Debugf("Tree synced to buffer")
+	log.Debugf("<%s> tree synced to buffer", bw.name)
 
-	bw.BufferDB.Print()
+	//bw.BufferDB.Print()
 
 	// cacheDB represents bookmarks across all browsers
 	// From browsers it should support: add/update

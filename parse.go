@@ -43,7 +43,7 @@ func ParseTags(node *Node) {
 	//res := regex.FindAllStringSubmatch(bk.Metadata, -1)
 
 	if len(node.Tags) > 0 {
-		log.Debugf("[Title] found following tags: %s", node.Tags)
+		log.Debugf("[in title] found following tags: %s", node.Tags)
 	}
 }
 
