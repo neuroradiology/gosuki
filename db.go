@@ -152,7 +152,7 @@ func (db *DB) Attach(attached *DB) {
 }
 
 func (db *DB) Close() {
-	log.Debugf("Closing <%s>", db.Name)
+	log.Debugf("Closing DB <%s>", db.Name)
 	db.Handle.Close()
 }
 
