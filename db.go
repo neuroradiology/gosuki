@@ -200,9 +200,11 @@ func (db *DB) isEmpty() (bool, error) {
 	return true, nil
 }
 
-func (src *DB) SyncTo(dst *DB) {
+// Copy from src DB to dst DB
+// Source DB os overwritten
+func (src *DB) CopyTo(dst *DB) {
 
-	log.Debugf("Syncing <%s>(%d) to <%s>(%d)", src.Name,
+	log.Debugf("Copying <%s>(%d) to <%s>(%d)", src.Name,
 		src.Count(),
 		dst.Name,
 		dst.Count())
