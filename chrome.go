@@ -318,8 +318,6 @@ func (bw *ChromeBrowser) Run() {
 	// Buffer is the current state of the browser represetned by
 	// URLIndex and nodeTree
 
-	log.Debug("TODO: Compare cacheDB with index")
-
 	// If cacheDB is empty just copy buffer to cacheDB
 	// until local db is already populated and preloaded
 	//debugPrint("%d", BufferDB.Count())
@@ -333,16 +331,18 @@ func (bw *ChromeBrowser) Run() {
 		//elapsed := time.Since(start)
 		//debugPrint("copy in %s", elapsed)
 
-		debugPrint("syncing <%s> to disk", CacheDB.Name)
+		log.Debugf("syncing <%s> to disk", CacheDB.Name)
 		CacheDB.SyncToDisk(getDBFullPath())
 	}
 
-	// Implement incremental sync by doing INSERTs
-	bw.BufferDB.CopyTo(CacheDB)
+	// TODO: Implement incremental sync by doing INSERTS
+	// to avoid overwriting the original cache
+	bw.BufferDB.SyncTo(CacheDB)
 
 	CacheDB.SyncToDisk(getDBFullPath())
 
 	// TODO: Check if new/modified bookmarks in buffer compared to cache
-	log.Debugf("TODO: check if new/modified bookmarks in %s compared to %s", bw.BufferDB.Name, CacheDB.Name)
+	// This should be fixed with an InsertOrUp sync to cache db
+	log.Debugf("DOING: check if new/modified bookmarks in %s compared to %s", bw.BufferDB.Name, CacheDB.Name)
 
 }

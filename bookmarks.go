@@ -43,6 +43,7 @@ func (bk *Bookmark) InsertInDB(db *DB) {
 func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 
 	var sqlite3Err sqlite3.Error
+	var scannedTags string
 
 	// TODO
 	// When updating we should only ADD tags and not replace previous ones
@@ -50,16 +51,35 @@ func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 	//log.Debugf("Adding bookmark %s", bk.URL)
 	_db := db.Handle
 
+	// Prepare statement that does a pure insert only
+	tryInsertBk, err := _db.Prepare(`INSERT INTO
+									bookmarks(URL, metadata, tags, desc,
+									flags) VALUES (?, ?, ?, ?, ?)`)
+	defer tryInsertBk.Close()
+	sqlErrorMsg(err, bk.URL)
+
+	// Prepare statement that updates an existing bookmark in db
+	updateBk, err := _db.Prepare(`UPDATE bookmarks SET metadata=?, tags=?
+									WHERE url=?`)
+	defer updateBk.Close()
+	sqlErrorMsg(err, bk.URL)
+
+	// Stmt to fetch existing bookmark and tags in db
+	getTags, err := _db.Prepare(`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`)
+	defer getTags.Close()
+	sqlErrorMsg(err, bk.URL)
+
+	// Begin transaction
 	tx, err := _db.Begin()
 	logPanic(err)
 
 	// First try to insert the bookmark (assume it's new)
-	stmt, err := tx.Prepare(`INSERT INTO bookmarks(URL, metadata, tags, desc,
-											flags) VALUES (?, ?, ?, ?, ?)`)
-	defer stmt.Close()
-	sqlErrorMsg(err, bk.URL)
-
-	_, err = stmt.Exec(bk.URL, bk.Metadata, strings.Join(bk.Tags, TagJoinSep), "", 0)
+	_, err = tx.Stmt(tryInsertBk).Exec(
+		bk.URL,
+		bk.Metadata,
+		strings.Join(bk.Tags, TagJoinSep),
+		"", 0,
+	)
 
 	if err != nil {
 		sqlite3Err = err.(sqlite3.Error)
@@ -70,14 +90,41 @@ func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 	}
 
 	// We will handle ErrConstraint ourselves
-	if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
-		log.Debugf("Updating bookmark %s", bk.URL)
-		stmt, err := tx.Prepare(`UPDATE bookmarks SET metadata=?, tags=?
-									WHERE url=?`)
-		sqlErrorMsg(err, bk.URL)
 
-		_, err = stmt.Exec(bk.Metadata, strings.Join(bk.Tags, TagJoinSep),
-			bk.URL)
+	// ErrConstraint means the bookmark (url) already exists in table,
+	// we need to update it instead.
+	if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
+		//log.Debugf("Updating bookmark %s", bk.URL)
+
+		// First get existing tags for this bookmark if any ?
+		res := tx.Stmt(getTags).QueryRow(
+			bk.URL,
+		)
+		res.Scan(&scannedTags)
+		cacheTags := strings.Split(scannedTags, TagJoinSep)
+
+		// If tags are different, merge current bookmark tags and existing tags
+		// Put them in a map first to remove duplicates
+		var tagMap = make(map[string]bool)
+		for _, v := range cacheTags {
+			tagMap[v] = true
+		}
+		for _, v := range bk.Tags {
+			tagMap[v] = true
+		}
+
+		var newTags []string // merged tags
+
+		// Merge in a single slice
+		for k, _ := range tagMap {
+			newTags = append(newTags, k)
+		}
+
+		_, err = tx.Stmt(updateBk).Exec(
+			bk.Metadata,
+			strings.Join(newTags, TagJoinSep), // Join tags with a `|`
+			bk.URL,
+		)
 
 		sqlErrorMsg(err, bk.URL)
 	}

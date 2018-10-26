@@ -1,6 +1,8 @@
 package main
 
-import "os"
+import (
+	"os"
+)
 
 const ENV_GOMARK_MODE = "GOMARK_MODE"
 

@@ -7,12 +7,13 @@ import (
 // Used as input to WatcherThread
 // It does not have to be a browser as long is the interface is implemented
 type IWatchable interface {
-	SetupWatcher()              // Starts watching bookmarks and runs Load on change
-	Watch() bool                // starts watching linked watcher
-	Run()                       // Callback fired on event
-	Watcher() *fsnotify.Watcher // returns linked watcher
-	GetPath() string            // returns watched path
-	GetDir() string             // returns watched dir
+	SetupWatcher()                 // Starts watching bookmarks and runs Load on change
+	Watch() bool                   // starts watching linked watcher
+	Run()                          // Callback fired on event
+	GetWatcher() *fsnotify.Watcher // returns linked watcher
+	ResetWatcher()                 // resets a new watcher
+	GetPath() string               // returns watched path
+	GetDir() string                // returns watched dir
 	EventsChan() chan fsnotify.Event
 }
 
@@ -22,9 +23,11 @@ func WatcherThread(w IWatchable) {
 	bookmarkPath := w.GetPath()
 	log.Infof("watching %s", bookmarkPath)
 
-	watcher := w.Watcher()
-
 	for {
+		// Keep watcher here as it is reset from within
+		// the select block
+		watcher := w.GetWatcher()
+
 		select {
 		case event := <-watcher.Events:
 
@@ -33,19 +36,19 @@ func WatcherThread(w IWatchable) {
 			if event.Op&fsnotify.Create == fsnotify.Create &&
 				event.Name == bookmarkPath {
 
-				debugPrint("event: %v | eventName: %v", event.Op, event.Name)
-				//debugPrint("modified file: %s", event.Name)
-				//start := time.Now()
-				//parseFunc(bw)
 				w.Run()
-				//elapsed := time.Since(start)
-				//debugPrint("parsed in %s", elapsed)
+				log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
+
+				log.Debugf("resetting watchers")
+				w.ResetWatcher()
+
+				break
 			}
 
 			// Firefox keeps the file open and makes changes on it
 			// It needs a debouncer
 			if event.Name == bookmarkPath {
-				debugPrint("event: %v | eventName: %v", event.Op, event.Name)
+				log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
 				//go debounce(1000*time.Millisecond, spammyEventsChannel, w)
 				ch := w.EventsChan()
 				ch <- event
