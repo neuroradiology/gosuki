@@ -256,7 +256,6 @@ func (bw *ChromeBrowser) Run() {
 
 					// Run parse hooks on node
 					bw.RunParseHooks(currentNode)
-
 				}
 
 				// Else we do nothing, the node will not
@@ -285,8 +284,7 @@ func (bw *ChromeBrowser) Run() {
 	// Finished node tree building job
 
 	// Debug walk tree
-	//go WalkNode(bw.NodeTree)
-	go PrintTree(bw.NodeTree)
+	//go PrintTree(bw.NodeTree)
 
 	// Reset the index to represent the nodetree
 	bw.RebuildIndex()
@@ -330,7 +328,7 @@ func (bw *ChromeBrowser) Run() {
 		log.Debug("cache empty: loading buffer to Cachedb")
 
 		//start := time.Now()
-		bw.BufferDB.SyncTo(CacheDB)
+		bw.BufferDB.CopyTo(CacheDB)
 		//debugPrint("<%s> is now (%d)", CacheDB.name, cacheDB.Count())
 		//elapsed := time.Since(start)
 		//debugPrint("copy in %s", elapsed)
@@ -340,7 +338,7 @@ func (bw *ChromeBrowser) Run() {
 	}
 
 	// Implement incremental sync by doing INSERTs
-	bw.BufferDB.SyncTo(CacheDB)
+	bw.BufferDB.CopyTo(CacheDB)
 
 	CacheDB.SyncToDisk(getDBFullPath())
 

@@ -95,19 +95,21 @@ func getFFBookmarks(bw *FFBrowser) {
 	logPanic(err)
 
 	tagMap := make(map[int]*Node)
+	urlMap := make(map[string]*Node)
 
 	// Rebuild node tree
 	rootNode := bw.NodeTree
 
+	/*
+	 *This pass is used only for fetching bookmarks from firefox.
+	 *Checking against the URLIndex should not be done here
+	 */
 	for rows.Next() {
 		var url, title, tagTitle, desc string
 		var tagId int
-		//tag := &FFTag{}
-		//err = rows.Scan(&tag.id, &tag.title)
 		err = rows.Scan(&url, &title, &desc, &tagId, &tagTitle)
+		//log.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
 		logPanic(err)
-		//log.Debugf("%s - %s - %s - %d - %s", url, title, desc, tagId, tagTitle)
-		//log.Debugf("%s", desc)
 
 		/*
 		 * If this is the first time we see this tag
@@ -126,47 +128,48 @@ func getFFBookmarks(bw *FFBrowser) {
 		}
 
 		// Add the url to the tag
-		urlNode := new(Node)
-		urlNode.Type = "url"
-		urlNode.URL = url
-		urlNode.Name = title
-		urlNode.Desc = desc
+		urlNode, urlNodeExists := urlMap[url]
+		if !urlNodeExists {
+			urlNode = new(Node)
+			urlNode.Type = "url"
+			urlNode.URL = url
+			urlNode.Name = title
+			urlNode.Desc = desc
+			urlMap[url] = urlNode
+		}
+
+		// Add tag to urlnode tags
+		urlNode.Tags = append(urlNode.Tags, tagNode.Name)
+		log.Debug(urlNode.Tags)
+
+		// Set tag as parent to urlnode
 		urlNode.Parent = tagMap[tagId]
+
+		// Add urlnode as child to tag node
 		tagMap[tagId].Children = append(tagMap[tagId].Children, urlNode)
-
-		// Check if url already in index TODO: should be done in new pass
-		//iVal, found := bw.URLIndex.Get(urlNode.URL)
-
-		/*
-		 * The fields where tags may change are hashed together
-		 * to detect changes in futre parses
-		 * To handle tag changes we need to get all parent nodes
-		 *  (tags) for this url then hash their concatenation
-		 */
-
-		//nameHash := xxhash.ChecksumString64(urlNode.Name)
-		// TODO: No guarantee we finished gathering tags !!
-		// We should check again against index in a new pass
-		// This pass needs to finish until we have full count
-		// of tags for each bookmark
-		//parents := urlNode.GetParentTags()
-		//if len(parents) > 4 {
-		//tags := make([]string, 0)
-		//for _, v := range parents {
-		//tags = append(tags, v.Name)
-		//}
-		////log.Debugf("<%s> --> [%s]", urlNode.URL, strings.Join(tags, "|"))
-
-		//}
 
 		bw.Stats.currentUrlCount++
 		bw.Stats.currentNodeCount++
 	}
 
-	//go WalkNode(bw.NodeTree)
-	//log.Debug(len(tags))
+	/*
+	 *Build tags for each url then check against URLIndex
+	 *for changes
+	 */
 
-	//bookmarksToBufferFromTags(bw, tag)
+	// Check if url already in index TODO: should be done in new pass
+	//iVal, found := bw.URLIndex.Get(urlNode.URL)
+
+	/*
+	 * The fields where tags may change are hashed together
+	 * to detect changes in futre parses
+	 * To handle tag changes we need to get all parent nodes
+	 *  (tags) for this url then hash their concatenation
+	 */
+
+	//nameHash := xxhash.ChecksumString64(urlNode.Name)
+	// TODO: No guarantee we finished gathering tags !!
+
 }
 
 func (bw *FFBrowser) Run() {
@@ -189,13 +192,17 @@ func (bw *FFBrowser) Run() {
 	// Parse bookmarks to a flat tree (for compatibility with tree system)
 	start := time.Now()
 	getFFBookmarks(bw)
+	bw.Stats.lastParseTime = time.Since(start)
 
 	// Finished parsing
 	//go PrintTree(bw.NodeTree) // debugging
-	bw.Stats.lastParseTime = time.Since(start)
 	log.Debugf("<%s> parsed %d bookmarks and %d nodes", bw.name, bw.Stats.currentUrlCount, bw.Stats.currentNodeCount)
 	log.Debugf("<%s> parsed tree in %s", bw.name, bw.Stats.lastParseTime)
 
 	bw.ResetStats()
 
+	syncTreeToBuffer(bw.NodeTree, bw.BufferDB)
+
+	// Implement incremental sync by doing INSERTs
+	bw.BufferDB.CopyTo(CacheDB)
 }
