@@ -82,7 +82,7 @@ type BaseBrowser struct {
 	parseHooks []ParseHook
 }
 
-func (bw *BaseBrowser) Watcher() *fsnotify.Watcher {
+func (bw *BaseBrowser) GetWatcher() *fsnotify.Watcher {
 	return bw.watcher
 }
 
@@ -119,8 +119,14 @@ func (bw *BaseBrowser) SetupWatcher() {
 	var err error
 	bw.watcher, err = fsnotify.NewWatcher()
 	logPanic(err)
-	err = bw.watcher.Add(bw.baseDir)
+	err = bw.watcher.Add(bw.GetDir())
 	logPanic(err)
+}
+
+func (bw *BaseBrowser) ResetWatcher() {
+	err := bw.watcher.Close()
+	logPanic(err)
+	bw.SetupWatcher()
 }
 
 func (bw *BaseBrowser) Close() {

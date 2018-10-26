@@ -140,7 +140,6 @@ func getFFBookmarks(bw *FFBrowser) {
 
 		// Add tag to urlnode tags
 		urlNode.Tags = append(urlNode.Tags, tagNode.Name)
-		log.Debug(urlNode.Tags)
 
 		// Set tag as parent to urlnode
 		urlNode.Parent = tagMap[tagId]
@@ -176,10 +175,7 @@ func (bw *FFBrowser) Run() {
 
 	log.Debugf("<%s> start bookmark parsing", bw.name)
 
-	// TODO: Node tree is not used for now as the folder
-	// parsing is not implemented
-	// Rebuild node tree
-	// bw.NodeTree = &Node{Name: "root", Parent: nil}
+	// TODO: Handle folders
 
 	// Open firefox sqlite db
 	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)

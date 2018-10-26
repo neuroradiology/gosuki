@@ -1,3 +1,4 @@
+//TODO: Handle modified time
 package main
 
 import (
@@ -198,6 +199,21 @@ func (db *DB) isEmpty() (bool, error) {
 	}
 
 	return true, nil
+}
+
+// For ever row in `src` try to insert it into `dst`.
+// If if fails then try to update it. It means `src` is synced to `dst`
+func (src *DB) SyncTo(dst *DB) {
+	var sqlite3Err sqlite3.Error
+
+	getSourceTable, err := src.Handle.Prepare(`SELECT * FROM bookmarks`)
+	defer getSourceRows.Close()
+	logPanic(err)
+
+	updateDstTable, err := dst.Handle.Prepare(`INSERT INTO
+								bookmarks(URL, metadata, tags, desc,
+								flags) VALUES (?, ?, ?, ?, ?)`)
+
 }
 
 // Copy from src DB to dst DB

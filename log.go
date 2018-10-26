@@ -38,7 +38,3 @@ func initLogging() {
 func IsDebugging() bool {
 	return gomarkMode == debugCode
 }
-
-func debugPrint(format string, values ...interface{}) {
-	log.Debugf("[debug] "+format, values...)
-}
