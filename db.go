@@ -208,7 +208,6 @@ func (db *DB) isEmpty() (bool, error) {
 func (src *DB) SyncTo(dst *DB) {
 	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
 	var sqlite3Err sqlite3.Error
-	var dstTags string
 	var existingUrls []*SBookmark
 
 	getSourceTable, err := src.Handle.Prepare(`SELECT * FROM bookmarks`)
@@ -304,18 +303,19 @@ func (src *DB) SyncTo(dst *DB) {
 
 	// Traverse existing urls and try an update this time
 	for _, scan := range existingUrls {
+		var tags string
 
 		//log.Debugf("updating existing %s", scan.Url)
 
 		row := getDstTags.QueryRow(
 			scan.Url,
 		)
-		row.Scan(&dstTags)
+		row.Scan(&tags)
 
 		//log.Debugf("src tags: %v", scan.tags)
 		//log.Debugf("dst tags: %v", dstTags)
 		srcTags := strings.Split(scan.tags, TagJoinSep)
-		dstTags := strings.Split(dstTags, TagJoinSep)
+		dstTags := strings.Split(tags, TagJoinSep)
 
 		tagMap := make(map[string]bool)
 		for _, v := range srcTags {
