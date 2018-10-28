@@ -562,7 +562,7 @@ func initDB() {
 		if err != nil {
 			log.Warning(err)
 		}
-		log.Debugf("localdb exists, preloading to cache")
+		log.Infof("<%s> exists, preloading to cache", dbpath)
 		CacheDB.SyncFromDisk(dbpath)
 		//CacheDB.Print()
 	} else {
@@ -580,7 +580,6 @@ func initDB() {
 func initLocalDB(db *DB, dbpath string) {
 
 	log.Infof("Initializing local db at '%s'", dbpath)
-	log.Debugf("%s flushing to disk", db.Name)
 	err := db.SyncToDisk(dbpath)
 	if err != nil {
 		log.Critical(err)

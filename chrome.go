@@ -103,6 +103,7 @@ func (bw *ChromeBrowser) Watch() bool {
 	if !bw.isWatching {
 		go WatcherThread(bw)
 		bw.isWatching = true
+		log.Infof("<%s> watching changes", bw.name)
 		return true
 	}
 
