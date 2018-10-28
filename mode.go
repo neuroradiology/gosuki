@@ -39,7 +39,7 @@ func SetMode(value string) {
 	case TestMode:
 		gomarkMode = testCode
 	default:
-		panic("go-bookmark mode unknown: " + value)
+		log.Panic("go-bookmark mode unknown: " + value)
 	}
 	modeName = value
 }

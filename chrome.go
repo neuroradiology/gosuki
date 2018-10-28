@@ -91,6 +91,14 @@ func NewChromeBrowser() IBrowser {
 	return browser
 }
 
+func (bw ChromeBrowser) Shutdown() {
+	log.Debugf("<%s> shutting down ... ", bw.name)
+	err := bw.BaseBrowser.Close()
+	if err != nil {
+		log.Error(err)
+	}
+}
+
 func (bw *ChromeBrowser) Watch() bool {
 	if !bw.isWatching {
 		go WatcherThread(bw)
@@ -117,7 +125,9 @@ func (bw *ChromeBrowser) Run() {
 	// Load bookmark file
 	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
 	f, err := ioutil.ReadFile(bookmarkPath)
-	logPanic(err)
+	if err != nil {
+		log.Critical(err)
+	}
 
 	var parseChildren ParseChildFunc
 	var jsonParseRecursive RecursiveParseFunc
@@ -322,8 +332,10 @@ func (bw *ChromeBrowser) Run() {
 	// until local db is already populated and preloaded
 	//debugPrint("%d", BufferDB.Count())
 	if empty, err := CacheDB.isEmpty(); empty {
-		logPanic(err)
-		log.Debug("cache empty: loading buffer to Cachedb")
+		if err != nil {
+			log.Error(err)
+		}
+		log.Info("cache empty: loading buffer to Cachedb")
 
 		//start := time.Now()
 		bw.BufferDB.CopyTo(CacheDB)
@@ -335,12 +347,6 @@ func (bw *ChromeBrowser) Run() {
 		CacheDB.SyncToDisk(getDBFullPath())
 	}
 
-	// TODO: Implement incremental sync by doing INSERTS
-	// to avoid overwriting the original cache
 	bw.BufferDB.SyncTo(CacheDB)
-
-	// TODO: Check if new/modified bookmarks in buffer compared to cache
-	// This should be fixed with an InsertOrUp sync to cache db
-	log.Debugf("DOING: check if new/modified bookmarks in %s compared to %s", bw.BufferDB.Name, CacheDB.Name)
 
 }

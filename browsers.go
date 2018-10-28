@@ -36,12 +36,12 @@ type BrowserPaths struct {
 
 type IBrowser interface {
 	IWatchable
-	InitBuffer() // init buffer db, should be defered to close after call
+	InitBuffer() // init buffer db, TODO: defer closings and shutdown
 	InitIndex()  // Creates in memory Index (RB-Tree)
 	RegisterHooks(...ParseHook)
 	Load() // Loads bookmarks to db without watching
 	//Parse(...ParseHook) // Main parsing method with different parsing hooks
-	Close() // Gracefully finish work and stop watching
+	Shutdown() // Graceful shutdown, it should call the BaseBrowser.Close()
 }
 
 // Base browser class serves as reference for implmented browser types
@@ -92,8 +92,7 @@ func (bw *BaseBrowser) Load() {
 
 	// Check if cache is initialized
 	if CacheDB == nil || CacheDB.Handle == nil {
-		log.Critical("cache is not yet initialized !")
-		panic("cache is not yet initialized !")
+		log.Criticalf("<%s> Loading bookmarks while cache not yet initialized !", bw.name)
 	}
 
 	if bw.watcher == nil {
@@ -118,21 +117,36 @@ func (bw *BaseBrowser) GetDir() string {
 func (bw *BaseBrowser) SetupWatcher() {
 	var err error
 	bw.watcher, err = fsnotify.NewWatcher()
-	logPanic(err)
+	if err != nil {
+		log.Critical(err)
+	}
 	err = bw.watcher.Add(bw.GetDir())
-	logPanic(err)
+	if err != nil {
+		log.Critical(err)
+	}
+
 }
 
 func (bw *BaseBrowser) ResetWatcher() {
 	err := bw.watcher.Close()
-	logPanic(err)
+	if err != nil {
+		log.Critical(err)
+	}
 	bw.SetupWatcher()
 }
 
-func (bw *BaseBrowser) Close() {
+func (bw *BaseBrowser) Close() error {
 	err := bw.watcher.Close()
-	bw.BufferDB.Close()
-	logPanic(err)
+	if err != nil {
+		return err
+	}
+
+	err = bw.BufferDB.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (b *BaseBrowser) InitIndex() {

@@ -10,7 +10,9 @@ import (
 func getBookmarks(c *gin.Context) {
 
 	rows, err := CacheDB.Handle.QueryContext(c, "SELECT URL, metadata, tags FROM bookmarks")
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	var bookmarks []Bookmark
 
@@ -18,7 +20,9 @@ func getBookmarks(c *gin.Context) {
 	for rows.Next() {
 		bookmark := Bookmark{}
 		err = rows.Scan(&bookmark.URL, &bookmark.Metadata, &tags)
-		logPanic(err)
+		if err != nil {
+			log.Error(err)
+		}
 
 		bookmark.Tags = strings.Split(tags, TagJoinSep)
 

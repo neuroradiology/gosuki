@@ -79,7 +79,10 @@ func (db *DB) InitRO() {
 	// Create the sqlite connection
 	db.Handle, err = sql.Open("sqlite3", db.Path)
 	log.Debugf("<%s> opened at <%s>", db.Name, db.Path)
-	logPanic(err)
+	if err != nil {
+		log.Critical(err)
+	}
+
 }
 
 // Initialize a sqlite database with Gomark Schema
@@ -99,20 +102,30 @@ func (db *DB) Init() {
 	db.Handle, err = sql.Open("sqlite3", db.Path)
 	//log.Debugf("db <%s> opend at at <%s>", db.name, db.path)
 	log.Debugf("<%s> opened at <%s>", db.Name, db.Path)
-	logPanic(err)
+	if err != nil {
+		log.Critical(err)
+	}
 
 	// Populate db schema
 	tx, err := db.Handle.Begin()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	stmt, err := tx.Prepare(QCreateMemDbSchema)
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	_, err = stmt.Exec()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	err = tx.Commit()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	if !backupHookRegistered {
 		//log.Debugf("backup_hook: registering driver %s", DB_BACKUP_HOOK)
@@ -136,7 +149,9 @@ func (db *DB) Attach(attached *DB) {
 
 	stmtStr := fmt.Sprintf("ATTACH DATABASE '%s' AS '%s'", attached.Path, attached.Name)
 	_, err := db.Handle.Exec(stmtStr)
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	/////////////////
 	// For debug only
@@ -154,9 +169,13 @@ func (db *DB) Attach(attached *DB) {
 	//}
 }
 
-func (db *DB) Close() {
+func (db *DB) Close() error {
 	log.Debugf("Closing DB <%s>", db.Name)
-	db.Handle.Close()
+	err := db.Handle.Close()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (db *DB) Count() int {
@@ -164,7 +183,9 @@ func (db *DB) Count() int {
 
 	row := db.Handle.QueryRow("select count(*) from bookmarks")
 	err := row.Scan(&count)
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	return count
 }
@@ -373,7 +394,9 @@ func (src *DB) CopyTo(dst *DB) {
 		srcDb.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
 	}()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	srcDb.Ping()
 
@@ -382,14 +405,20 @@ func (src *DB) CopyTo(dst *DB) {
 		dstDb.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
 	}()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 	dstDb.Ping()
 
 	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	_, err = bk.Step(-1)
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	bk.Finish()
 }
@@ -523,17 +552,24 @@ func initDB() {
 
 	// Verifiy that local db directory path is writeable
 	err := checkWriteable(dbdir)
-	logPanic(err)
+	if err != nil {
+		log.Critical(err)
+	}
 
 	// If local db exists load it to cacheDB
 	var exists bool
 	if exists, err = checkFileExists(dbpath); exists {
-		logPanic(err)
+		if err != nil {
+			log.Warning(err)
+		}
 		log.Debugf("localdb exists, preloading to cache")
 		CacheDB.SyncFromDisk(dbpath)
 		//CacheDB.Print()
 	} else {
-		logPanic(err)
+		if err != nil {
+			log.Error(err)
+		}
+
 		// Else initialize it
 		initLocalDB(CacheDB, dbpath)
 	}
@@ -546,7 +582,9 @@ func initLocalDB(db *DB, dbpath string) {
 	log.Infof("Initializing local db at '%s'", dbpath)
 	log.Debugf("%s flushing to disk", db.Name)
 	err := db.SyncToDisk(dbpath)
-	logPanic(err)
+	if err != nil {
+		log.Critical(err)
+	}
 
 }
 

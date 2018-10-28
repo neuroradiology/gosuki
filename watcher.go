@@ -64,7 +64,7 @@ func WatcherThread(w IWatchable) {
 				//w.Run()
 			}
 		case err := <-watcher.Errors:
-			log.Errorf("error: %s", err)
+			log.Error(err)
 		}
 	}
 }
