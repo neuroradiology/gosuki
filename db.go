@@ -1,4 +1,3 @@
-//TODO: Handle modified time
 package main
 
 import (

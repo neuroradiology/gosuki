@@ -192,7 +192,6 @@ func getFFBookmarks(bw *FFBrowser) {
 	 */
 
 	//nameHash := xxhash.ChecksumString64(urlNode.Name)
-	// TODO: No guarantee we finished gathering tags !!
 
 }
 
