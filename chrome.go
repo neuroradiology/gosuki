@@ -339,8 +339,6 @@ func (bw *ChromeBrowser) Run() {
 	// to avoid overwriting the original cache
 	bw.BufferDB.SyncTo(CacheDB)
 
-	CacheDB.SyncToDisk(getDBFullPath())
-
 	// TODO: Check if new/modified bookmarks in buffer compared to cache
 	// This should be fixed with an InsertOrUp sync to cache db
 	log.Debugf("DOING: check if new/modified bookmarks in %s compared to %s", bw.BufferDB.Name, CacheDB.Name)
