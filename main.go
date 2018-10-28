@@ -7,9 +7,7 @@ package main
 
 import "github.com/gin-gonic/gin"
 
-func main() {
-	// Block the main function
-	//block := make(chan bool)
+func mainLoop() {
 
 	r := gin.Default()
 
@@ -23,6 +21,8 @@ func main() {
 
 	cb := NewChromeBrowser()
 	ff := NewFFBrowser()
+	defer cb.Shutdown()
+	defer ff.Shutdown()
 
 	cb.RegisterHooks(ParseTags)
 	ff.RegisterHooks(ParseTags)
@@ -33,7 +33,12 @@ func main() {
 	_ = cb.Watch()
 	_ = ff.Watch()
 
-	r.Run("127.0.0.1:4242")
+	err := r.Run("127.0.0.1:4242")
+	if err != nil {
+		log.Panic(err)
+	}
+}
 
-	//<-block
+func main() {
+	mainLoop()
 }

@@ -24,7 +24,9 @@ func (bk *Bookmark) InsertInDB(db *DB) {
 	_db := db.Handle
 
 	tx, err := _db.Begin()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	stmt, err := tx.Prepare(`INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
 	logError(err)
@@ -75,7 +77,9 @@ func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 
 	// Begin transaction
 	tx, err := _db.Begin()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	// First try to insert the bookmark (assume it's new)
 	_, err = tx.Stmt(tryInsertBk).Exec(

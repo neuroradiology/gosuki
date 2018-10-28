@@ -18,7 +18,7 @@ const (
 
 type FFBrowser struct {
 	BaseBrowser //embedding
-	_places     *DB
+	places      *DB
 }
 
 type FFTag struct {
@@ -34,6 +34,11 @@ func NewFFBrowser() IBrowser {
 	browser.bkFile = Firefox.BookmarkFile
 	browser.Stats = &ParserStats{}
 	browser.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
+
+	// Initialize `places.sqlite`
+	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
+	browser.places = DB{}.New("Places", bookmarkPath)
+	browser.places.InitRO()
 
 	// Across jobs buffer
 	browser.InitBuffer()
@@ -51,9 +56,25 @@ func NewFFBrowser() IBrowser {
 	return browser
 }
 
+func (bw *FFBrowser) Shutdown() {
+
+	log.Debugf("<%s> shutting down ... ", bw.name)
+
+	err := bw.BaseBrowser.Close()
+	if err != nil {
+		log.Critical(err)
+	}
+
+	err = bw.places.Close()
+	if err != nil {
+		log.Critical(err)
+	}
+}
+
 func (bw *FFBrowser) Watch() bool {
 
-	log.Debugf("<%s> NOT IMPLEMENTED! ", bw.name)
+	log.Debugf("<%s> TODO ... ", bw.name)
+
 	//if !bw.isWatching {
 	//go WatcherThread(bw)
 	//bw.isWatching = true
@@ -91,8 +112,10 @@ func getFFBookmarks(bw *FFBrowser) {
 
 	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
 
-	rows, err := bw._places.Handle.Query(QGetBookmarks, MozPlacesTagsRootID)
-	logPanic(err)
+	rows, err := bw.places.Handle.Query(QGetBookmarks, MozPlacesTagsRootID)
+	if err != nil {
+		log.Error(err)
+	}
 
 	tagMap := make(map[int]*Node)
 	urlMap := make(map[string]*Node)
@@ -109,7 +132,9 @@ func getFFBookmarks(bw *FFBrowser) {
 		var tagId int
 		err = rows.Scan(&url, &title, &desc, &tagId, &tagTitle)
 		//log.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
-		logPanic(err)
+		if err != nil {
+			log.Error(err)
+		}
 
 		/*
 		 * If this is the first time we see this tag
@@ -177,14 +202,6 @@ func (bw *FFBrowser) Run() {
 
 	// TODO: Handle folders
 
-	// Open firefox sqlite db
-	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
-	placesDB := DB{}.New("Places", bookmarkPath)
-	placesDB.InitRO()
-	defer placesDB.Close()
-
-	bw._places = placesDB
-
 	// Parse bookmarks to a flat tree (for compatibility with tree system)
 	start := time.Now()
 	getFFBookmarks(bw)
@@ -201,5 +218,4 @@ func (bw *FFBrowser) Run() {
 
 	// Implement incremental sync by doing INSERTs
 	bw.BufferDB.SyncTo(CacheDB)
-	CacheDB.SyncToDisk(getDBFullPath())
 }
