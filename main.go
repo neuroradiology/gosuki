@@ -22,16 +22,16 @@ func main() {
 	initDB()
 
 	cb := NewChromeBrowser()
-	//ff := NewFFBrowser()
+	ff := NewFFBrowser()
 
 	cb.RegisterHooks(ParseTags)
-	//ff.RegisterHooks(ParseTags)
+	ff.RegisterHooks(ParseTags)
 
 	cb.Load()
-	//ff.Load()
+	ff.Load()
 
 	_ = cb.Watch()
-	//_ = ff.Watch()
+	_ = ff.Watch()
 
 	r.Run("127.0.0.1:4242")
 

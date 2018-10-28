@@ -200,5 +200,6 @@ func (bw *FFBrowser) Run() {
 	syncTreeToBuffer(bw.NodeTree, bw.BufferDB)
 
 	// Implement incremental sync by doing INSERTs
-	bw.BufferDB.CopyTo(CacheDB)
+	bw.BufferDB.SyncTo(CacheDB)
+	CacheDB.SyncToDisk(getDBFullPath())
 }

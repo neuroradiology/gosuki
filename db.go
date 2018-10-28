@@ -23,6 +23,7 @@ const (
 	DBMemcacheFmt  = "file:%s?mode=memory&cache=shared"
 	DBBufferFmt    = "file:%s?mode=memory&cache=shared"
 	DB_BACKUP_HOOK = "sqlite_with_backup"
+	DBCacheName    = "memcache"
 )
 
 //  Database schemas used for the creation of new databases
@@ -170,16 +171,16 @@ func (db *DB) Count() int {
 
 func (db *DB) Print() error {
 
-	var url string
+	var url, tags string
 
-	rows, err := db.Handle.Query("select url from bookmarks")
+	rows, err := db.Handle.Query("select url,tags from bookmarks")
 
 	for rows.Next() {
-		err = rows.Scan(&url)
+		err = rows.Scan(&url, &tags)
 		if err != nil {
 			return err
 		}
-		log.Debugf("%s", url)
+		log.Debugf("url:%s  tags:%s", url, tags)
 	}
 
 	return nil
@@ -205,26 +206,34 @@ func (db *DB) isEmpty() (bool, error) {
 // For ever row in `src` try to insert it into `dst`.
 // If if fails then try to update it. It means `src` is synced to `dst`
 func (src *DB) SyncTo(dst *DB) {
+	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
 	var sqlite3Err sqlite3.Error
 	var dstTags string
+	var existingUrls []*SBookmark
 
 	getSourceTable, err := src.Handle.Prepare(`SELECT * FROM bookmarks`)
 	defer getSourceTable.Close()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	getDstTags, err := dst.Handle.Prepare(
 		`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`,
 	)
 	defer getDstTags.Close()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	tryInsertDstRow, err := dst.Handle.Prepare(
 		`INSERT INTO
-		bookmarks(URL, metadata, tags, desc, flags)
+		bookmarks(url, metadata, tags, desc, flags)
 		VALUES (?, ?, ?, ?, ?)`,
 	)
 	defer tryInsertDstRow.Close()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	updateDstRow, err := dst.Handle.Prepare(
 		`UPDATE bookmarks
@@ -234,21 +243,29 @@ func (src *DB) SyncTo(dst *DB) {
 	)
 
 	defer updateDstRow.Close()
-	logPanic(err)
-
-	// Begin destination transaction
-	dstTx, err := dst.Handle.Begin()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
 
 	srcTable, err := getSourceTable.Query()
-	logPanic(err)
+	if err != nil {
+		log.Error(err)
+	}
+
+	// Lock destination db
+	dstTx, err := dst.Handle.Begin()
+	if err != nil {
+		log.Error(err)
+	}
 
 	// Start syncing all entries from source table
 	for srcTable.Next() {
 
 		// Fetch on row
 		scan, err := ScanBookmarkRow(srcTable)
-		logError(err)
+		if err != nil {
+			log.Error(err)
+		}
 
 		// Try to insert to row in dst table
 		_, err = dstTx.Stmt(tryInsertDstRow).Exec(
@@ -264,51 +281,81 @@ func (src *DB) SyncTo(dst *DB) {
 		}
 
 		if err != nil && sqlite3Err.Code != sqlite3.ErrConstraint {
-			logError(err)
+			log.Error(err)
 		}
 
 		// Record already exists in dst table, we need to use update
 		// instead.
 		if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
+			existingUrls = append(existingUrls, scan)
+		}
+	}
 
-			res := getDstTags.QueryRow(
-				scan.Url,
-			)
-			res.Scan(&dstTags)
-			srcTags := strings.Split(scan.tags, TagJoinSep)
-			dstTags := strings.Split(dstTags, TagJoinSep)
+	err = dstTx.Commit()
+	if err != nil {
+		log.Error(err)
+	}
 
-			tagMap := make(map[string]bool)
-			for _, v := range srcTags {
-				tagMap[v] = true
-			}
-			for _, v := range dstTags {
-				tagMap[v] = true
-			}
+	// Start a new transaction to update the existing urls
+	dstTx, err = dst.Handle.Begin() // Lock dst db
+	if err != nil {
+		log.Error(err)
+	}
 
-			var newTags []string //merged tags
-			for k, _ := range tagMap {
-				newTags = append(newTags, k)
-			}
+	// Traverse existing urls and try an update this time
+	for _, scan := range existingUrls {
 
-			_, err := dstTx.Stmt(updateDstRow).Exec(
-				scan.metadata,
-				strings.Join(newTags, TagJoinSep),
-				scan.desc,
-				0, //flags
-				scan.Url,
-			)
+		//log.Debugf("updating existing %s", scan.Url)
 
-			if err != nil {
-				log.Errorf("%s: %s", err, scan.Url)
-			}
+		row := getDstTags.QueryRow(
+			scan.Url,
+		)
+		row.Scan(&dstTags)
 
+		//log.Debugf("src tags: %v", scan.tags)
+		//log.Debugf("dst tags: %v", dstTags)
+		srcTags := strings.Split(scan.tags, TagJoinSep)
+		dstTags := strings.Split(dstTags, TagJoinSep)
+
+		tagMap := make(map[string]bool)
+		for _, v := range srcTags {
+			tagMap[v] = true
+		}
+		for _, v := range dstTags {
+			tagMap[v] = true
+		}
+
+		var newTags []string //merged tags
+		for k, _ := range tagMap {
+			newTags = append(newTags, k)
+		}
+
+		_, err = dstTx.Stmt(updateDstRow).Exec(
+			scan.metadata,
+			strings.Join(newTags, TagJoinSep),
+			scan.desc,
+			0, //flags
+			scan.Url,
+		)
+
+		if err != nil {
+			log.Errorf("%s: %s", err, scan.Url)
 		}
 
 	}
 
 	err = dstTx.Commit()
-	logError(err)
+	if err != nil {
+		log.Error(err)
+	}
+
+	// If we are syncing to memcache, sync cache to disk
+	if dst.Name == DBCacheName {
+		err = dst.SyncToDisk(getDBFullPath())
+		if err != nil {
+			log.Error(err)
+		}
+	}
 
 }
 
@@ -464,9 +511,8 @@ func ScanBookmarkRow(row *sql.Rows) (*SBookmark, error) {
 func initDB() {
 
 	// Initialize memory db with schema
-	cacheName := "memcache"
-	cachePath := fmt.Sprintf(DBMemcacheFmt, cacheName)
-	CacheDB = DB{}.New(cacheName, cachePath)
+	cachePath := fmt.Sprintf(DBMemcacheFmt, DBCacheName)
+	CacheDB = DB{}.New(DBCacheName, cachePath)
 	CacheDB.Init()
 
 	// Check and initialize local db as last step
@@ -485,7 +531,7 @@ func initDB() {
 		logPanic(err)
 		log.Debugf("localdb exists, preloading to cache")
 		CacheDB.SyncFromDisk(dbpath)
-		//_ = cacheDB.Print()
+		//CacheDB.Print()
 	} else {
 		logPanic(err)
 		// Else initialize it
