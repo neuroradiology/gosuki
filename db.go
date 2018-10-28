@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
@@ -205,14 +206,109 @@ func (db *DB) isEmpty() (bool, error) {
 // If if fails then try to update it. It means `src` is synced to `dst`
 func (src *DB) SyncTo(dst *DB) {
 	var sqlite3Err sqlite3.Error
+	var dstTags string
 
 	getSourceTable, err := src.Handle.Prepare(`SELECT * FROM bookmarks`)
-	defer getSourceRows.Close()
+	defer getSourceTable.Close()
 	logPanic(err)
 
-	updateDstTable, err := dst.Handle.Prepare(`INSERT INTO
-								bookmarks(URL, metadata, tags, desc,
-								flags) VALUES (?, ?, ?, ?, ?)`)
+	getDstTags, err := dst.Handle.Prepare(
+		`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`,
+	)
+	defer getDstTags.Close()
+	logPanic(err)
+
+	tryInsertDstRow, err := dst.Handle.Prepare(
+		`INSERT INTO
+		bookmarks(URL, metadata, tags, desc, flags)
+		VALUES (?, ?, ?, ?, ?)`,
+	)
+	defer tryInsertDstRow.Close()
+	logPanic(err)
+
+	updateDstRow, err := dst.Handle.Prepare(
+		`UPDATE bookmarks
+		SET (metadata, tags, desc, modified, flags) = (?,?,?,strftime('%s'),?)
+		WHERE url=?
+		`,
+	)
+
+	defer updateDstRow.Close()
+	logPanic(err)
+
+	// Begin destination transaction
+	dstTx, err := dst.Handle.Begin()
+	logPanic(err)
+
+	srcTable, err := getSourceTable.Query()
+	logPanic(err)
+
+	// Start syncing all entries from source table
+	for srcTable.Next() {
+
+		// Fetch on row
+		scan, err := ScanBookmarkRow(srcTable)
+		logError(err)
+
+		// Try to insert to row in dst table
+		_, err = dstTx.Stmt(tryInsertDstRow).Exec(
+			scan.Url,
+			scan.metadata,
+			scan.tags,
+			scan.desc,
+			scan.flags,
+		)
+
+		if err != nil {
+			sqlite3Err = err.(sqlite3.Error)
+		}
+
+		if err != nil && sqlite3Err.Code != sqlite3.ErrConstraint {
+			logError(err)
+		}
+
+		// Record already exists in dst table, we need to use update
+		// instead.
+		if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
+
+			res := getDstTags.QueryRow(
+				scan.Url,
+			)
+			res.Scan(&dstTags)
+			srcTags := strings.Split(scan.tags, TagJoinSep)
+			dstTags := strings.Split(dstTags, TagJoinSep)
+
+			tagMap := make(map[string]bool)
+			for _, v := range srcTags {
+				tagMap[v] = true
+			}
+			for _, v := range dstTags {
+				tagMap[v] = true
+			}
+
+			var newTags []string //merged tags
+			for k, _ := range tagMap {
+				newTags = append(newTags, k)
+			}
+
+			_, err := dstTx.Stmt(updateDstRow).Exec(
+				scan.metadata,
+				strings.Join(newTags, TagJoinSep),
+				scan.desc,
+				0, //flags
+				scan.Url,
+			)
+
+			if err != nil {
+				log.Errorf("%s: %s", err, scan.Url)
+			}
+
+		}
+
+	}
+
+	err = dstTx.Commit()
+	logError(err)
 
 }
 
@@ -330,6 +426,38 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	bk.Finish()
 
 	return nil
+}
+
+// Struct represetning the schema of `bookmarks` db.
+// The order in the struct respects the columns order
+type SBookmark struct {
+	id       int
+	Url      string
+	metadata string
+	tags     string
+	desc     string
+	modified int64
+	flags    int
+}
+
+// Scans a row into `SBookmark` schema
+func ScanBookmarkRow(row *sql.Rows) (*SBookmark, error) {
+	scan := new(SBookmark)
+	err := row.Scan(
+		&scan.id,
+		&scan.Url,
+		&scan.metadata,
+		&scan.tags,
+		&scan.desc,
+		&scan.modified,
+		&scan.flags,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return scan, nil
 }
 
 // TODO: Use context when making call from request/api
