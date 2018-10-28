@@ -52,15 +52,19 @@ func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 	_db := db.Handle
 
 	// Prepare statement that does a pure insert only
-	tryInsertBk, err := _db.Prepare(`INSERT INTO
-									bookmarks(URL, metadata, tags, desc,
-									flags) VALUES (?, ?, ?, ?, ?)`)
+	tryInsertBk, err := _db.Prepare(
+		`INSERT INTO
+			bookmarks(URL, metadata, tags, desc, flags)
+			VALUES (?, ?, ?, ?, ?)`,
+	)
 	defer tryInsertBk.Close()
 	sqlErrorMsg(err, bk.URL)
 
 	// Prepare statement that updates an existing bookmark in db
-	updateBk, err := _db.Prepare(`UPDATE bookmarks SET metadata=?, tags=?
-									WHERE url=?`)
+	updateBk, err := _db.Prepare(
+		`UPDATE bookmarks SET metadata=?, tags=?, modified=strftime('%s')
+		WHERE url=?`,
+	)
 	defer updateBk.Close()
 	sqlErrorMsg(err, bk.URL)
 
@@ -105,7 +109,7 @@ func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 
 		// If tags are different, merge current bookmark tags and existing tags
 		// Put them in a map first to remove duplicates
-		var tagMap = make(map[string]bool)
+		tagMap := make(map[string]bool)
 		for _, v := range cacheTags {
 			tagMap[v] = true
 		}

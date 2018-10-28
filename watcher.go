@@ -33,6 +33,15 @@ func WatcherThread(w IWatchable) {
 
 			// On Chrome like browsers the bookmarks file is created
 			// at every change.
+
+			/*
+			 * When a file inside a watched directory is renamed/created,
+			 * fsnotify does not seem to resume watching the newly created file, we
+			 * need to destroy and create a new watcher. The ResetWatcher() and
+			 * `break` statement ensure we get out of the `select` block and catch
+			 * the newly created watcher to catch events even after rename/create
+			 */
+
 			if event.Op&fsnotify.Create == fsnotify.Create &&
 				event.Name == bookmarkPath {
 
