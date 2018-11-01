@@ -18,11 +18,14 @@ var (
 )
 
 const (
-	DB_FILENAME    = "gomarks.db"
-	DBMemcacheFmt  = "file:%s?mode=memory&cache=shared"
-	DBBufferFmt    = "file:%s?mode=memory&cache=shared"
-	DB_BACKUP_HOOK = "sqlite_with_backup"
-	DBCacheName    = "memcache"
+	DBFileName    = "gomarks.db"
+	DBMemcacheFmt = "file:%s?mode=memory&cache=shared"
+	DBBufferFmt   = "file:%s?mode=memory&cache=shared"
+	DBCacheName   = "memcache"
+
+	DBBackupMode  = "sqlite_hook_backup"
+	DBUpdateMode  = "sqlite_hook_update"
+	DBDefaultMode = "sqlite3"
 )
 
 //  Database schemas used for the creation of new databases
@@ -52,17 +55,23 @@ const (
 // DB encapsulates an sql.DB struct. All interactions with memory/buffer and
 // disk databases are done through the DB object
 type DB struct {
-	Name   string
-	Path   string
-	Handle *sql.DB
+	name       string
+	path       string
+	handle     *sql.DB
+	engineMode string
 }
 
 func (db DB) New(name string, path string) *DB {
-	return &DB{name, path, nil}
+	return &DB{
+		name:       name,
+		path:       path,
+		handle:     nil,
+		engineMode: DBDefaultMode,
+	}
 }
 
 func (db *DB) Error() string {
-	errMsg := fmt.Sprintf("[error][db] name <%s>", db.Name)
+	errMsg := fmt.Sprintf("[error][db] name <%s>", db.name)
 	return errMsg
 }
 
@@ -70,14 +79,15 @@ func (db *DB) Error() string {
 func (db *DB) InitRO() {
 	var err error
 
-	if db.Handle != nil {
+	if db.handle != nil {
 		logErrorMsg(db, "already initialized")
 		return
 	}
 
 	// Create the sqlite connection
-	db.Handle, err = sql.Open("sqlite3", db.Path)
-	log.Debugf("<%s> opened at <%s>", db.Name, db.Path)
+	db.handle, err = sql.Open(db.engineMode, db.path)
+	log.Debugf("<%s> opened at <%s> with mode <%s>", db.name, db.path,
+		db.engineMode)
 	if err != nil {
 		log.Critical(err)
 	}
@@ -92,21 +102,21 @@ func (db *DB) Init() {
 
 	var err error
 
-	if db.Handle != nil {
+	if db.handle != nil {
 		logErrorMsg(db, "already initialized")
 		return
 	}
 
 	// Create the memory cache db
-	db.Handle, err = sql.Open("sqlite3", db.Path)
+	db.handle, err = sql.Open("sqlite3", db.path)
 	//log.Debugf("db <%s> opend at at <%s>", db.name, db.path)
-	log.Debugf("<%s> opened at <%s>", db.Name, db.Path)
+	log.Debugf("<%s> opened at <%s>", db.name, db.path)
 	if err != nil {
 		log.Critical(err)
 	}
 
 	// Populate db schema
-	tx, err := db.Handle.Begin()
+	tx, err := db.handle.Begin()
 	if err != nil {
 		log.Error(err)
 	}
@@ -126,28 +136,13 @@ func (db *DB) Init() {
 		log.Error(err)
 	}
 
-	if !backupHookRegistered {
-		//log.Debugf("backup_hook: registering driver %s", DB_BACKUP_HOOK)
-		// Register the hook
-		sql.Register(DB_BACKUP_HOOK,
-			&sqlite3.SQLiteDriver{
-				ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-					//log.Debugf("[HOOK] registering new connection")
-					_sql3conns = append(_sql3conns, conn)
-					//log.Debugf("%v", _sql3conns)
-					return nil
-				},
-			})
-		backupHookRegistered = true
-	}
-
-	log.Debugf("<%s> initialized", db.Name)
+	log.Debugf("<%s> initialized", db.name)
 }
 
 func (db *DB) Attach(attached *DB) {
 
-	stmtStr := fmt.Sprintf("ATTACH DATABASE '%s' AS '%s'", attached.Path, attached.Name)
-	_, err := db.Handle.Exec(stmtStr)
+	stmtStr := fmt.Sprintf("ATTACH DATABASE '%s' AS '%s'", attached.path, attached.name)
+	_, err := db.handle.Exec(stmtStr)
 	if err != nil {
 		log.Error(err)
 	}
@@ -169,8 +164,8 @@ func (db *DB) Attach(attached *DB) {
 }
 
 func (db *DB) Close() error {
-	log.Debugf("Closing DB <%s>", db.Name)
-	err := db.Handle.Close()
+	log.Debugf("Closing DB <%s>", db.name)
+	err := db.handle.Close()
 	if err != nil {
 		return err
 	}
@@ -180,7 +175,7 @@ func (db *DB) Close() error {
 func (db *DB) Count() int {
 	var count int
 
-	row := db.Handle.QueryRow("select count(*) from bookmarks")
+	row := db.handle.QueryRow("select count(*) from bookmarks")
 	err := row.Scan(&count)
 	if err != nil {
 		log.Error(err)
@@ -193,7 +188,7 @@ func (db *DB) Print() error {
 
 	var url, tags string
 
-	rows, err := db.Handle.Query("select url,tags from bookmarks")
+	rows, err := db.handle.Query("select url,tags from bookmarks")
 
 	for rows.Next() {
 		err = rows.Scan(&url, &tags)
@@ -209,7 +204,7 @@ func (db *DB) Print() error {
 func (db *DB) isEmpty() (bool, error) {
 	var count int
 
-	row := db.Handle.QueryRow("select count(*) from bookmarks")
+	row := db.handle.QueryRow("select count(*) from bookmarks")
 
 	err := row.Scan(&count)
 	if err != nil {
@@ -226,17 +221,17 @@ func (db *DB) isEmpty() (bool, error) {
 // For ever row in `src` try to insert it into `dst`.
 // If if fails then try to update it. It means `src` is synced to `dst`
 func (src *DB) SyncTo(dst *DB) {
-	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
+	log.Debugf("syncing <%s> to <%s>", src.name, dst.name)
 	var sqlite3Err sqlite3.Error
 	var existingUrls []*SBookmark
 
-	getSourceTable, err := src.Handle.Prepare(`SELECT * FROM bookmarks`)
+	getSourceTable, err := src.handle.Prepare(`SELECT * FROM bookmarks`)
 	defer getSourceTable.Close()
 	if err != nil {
 		log.Error(err)
 	}
 
-	getDstTags, err := dst.Handle.Prepare(
+	getDstTags, err := dst.handle.Prepare(
 		`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`,
 	)
 	defer getDstTags.Close()
@@ -244,7 +239,7 @@ func (src *DB) SyncTo(dst *DB) {
 		log.Error(err)
 	}
 
-	tryInsertDstRow, err := dst.Handle.Prepare(
+	tryInsertDstRow, err := dst.handle.Prepare(
 		`INSERT INTO
 		bookmarks(url, metadata, tags, desc, flags)
 		VALUES (?, ?, ?, ?, ?)`,
@@ -254,7 +249,7 @@ func (src *DB) SyncTo(dst *DB) {
 		log.Error(err)
 	}
 
-	updateDstRow, err := dst.Handle.Prepare(
+	updateDstRow, err := dst.handle.Prepare(
 		`UPDATE bookmarks
 		SET (metadata, tags, desc, modified, flags) = (?,?,?,strftime('%s'),?)
 		WHERE url=?
@@ -272,7 +267,7 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 
 	// Lock destination db
-	dstTx, err := dst.Handle.Begin()
+	dstTx, err := dst.handle.Begin()
 	if err != nil {
 		log.Error(err)
 	}
@@ -316,7 +311,7 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 
 	// Start a new transaction to update the existing urls
-	dstTx, err = dst.Handle.Begin() // Lock dst db
+	dstTx, err = dst.handle.Begin() // Lock dst db
 	if err != nil {
 		log.Error(err)
 	}
@@ -370,7 +365,7 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 
 	// If we are syncing to memcache, sync cache to disk
-	if dst.Name == DBCacheName {
+	if dst.name == DBCacheName {
 		err = dst.SyncToDisk(getDBFullPath())
 		if err != nil {
 			log.Error(err)
@@ -383,12 +378,12 @@ func (src *DB) SyncTo(dst *DB) {
 // Source DB os overwritten
 func (src *DB) CopyTo(dst *DB) {
 
-	log.Debugf("Copying <%s>(%d) to <%s>(%d)", src.Name,
+	log.Debugf("Copying <%s>(%d) to <%s>(%d)", src.name,
 		src.Count(),
-		dst.Name,
+		dst.name,
 		dst.Count())
 
-	srcDb, err := sql.Open(DB_BACKUP_HOOK, src.Path)
+	srcDb, err := sql.Open(DBBackupMode, src.path)
 	defer func() {
 		srcDb.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
@@ -399,7 +394,7 @@ func (src *DB) CopyTo(dst *DB) {
 
 	srcDb.Ping()
 
-	dstDb, err := sql.Open(DB_BACKUP_HOOK, dst.Path)
+	dstDb, err := sql.Open(DBBackupMode, dst.path)
 	defer func() {
 		dstDb.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
@@ -423,15 +418,10 @@ func (src *DB) CopyTo(dst *DB) {
 }
 
 func (src *DB) SyncToDisk(dbpath string) error {
-	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
-
-	if !backupHookRegistered {
-		errMsg := fmt.Sprintf("%s, %s", src.Path, "db backup hook is not initialized")
-		return errors.New(errMsg)
-	}
+	log.Debugf("Syncing <%s> to <%s>", src.name, dbpath)
 
 	//log.Debugf("[flush] openeing <%s>", src.path)
-	srcDb, err := sql.Open(DB_BACKUP_HOOK, src.Path)
+	srcDb, err := sql.Open(DBBackupMode, src.path)
 	defer flushSqliteCon(srcDb)
 	if err != nil {
 		return err
@@ -441,7 +431,7 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
 
 	dbUri := fmt.Sprintf("file:%s", dbpath)
-	bkDb, err := sql.Open(DB_BACKUP_HOOK, dbUri)
+	bkDb, err := sql.Open(DBBackupMode, dbUri)
 	defer flushSqliteCon(bkDb)
 	if err != nil {
 		return err
@@ -466,14 +456,14 @@ func (src *DB) SyncToDisk(dbpath string) error {
 func (dst *DB) SyncFromDisk(dbpath string) error {
 
 	if !backupHookRegistered {
-		errMsg := fmt.Sprintf("%s, %s", dst.Path, "db backup hook is not initialized")
+		errMsg := fmt.Sprintf("%s, %s", dst.path, "db backup hook is not initialized")
 		return errors.New(errMsg)
 	}
 
-	log.Debugf("Syncing <%s> to <%s>", dbpath, dst.Name)
+	log.Debugf("Syncing <%s> to <%s>", dbpath, dst.name)
 
 	dbUri := fmt.Sprintf("file:%s", dbpath)
-	srcDb, err := sql.Open(DB_BACKUP_HOOK, dbUri)
+	srcDb, err := sql.Open(DBBackupMode, dbUri)
 	defer flushSqliteCon(srcDb)
 	if err != nil {
 		return err
@@ -481,7 +471,7 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	srcDb.Ping()
 
 	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
-	bkDb, err := sql.Open(DB_BACKUP_HOOK, dst.Path)
+	bkDb, err := sql.Open(DBBackupMode, dst.path)
 	defer flushSqliteCon(bkDb)
 	if err != nil {
 		return err
@@ -547,7 +537,7 @@ func initDB() {
 	// browser bookmarks should already be in cache
 
 	dbdir := getDefaultDBPath()
-	dbpath := filepath.Join(dbdir, DB_FILENAME)
+	dbpath := filepath.Join(dbdir, DBFileName)
 
 	// Verifiy that local db directory path is writeable
 	err := checkWriteable(dbdir)
@@ -590,4 +580,21 @@ func flushSqliteCon(con *sql.DB) {
 	con.Close()
 	_sql3conns = _sql3conns[:len(_sql3conns)-1]
 	log.Debugf("Flushed sqlite conns %v", _sql3conns)
+}
+
+func registerSqliteHooks() {
+
+	// sqlite backup hook
+	log.Debugf("backup_hook: registering driver %s", DBBackupMode)
+	// Register the hook
+	sql.Register(DBBackupMode,
+		&sqlite3.SQLiteDriver{
+			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+				//log.Debugf("[ConnectHook] registering new connection")
+				_sql3conns = append(_sql3conns, conn)
+				//log.Debugf("%v", _sql3conns)
+				return nil
+			},
+		})
+
 }

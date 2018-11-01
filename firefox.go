@@ -1,8 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"path"
 	"time"
+
+	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 var Firefox = BrowserPaths{
@@ -19,11 +22,16 @@ const (
 type FFBrowser struct {
 	BaseBrowser //embedding
 	places      *DB
+	urlMap      map[string]*Node // Used instead of node tree for syncing to buffer
 }
 
 type FFTag struct {
 	id    int
 	title string
+}
+
+func FFPlacesUpdateHook(op int, db string, table string, rowid int64) {
+	log.Debug(op)
 }
 
 func NewFFBrowser() IBrowser {
@@ -32,18 +40,39 @@ func NewFFBrowser() IBrowser {
 	browser.bType = TFirefox
 	browser.baseDir = Firefox.BookmarkDir
 	browser.bkFile = Firefox.BookmarkFile
+	browser.useFileWatcher = false
 	browser.Stats = &ParserStats{}
 	browser.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
+	browser.urlMap = make(map[string]*Node)
+
+	// sqlite update hook
+	sql.Register(DBUpdateMode,
+		&sqlite3.SQLiteDriver{
+			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+				log.Warningf("registered connect hook <%s>", DBUpdateMode)
+				conn.RegisterUpdateHook(
+					func(op int, db string, table string, rowid int64) {
+						switch op {
+						case sqlite3.SQLITE_UPDATE:
+							log.Warning("Notified of insert on db", db, "table", table, "rowid", rowid)
+						}
+
+						// Update hook here
+						log.Warningf("notified op %s", op)
+
+					})
+				return nil
+			},
+		})
 
 	// Initialize `places.sqlite`
 	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
 	browser.places = DB{}.New("Places", bookmarkPath)
+	browser.places.engineMode = DBUpdateMode
 	browser.places.InitRO()
 
-	// Across jobs buffer
+	// Buffer that lives accross Run() jobs
 	browser.InitBuffer()
-
-	browser.SetupWatcher()
 
 	/*
 	 *Run debouncer to avoid duplicate running of jobs
@@ -75,11 +104,10 @@ func (bw *FFBrowser) Watch() bool {
 
 	log.Debugf("<%s> TODO ... ", bw.name)
 
-	//if !bw.isWatching {
-	//go WatcherThread(bw)
-	//bw.isWatching = true
-	//return true
-	//}
+	if !bw.isWatching {
+		bw.isWatching = true
+		return true
+	}
 
 	//return false
 	return false
@@ -87,7 +115,28 @@ func (bw *FFBrowser) Watch() bool {
 
 func (bw *FFBrowser) Load() {
 	bw.BaseBrowser.Load()
-	bw.Run()
+
+	// Parse bookmarks to a flat tree (for compatibility with tree system)
+	start := time.Now()
+	getFFBookmarks(bw)
+	bw.Stats.lastParseTime = time.Since(start)
+
+	// Finished parsing
+	//go PrintTree(bw.NodeTree) // debugging
+	log.Debugf("<%s> parsed %d bookmarks and %d nodes in %s", bw.name,
+		bw.Stats.currentUrlCount, bw.Stats.currentNodeCount, bw.Stats.lastParseTime)
+
+	bw.ResetStats()
+
+	// Sync the urlMap to the buffer
+	// We do not use the NodeTree here as firefox tags are represented
+	// as a flat tree which is not efficient, we use the go hashmap instead
+	// The map contains map[url]*Node elements with urls already containing the
+	// right tags.
+
+	syncURLMapToBuffer(bw.urlMap, bw.BufferDB)
+
+	bw.BufferDB.SyncTo(CacheDB)
 }
 
 func getFFBookmarks(bw *FFBrowser) {
@@ -112,15 +161,18 @@ func getFFBookmarks(bw *FFBrowser) {
 
 	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
 
-	rows, err := bw.places.Handle.Query(QGetBookmarks, MozPlacesTagsRootID)
+	rows, err := bw.places.handle.Query(QGetBookmarks, MozPlacesTagsRootID)
 	if err != nil {
 		log.Error(err)
 	}
 
 	tagMap := make(map[int]*Node)
-	urlMap := make(map[string]*Node)
 
 	// Rebuild node tree
+	// Note: the node tree is build only for compatilibity
+	// pruposes with tree based bookmark parsing.
+	// For efficiency reading after the initial parse from places.sqlite,
+	// reading should be done in loops in instead of tree parsing.
 	rootNode := bw.NodeTree
 
 	/*
@@ -153,14 +205,14 @@ func getFFBookmarks(bw *FFBrowser) {
 		}
 
 		// Add the url to the tag
-		urlNode, urlNodeExists := urlMap[url]
+		urlNode, urlNodeExists := bw.urlMap[url]
 		if !urlNodeExists {
 			urlNode = new(Node)
 			urlNode.Type = "url"
 			urlNode.URL = url
 			urlNode.Name = title
 			urlNode.Desc = desc
-			urlMap[url] = urlNode
+			bw.urlMap[url] = urlNode
 		}
 
 		// Add tag to urlnode tags
@@ -197,24 +249,4 @@ func getFFBookmarks(bw *FFBrowser) {
 
 func (bw *FFBrowser) Run() {
 
-	log.Debugf("<%s> start bookmark parsing", bw.name)
-
-	// TODO: Handle folders
-
-	// Parse bookmarks to a flat tree (for compatibility with tree system)
-	start := time.Now()
-	getFFBookmarks(bw)
-	bw.Stats.lastParseTime = time.Since(start)
-
-	// Finished parsing
-	//go PrintTree(bw.NodeTree) // debugging
-	log.Debugf("<%s> parsed %d bookmarks and %d nodes", bw.name, bw.Stats.currentUrlCount, bw.Stats.currentNodeCount)
-	log.Debugf("<%s> parsed tree in %s", bw.name, bw.Stats.lastParseTime)
-
-	bw.ResetStats()
-
-	syncTreeToBuffer(bw.NodeTree, bw.BufferDB)
-
-	// Implement incremental sync by doing INSERTs
-	bw.BufferDB.SyncTo(CacheDB)
 }

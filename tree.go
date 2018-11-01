@@ -130,6 +130,13 @@ func WalkBuildIndex(node *Node, b *BaseBrowser) {
 	}
 }
 
+func syncURLMapToBuffer(m map[string]*Node, buffer *DB) {
+	for _, node := range m {
+		bk := node.GetBookmark()
+		bk.InsertOrUpdateInDB(buffer)
+	}
+}
+
 func syncTreeToBuffer(node *Node, buffer *DB) {
 
 	if node.Type == "url" {
