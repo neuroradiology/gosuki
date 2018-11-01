@@ -13,9 +13,6 @@ func mainLoop() {
 
 	r.GET("/urls", getBookmarks)
 
-	initMode()
-	initLogging()
-
 	// Initialize sqlite database available in global `cacheDB` variable
 	initDB()
 
@@ -25,7 +22,6 @@ func mainLoop() {
 	defer ff.Shutdown()
 
 	cb.RegisterHooks(ParseTags)
-	ff.RegisterHooks(ParseTags)
 
 	cb.Load()
 	ff.Load()
@@ -41,4 +37,10 @@ func mainLoop() {
 
 func main() {
 	mainLoop()
+}
+
+func init() {
+	initMode()
+	initLogging()
+	registerSqliteHooks()
 }

@@ -14,7 +14,7 @@ func getDefaultDBPath() string {
 
 func getDBFullPath() string {
 	dbdir := getDefaultDBPath()
-	dbpath := filepath.Join(dbdir, DB_FILENAME)
+	dbpath := filepath.Join(dbdir, DBFileName)
 	return dbpath
 }
 

@@ -21,7 +21,7 @@ type Bookmark struct {
 // which for sqlite is a fail with the error `sqlite3.ErrConstraint`
 func (bk *Bookmark) InsertInDB(db *DB) {
 	//log.Debugf("Adding bookmark %s", bk.URL)
-	_db := db.Handle
+	_db := db.handle
 
 	tx, err := _db.Begin()
 	if err != nil {
@@ -51,7 +51,7 @@ func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 	// When updating we should only ADD tags and not replace previous ones
 
 	//log.Debugf("Adding bookmark %s", bk.URL)
-	_db := db.Handle
+	_db := db.handle
 
 	// Prepare statement that does a pure insert only
 	tryInsertBk, err := _db.Prepare(

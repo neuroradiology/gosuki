@@ -7,13 +7,13 @@ import (
 // Used as input to WatcherThread
 // It does not have to be a browser as long is the interface is implemented
 type IWatchable interface {
-	SetupWatcher()                 // Starts watching bookmarks and runs Load on change
-	Watch() bool                   // starts watching linked watcher
-	Run()                          // Callback fired on event
-	GetWatcher() *fsnotify.Watcher // returns linked watcher
-	ResetWatcher()                 // resets a new watcher
-	GetPath() string               // returns watched path
-	GetDir() string                // returns watched dir
+	SetupFileWatcher()                 // Starts watching bookmarks and runs Load on change
+	Watch() bool                       // starts watching linked watcher
+	Run()                              // Callback fired on event
+	GetFileWatcher() *fsnotify.Watcher // returns linked watcher
+	ResetWatcher()                     // resets a new watcher
+	GetPath() string                   // returns watched path
+	GetDir() string                    // returns watched dir
 	EventsChan() chan fsnotify.Event
 }
 
@@ -26,7 +26,7 @@ func WatcherThread(w IWatchable) {
 	for {
 		// Keep watcher here as it is reset from within
 		// the select block
-		watcher := w.GetWatcher()
+		watcher := w.GetFileWatcher()
 
 		select {
 		case event := <-watcher.Events:

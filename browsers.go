@@ -11,6 +11,7 @@ package main
 import (
 	"fmt"
 	"path"
+	"reflect"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/sp4ke/hashmap"
@@ -75,15 +76,20 @@ type BaseBrowser struct {
 	NodeTree *Node
 
 	// Various parsing and timing stats
-	Stats      *ParserStats
-	bType      BrowserType
-	name       string
-	isWatching bool
-	parseHooks []ParseHook
+	Stats          *ParserStats
+	bType          BrowserType
+	name           string
+	isWatching     bool
+	useFileWatcher bool
+	parseHooks     []ParseHook
 }
 
-func (bw *BaseBrowser) GetWatcher() *fsnotify.Watcher {
-	return bw.watcher
+func (bw *BaseBrowser) GetFileWatcher() *fsnotify.Watcher {
+	fsnotifyWatcherType := reflect.TypeOf((*fsnotify.Watcher)(nil)).Elem()
+	if reflect.TypeOf(bw.watcher) == reflect.PtrTo(fsnotifyWatcherType) {
+		return bw.watcher
+	}
+	return nil
 }
 
 func (bw *BaseBrowser) Load() {
@@ -91,12 +97,12 @@ func (bw *BaseBrowser) Load() {
 	bw.InitIndex()
 
 	// Check if cache is initialized
-	if CacheDB == nil || CacheDB.Handle == nil {
+	if CacheDB == nil || CacheDB.handle == nil {
 		log.Criticalf("<%s> Loading bookmarks while cache not yet initialized !", bw.name)
 	}
 
-	if bw.watcher == nil {
-		log.Fatal("watcher not initialized, use SetupWatcher() when creating the browser !")
+	if bw.useFileWatcher && bw.watcher == nil {
+		log.Warningf("<%s> watcher not initialized, use SetupWatcher() when creating the browser !", bw.name)
 	}
 
 	log.Debugf("<%s> preloading bookmarks", bw.name)
@@ -114,7 +120,10 @@ func (bw *BaseBrowser) GetDir() string {
 	return bw.baseDir
 }
 
-func (bw *BaseBrowser) SetupWatcher() {
+func (bw *BaseBrowser) SetupFileWatcher() {
+	if !bw.useFileWatcher {
+		return
+	}
 	var err error
 	bw.watcher, err = fsnotify.NewWatcher()
 	if err != nil {
@@ -132,7 +141,7 @@ func (bw *BaseBrowser) ResetWatcher() {
 	if err != nil {
 		log.Critical(err)
 	}
-	bw.SetupWatcher()
+	bw.SetupFileWatcher()
 }
 
 func (bw *BaseBrowser) Close() error {
@@ -157,6 +166,10 @@ func (b *BaseBrowser) RebuildIndex() {
 	log.Debugf("Rebuilding index based on current nodeTree")
 	b.URLIndex = NewIndex()
 	WalkBuildIndex(b.NodeTree, b)
+}
+
+func (b *BaseBrowser) RebuildNodeTree() {
+	b.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
 }
 
 func (b *BaseBrowser) InitBuffer() {

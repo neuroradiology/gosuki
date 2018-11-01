@@ -82,11 +82,12 @@ func NewChromeBrowser() IBrowser {
 	browser.bkFile = ChromeData.BookmarkFile
 	browser.Stats = &ParserStats{}
 	browser.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
+	browser.useFileWatcher = true
 
 	// Across jobs buffer
 	browser.InitBuffer()
 
-	browser.SetupWatcher()
+	browser.SetupFileWatcher()
 
 	return browser
 }
@@ -103,7 +104,7 @@ func (bw *ChromeBrowser) Watch() bool {
 	if !bw.isWatching {
 		go WatcherThread(bw)
 		bw.isWatching = true
-		log.Infof("<%s> watching changes", bw.name)
+		log.Infof("<%s> Watching %s", bw.name, bw.GetPath())
 		return true
 	}
 
@@ -121,7 +122,7 @@ func (bw *ChromeBrowser) Load() {
 func (bw *ChromeBrowser) Run() {
 
 	// Rebuild node tree
-	bw.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
+	bw.RebuildNodeTree()
 
 	// Load bookmark file
 	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
@@ -258,12 +259,9 @@ func (bw *ChromeBrowser) Run() {
 				nodeVal = iVal.(*Node)
 
 				// hash(name) is different meaning new commands/tags could
-				// be added, we need to mark this bookmark as `has_changed`
+				// be added, we need to process the parsing hoos
 				if nodeVal.NameHash != nameHash {
 					//log.Debugf("URL name changed !")
-
-					// Mark current node (BK) as changed
-					currentNode.HasChanged = true
 
 					// Run parse hooks on node
 					bw.RunParseHooks(currentNode)
@@ -344,7 +342,7 @@ func (bw *ChromeBrowser) Run() {
 		//elapsed := time.Since(start)
 		//debugPrint("copy in %s", elapsed)
 
-		log.Debugf("syncing <%s> to disk", CacheDB.Name)
+		log.Debugf("syncing <%s> to disk", CacheDB.name)
 		CacheDB.SyncToDisk(getDBFullPath())
 	}
 
