@@ -58,7 +58,7 @@ type IBrowser interface {
 //
 // `BufferDB`: sqlite buffer used across jobs
 type BaseBrowser struct {
-	watcher    *fsnotify.Watcher
+	watcher    *Watcher
 	eventsChan chan fsnotify.Event
 	baseDir    string
 	bkFile     string
@@ -84,9 +84,10 @@ type BaseBrowser struct {
 	parseHooks     []ParseHook
 }
 
-func (bw *BaseBrowser) GetFileWatcher() *fsnotify.Watcher {
-	fsnotifyWatcherType := reflect.TypeOf((*fsnotify.Watcher)(nil)).Elem()
-	if reflect.TypeOf(bw.watcher) == reflect.PtrTo(fsnotifyWatcherType) {
+func (bw *BaseBrowser) GetWatcher() *Watcher {
+	watcherType := reflect.TypeOf((*Watcher)(nil)).Elem()
+	// In case we use other types of watchers/events
+	if reflect.TypeOf(bw.watcher) == reflect.PtrTo(watcherType) {
 		return bw.watcher
 	}
 	return nil
@@ -101,8 +102,9 @@ func (bw *BaseBrowser) Load() {
 		log.Criticalf("<%s> Loading bookmarks while cache not yet initialized !", bw.name)
 	}
 
+	// In case we use other types of watchers/events
 	if bw.useFileWatcher && bw.watcher == nil {
-		log.Warningf("<%s> watcher not initialized, use SetupWatcher() when creating the browser !", bw.name)
+		log.Warningf("<%s> watcher not initialized, use SetupFileWatcher() when creating the browser !", bw.name)
 	}
 
 	log.Debugf("<%s> preloading bookmarks", bw.name)
@@ -120,32 +122,51 @@ func (bw *BaseBrowser) GetDir() string {
 	return bw.baseDir
 }
 
-func (bw *BaseBrowser) SetupFileWatcher() {
+// Setup file watcher using the provided []Watch elements
+func (bw *BaseBrowser) SetupFileWatcher(watches ...*Watch) {
+	var err error
+
 	if !bw.useFileWatcher {
 		return
 	}
-	var err error
-	bw.watcher, err = fsnotify.NewWatcher()
+
+	fswatcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Critical(err)
 	}
-	err = bw.watcher.Add(bw.GetDir())
-	if err != nil {
-		log.Critical(err)
+
+	watchedMap := make(map[string]*Watch)
+	for _, v := range watches {
+		watchedMap[v.path] = v
+	}
+
+	bw.watcher = &Watcher{
+		w:       fswatcher,
+		watched: watchedMap,
+		watches: watches,
+	}
+
+	// Add all watched paths
+	for _, v := range watches {
+
+		err = bw.watcher.w.Add(v.path)
+		if err != nil {
+			log.Critical(err)
+		}
 	}
 
 }
 
 func (bw *BaseBrowser) ResetWatcher() {
-	err := bw.watcher.Close()
+	err := bw.watcher.w.Close()
 	if err != nil {
 		log.Critical(err)
 	}
-	bw.SetupFileWatcher()
+	bw.SetupFileWatcher(bw.watcher.watches...)
 }
 
 func (bw *BaseBrowser) Close() error {
-	err := bw.watcher.Close()
+	err := bw.watcher.w.Close()
 	if err != nil {
 		return err
 	}
@@ -195,6 +216,14 @@ func (b *BaseBrowser) ResetStats() {
 	b.Stats.lastNodeCount = b.Stats.currentNodeCount
 	b.Stats.currentNodeCount = 0
 	b.Stats.currentUrlCount = 0
+}
+
+func (b *BaseBrowser) HasReducer() bool {
+	return b.eventsChan != nil
+}
+
+func (b *BaseBrowser) Name() string {
+	return b.name
 }
 
 // Runs browsed defined hooks on bookmark

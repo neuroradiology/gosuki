@@ -7,37 +7,38 @@ import (
 )
 
 // TODO
-// Run debounce in it's own thread when the watcher is started
+// Run reducer in it's own thread when the watcher is started
 // It receives a struct{event, func} and runs the func only once in the interval
-func debouncer(interval time.Duration, input chan fsnotify.Event, w IWatchable) {
-	log.Debug("Running debouncer")
-	var event fsnotify.Event
-	var isResting bool
-	timer := time.NewTimer(interval)
+func reducer(interval time.Duration, input chan fsnotify.Event, w IWatchable) {
+	var waiting bool
+
+	log.Debug("Running reducer")
+
+	ticker := time.NewTicker(interval)
 
 	for {
 		select {
-		case event = <-input:
-			log.Debugf("received an event %v on the events channel", event.Op)
+		case <-input:
+			log.Debugf("received event, len(chan):  %d ", len(input))
 
-			if !isResting {
+			if !waiting {
+				waiting = true
 				// Run the job
-				//log.Debug("Not resting, running job")
-				time.AfterFunc(1*time.Second, func() {
-					w.Run()
-				})
-				//log.Debug("Restting timer")
-				timer.Reset(interval)
-				//log.Debug("Is resting now")
-				isResting = true
-			}
-			//else {
-			//log.Debug("Resting, will not run job")
-			//}
+				log.Debug("Not resting")
+				w.Run()
 
-		case <-timer.C:
-			//log.Debugf("timer done, not resting")
-			isResting = false
+				//ticker = time.NewTicker(interval)
+			} else { // Ignore this event
+				log.Debug("resting")
+				break
+			}
+
+		case <-ticker.C:
+			//log.Debug("tick")
+			ticker = time.NewTicker(interval)
+			if waiting {
+				waiting = false
+			}
 		}
 	}
 }
