@@ -1,22 +1,22 @@
 package main
 
 import (
-	"database/sql"
 	"path"
 	"time"
 
-	sqlite3 "github.com/mattn/go-sqlite3"
+	"github.com/fsnotify/fsnotify"
 )
 
 var Firefox = BrowserPaths{
-	"places.sqlite",
-	"/home/spike/.mozilla/firefox/p1rrgord.default/",
+	BookmarkFile: "places.sqlite",
+	BookmarkDir:  "/home/spike/.mozilla/firefox/p1rrgord.default/",
 }
 
 const (
 	MozPlacesRootID       = 1
 	MozPlacesTagsRootID   = 4
 	MozPlacesMobileRootID = 6
+	MozMinJobInterval     = 2 * time.Second
 )
 
 type FFBrowser struct {
@@ -40,47 +40,38 @@ func NewFFBrowser() IBrowser {
 	browser.bType = TFirefox
 	browser.baseDir = Firefox.BookmarkDir
 	browser.bkFile = Firefox.BookmarkFile
-	browser.useFileWatcher = false
+	browser.useFileWatcher = true
 	browser.Stats = &ParserStats{}
 	browser.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
 	browser.urlMap = make(map[string]*Node)
 
-	// sqlite update hook
-	sql.Register(DBUpdateMode,
-		&sqlite3.SQLiteDriver{
-			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-				log.Warningf("registered connect hook <%s>", DBUpdateMode)
-				conn.RegisterUpdateHook(
-					func(op int, db string, table string, rowid int64) {
-						switch op {
-						case sqlite3.SQLITE_UPDATE:
-							log.Warning("Notified of insert on db", db, "table", table, "rowid", rowid)
-						}
-
-						// Update hook here
-						log.Warningf("notified op %s", op)
-
-					})
-				return nil
-			},
-		})
-
 	// Initialize `places.sqlite`
 	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
 	browser.places = DB{}.New("Places", bookmarkPath)
-	browser.places.engineMode = DBUpdateMode
 	browser.places.InitRO()
 
 	// Buffer that lives accross Run() jobs
 	browser.InitBuffer()
 
+	// Setup watcher
+
+	w := &Watch{
+		path:       path.Join(browser.baseDir),
+		eventTypes: []fsnotify.Op{fsnotify.Write},
+		eventNames: []string{path.Join(browser.baseDir, "places.sqlite-wal")},
+		resetWatch: false,
+	}
+
+	browser.SetupFileWatcher(w)
+
 	/*
-	 *Run debouncer to avoid duplicate running of jobs
+	 *Run reducer to avoid duplicate running of jobs
 	 *when a batch of events is received
 	 */
 
-	//browser.eventsChan = make(chan fsnotify.Event, EventsChanLen)
-	//go debouncer(3000*time.Millisecond, browser.eventsChan, browser)
+	browser.eventsChan = make(chan fsnotify.Event, EventsChanLen)
+
+	go reducer(MozMinJobInterval, browser.eventsChan, browser)
 
 	return browser
 }
@@ -105,11 +96,12 @@ func (bw *FFBrowser) Watch() bool {
 	log.Debugf("<%s> TODO ... ", bw.name)
 
 	if !bw.isWatching {
+		go WatcherThread(bw)
 		bw.isWatching = true
+		log.Infof("<%s> Watching %s", bw.name, bw.GetPath())
 		return true
 	}
 
-	//return false
 	return false
 }
 
@@ -248,5 +240,6 @@ func getFFBookmarks(bw *FFBrowser) {
 }
 
 func (bw *FFBrowser) Run() {
+	log.Debugf("<%s>", bw.name)
 
 }

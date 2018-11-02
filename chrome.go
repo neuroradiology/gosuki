@@ -7,11 +7,12 @@ import (
 
 	"github.com/OneOfOne/xxhash"
 	"github.com/buger/jsonparser"
+	"github.com/fsnotify/fsnotify"
 )
 
 var ChromeData = BrowserPaths{
-	"Bookmarks",
-	"/home/spike/.config/google-chrome-unstable/Default/",
+	BookmarkFile: "Bookmarks",
+	BookmarkDir:  "/home/spike/.config/google-chrome-unstable/Default/",
 }
 
 type ChromeBrowser struct {
@@ -75,19 +76,27 @@ func (rawNode *RawNode) getNode() *Node {
 }
 
 func NewChromeBrowser() IBrowser {
-	browser := &ChromeBrowser{}
+	browser := new(ChromeBrowser)
 	browser.name = "chrome"
 	browser.bType = TChrome
 	browser.baseDir = ChromeData.BookmarkDir
 	browser.bkFile = ChromeData.BookmarkFile
-	browser.Stats = &ParserStats{}
+	browser.Stats = new(ParserStats)
 	browser.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
 	browser.useFileWatcher = true
 
 	// Across jobs buffer
 	browser.InitBuffer()
 
-	browser.SetupFileWatcher()
+	// Create watch objects, we will watch the basedir for create events
+	watchedEvents := []fsnotify.Op{fsnotify.Create}
+	w := &Watch{
+		path:       browser.baseDir,
+		eventTypes: watchedEvents,
+		eventNames: []string{path.Join(browser.baseDir, browser.bkFile)},
+		resetWatch: true,
+	}
+	browser.SetupFileWatcher(w)
 
 	return browser
 }
