@@ -1,3 +1,4 @@
+//TODO: missing defer close() on sqlite funcs
 package main
 
 import (
@@ -491,6 +492,43 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	bk.Finish()
 
 	return nil
+}
+
+// Print debug Rows results
+func DebugPrintRows(rows *sql.Rows) {
+	cols, _ := rows.Columns()
+	count := len(cols)
+	values := make([]interface{}, count)
+	valuesPtrs := make([]interface{}, count)
+
+	for rows.Next() {
+		for i, _ := range cols {
+			valuesPtrs[i] = &values[i]
+		}
+		rows.Scan(valuesPtrs...)
+
+		finalValues := make(map[string]interface{})
+		for i, col := range cols {
+			var v interface{}
+			val := values[i]
+			b, ok := val.([]byte)
+			if ok {
+				v = string(b)
+			} else {
+				v = val
+			}
+
+			finalValues[col] = v
+		}
+
+		for col, val := range finalValues {
+
+			log.Debugf("%s -> %v", col, val)
+		}
+
+		log.Debug("---------------")
+
+	}
 }
 
 // Struct represetning the schema of `bookmarks` db.

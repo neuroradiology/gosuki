@@ -5,7 +5,7 @@ import (
 	"github.com/sp4ke/hashmap"
 )
 
-// In memory index used for fast lookup of url-title(tags) pairs
+// In memory index used for fast lookup of url->node pairs
 // to quickly detect bookmark which changed when bookmarks are reloaded
 // from browser on a watch event
 // Input `in` must be of type []byte
