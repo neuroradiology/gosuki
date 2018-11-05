@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"path"
 	"time"
 
@@ -16,13 +17,16 @@ const (
 	MozPlacesRootID       = 1
 	MozPlacesTagsRootID   = 4
 	MozPlacesMobileRootID = 6
-	MozMinJobInterval     = 2 * time.Second
+	MozMinJobInterval     = 1 * time.Second
 )
 
 type FFBrowser struct {
 	BaseBrowser //embedding
 	places      *DB
-	urlMap      map[string]*Node // Used instead of node tree for syncing to buffer
+	// TODO: Use URLIndex instead
+	URLIndexList []string  // All elements stored in URLIndex
+	qChanges     *sql.Stmt // Last changes query
+	lastRunTime  time.Time
 }
 
 type FFTag struct {
@@ -43,7 +47,6 @@ func NewFFBrowser() IBrowser {
 	browser.useFileWatcher = true
 	browser.Stats = &ParserStats{}
 	browser.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
-	browser.urlMap = make(map[string]*Node)
 
 	// Initialize `places.sqlite`
 	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
@@ -73,6 +76,21 @@ func NewFFBrowser() IBrowser {
 
 	go reducer(MozMinJobInterval, browser.eventsChan, browser)
 
+	// Prepare sql statements
+	// Check changed urls in DB
+	// Firefox records time UTC and microseconds
+	// Sqlite converts automatically from utc to local
+	QPlacesDelta := `
+	SELECT * from moz_bookmarks
+	WHERE(lastModified > ?
+		AND lastModified < strftime('%s', 'now') * 1000 * 1000)
+	`
+	stmt, err := browser.places.handle.Prepare(QPlacesDelta)
+	if err != nil {
+		log.Error(err)
+	}
+	browser.qChanges = stmt
+
 	return browser
 }
 
@@ -80,7 +98,12 @@ func (bw *FFBrowser) Shutdown() {
 
 	log.Debugf("<%s> shutting down ... ", bw.name)
 
-	err := bw.BaseBrowser.Close()
+	err := bw.qChanges.Close()
+	if err != nil {
+		log.Critical(err)
+	}
+
+	err = bw.BaseBrowser.Close()
 	if err != nil {
 		log.Critical(err)
 	}
@@ -112,6 +135,7 @@ func (bw *FFBrowser) Load() {
 	start := time.Now()
 	getFFBookmarks(bw)
 	bw.Stats.lastParseTime = time.Since(start)
+	bw.lastRunTime = time.Now().UTC()
 
 	// Finished parsing
 	//go PrintTree(bw.NodeTree) // debugging
@@ -120,13 +144,11 @@ func (bw *FFBrowser) Load() {
 
 	bw.ResetStats()
 
-	// Sync the urlMap to the buffer
+	// Sync the URLIndex to the buffer
 	// We do not use the NodeTree here as firefox tags are represented
 	// as a flat tree which is not efficient, we use the go hashmap instead
-	// The map contains map[url]*Node elements with urls already containing the
-	// right tags.
 
-	syncURLMapToBuffer(bw.urlMap, bw.BufferDB)
+	syncURLIndexToBuffer(bw.URLIndexList, bw.URLIndex, bw.BufferDB)
 
 	bw.BufferDB.SyncTo(CacheDB)
 }
@@ -197,14 +219,19 @@ func getFFBookmarks(bw *FFBrowser) {
 		}
 
 		// Add the url to the tag
-		urlNode, urlNodeExists := bw.urlMap[url]
+		var urlNode *Node
+		iUrlNode, urlNodeExists := bw.URLIndex.Get(url)
 		if !urlNodeExists {
 			urlNode = new(Node)
 			urlNode.Type = "url"
 			urlNode.URL = url
 			urlNode.Name = title
 			urlNode.Desc = desc
-			bw.urlMap[url] = urlNode
+			bw.URLIndex.Insert(url, urlNode)
+			bw.URLIndexList = append(bw.URLIndexList, url)
+
+		} else {
+			urlNode = iUrlNode.(*Node)
 		}
 
 		// Add tag to urlnode tags
@@ -240,6 +267,35 @@ func getFFBookmarks(bw *FFBrowser) {
 }
 
 func (bw *FFBrowser) Run() {
-	log.Debugf("<%s>", bw.name)
+
+	//log.Debugf("%d", bw.lastRunTime.Unix())
+	//var _time string
+	//row := bw.places.handle.QueryRow("SELECT strftime('%s', 'now') AS now")
+	//row.Scan(&_time)
+	//log.Debug(_time)
+
+	log.Debugf("Checking changes since %s",
+		bw.lastRunTime.Format("Mon Jan 2 15:04:05 MST 2006"))
+	start := time.Now()
+	rows, err := bw.qChanges.Query(bw.lastRunTime.UnixNano() / 1000)
+	if err != nil {
+		log.Error(err)
+	}
+	defer rows.Close()
+	elapsed := time.Since(start)
+	log.Debugf("Places test query in %s", elapsed)
+
+	// Found new results in places db since last time we had changes
+	if rows.Next() {
+		bw.lastRunTime = time.Now().UTC()
+		log.Debugf("<%s> CHANGE ! Time: %s", bw.name,
+			bw.lastRunTime.Format("Mon Jan 2 15:04:05 MST 2006"))
+		//DebugPrintRows(rows)
+	} else {
+		log.Debugf("<%s> no change", bw.name)
+	}
+
+	//TODO: change logger for more granular debugging
+	// candidates:  glg
 
 }

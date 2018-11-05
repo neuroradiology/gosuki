@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/sp4ke/hashmap"
 	"github.com/xlab/treeprint"
 )
 
@@ -130,8 +131,14 @@ func WalkBuildIndex(node *Node, b *BaseBrowser) {
 	}
 }
 
-func syncURLMapToBuffer(m map[string]*Node, buffer *DB) {
-	for _, node := range m {
+func syncURLIndexToBuffer(urls []string, index *hashmap.RBTree, buffer *DB) {
+	for _, url := range urls {
+		iNode, exists := index.Get(url)
+		if !exists {
+			log.Warningf("url does not exist in index: %s", url)
+			break
+		}
+		node := iNode.(*Node)
 		bk := node.GetBookmark()
 		bk.InsertOrUpdateInDB(buffer)
 	}

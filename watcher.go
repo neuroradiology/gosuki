@@ -48,7 +48,7 @@ func WatcherThread(w IWatchable) {
 		case event := <-watcher.w.Events:
 
 			// Very verbose
-			log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
+			//log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
 
 			// On Chrome like browsers the bookmarks file is created
 			// at every change.
