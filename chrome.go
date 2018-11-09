@@ -1,6 +1,10 @@
 package main
 
 import (
+	"gomark/database"
+	"gomark/parsing"
+	"gomark/tree"
+	"gomark/watch"
 	"io/ioutil"
 	"path"
 	"time"
@@ -10,13 +14,11 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+type Node = tree.Node
+
 var ChromeData = BrowserPaths{
 	BookmarkFile: "Bookmarks",
 	BookmarkDir:  "/home/spike/.config/google-chrome-unstable/Default/",
-}
-
-type ChromeBrowser struct {
-	BaseBrowser //embedding
 }
 
 var jsonNodeTypes = struct {
@@ -26,6 +28,10 @@ var jsonNodeTypes = struct {
 var jsonNodePaths = struct {
 	Type, Children, URL string
 }{"type", "children", "url"}
+
+type ChromeBrowser struct {
+	BaseBrowser //embedding
+}
 
 type ParseChildFunc func([]byte, jsonparser.ValueType, int, error)
 type RecursiveParseFunc func([]byte, []byte, jsonparser.ValueType, int) error
@@ -52,13 +58,13 @@ func (rawNode *RawNode) parseItems(nodeData []byte) {
 		switch idx {
 		case 0:
 			rawNode.nType = value
-			//currentNode.Type = _s(value)
+			//currentNode.Type = s(value)
 
 		case 1: // name or title
-			//currentNode.Name = _s(value)
+			//currentNode.Name = s(value)
 			rawNode.name = value
 		case 2:
-			//currentNode.URL = _s(value)
+			//currentNode.URL = s(value)
 			rawNode.url = value
 		case 3:
 			rawNode.children, rawNode.childrenType = value, vt
@@ -69,8 +75,8 @@ func (rawNode *RawNode) parseItems(nodeData []byte) {
 // Returns *Node from *RawNode
 func (rawNode *RawNode) getNode() *Node {
 	node := new(Node)
-	node.Type = _s(rawNode.nType)
-	node.Name = _s(rawNode.name)
+	node.Type = s(rawNode.nType)
+	node.Name = s(rawNode.name)
 
 	return node
 }
@@ -81,7 +87,7 @@ func NewChromeBrowser() IBrowser {
 	browser.bType = TChrome
 	browser.baseDir = ChromeData.BookmarkDir
 	browser.bkFile = ChromeData.BookmarkFile
-	browser.Stats = new(ParserStats)
+	browser.Stats = new(parsing.Stats)
 	browser.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
 	browser.useFileWatcher = true
 
@@ -91,10 +97,10 @@ func NewChromeBrowser() IBrowser {
 	// Create watch objects, we will watch the basedir for create events
 	watchedEvents := []fsnotify.Op{fsnotify.Create}
 	w := &Watch{
-		path:       browser.baseDir,
-		eventTypes: watchedEvents,
-		eventNames: []string{path.Join(browser.baseDir, browser.bkFile)},
-		resetWatch: true,
+		Path:       browser.baseDir,
+		EventTypes: watchedEvents,
+		EventNames: []string{path.Join(browser.baseDir, browser.bkFile)},
+		ResetWatch: true,
 	}
 	browser.SetupFileWatcher(w)
 
@@ -111,7 +117,7 @@ func (bw ChromeBrowser) Shutdown() {
 
 func (bw *ChromeBrowser) Watch() bool {
 	if !bw.isWatching {
-		go WatcherThread(bw)
+		go watch.WatcherThread(bw)
 		bw.isWatching = true
 		log.Infof("<%s> Watching %s", bw.name, bw.GetPath())
 		return true
@@ -161,8 +167,7 @@ func (bw *ChromeBrowser) Run() {
 			return nil
 		}
 
-		bw.Stats.currentNodeCount++
-
+		bw.Stats.CurrentNodeCount++
 		rawNode := new(RawNode)
 		rawNode.parseItems(node)
 		//log.Debugf("Parsing root folder %s", rawNode.name)
@@ -199,7 +204,7 @@ func (bw *ChromeBrowser) Run() {
 			return nil
 		}
 
-		bw.Stats.currentNodeCount++
+		bw.Stats.CurrentNodeCount++
 
 		rawNode := new(RawNode)
 		rawNode.parseItems(node)
@@ -234,12 +239,10 @@ func (bw *ChromeBrowser) Run() {
 		}
 
 		// if node is url(leaf), handle the url
-		if _s(rawNode.nType) == jsonNodeTypes.URL {
+		if s(rawNode.nType) == jsonNodeTypes.URL {
 
-			currentNode.URL = _s(rawNode.url)
-
-			bw.Stats.currentUrlCount++
-
+			currentNode.URL = s(rawNode.url)
+			bw.Stats.CurrentUrlCount++
 			// Check if url-node already in index
 			var nodeVal *Node
 			iVal, found := bw.URLIndex.Get(currentNode.URL)
@@ -297,8 +300,8 @@ func (bw *ChromeBrowser) Run() {
 	// Start a new node tree building job
 	start := time.Now()
 	jsonparser.ObjectEach(rootsData, jsonParseRoots)
-	bw.Stats.lastParseTime = time.Since(start)
-	log.Debugf("<%s> parsed tree in %s", bw.name, bw.Stats.lastParseTime)
+	bw.Stats.LastParseTime = time.Since(start)
+	log.Debugf("<%s> parsed tree in %s", bw.name, bw.Stats.LastParseTime)
 	// Finished node tree building job
 
 	// Debug walk tree
@@ -308,8 +311,7 @@ func (bw *ChromeBrowser) Run() {
 	bw.RebuildIndex()
 
 	// Finished parsing
-	log.Debugf("<%s> parsed %d bookmarks and %d nodes", bw.name, bw.Stats.currentUrlCount, bw.Stats.currentNodeCount)
-
+	log.Debugf("<%s> parsed %d bookmarks and %d nodes", bw.name, bw.Stats.CurrentUrlCount, bw.Stats.CurrentNodeCount)
 	// Reset parser counter
 	bw.ResetStats()
 
@@ -318,7 +320,7 @@ func (bw *ChromeBrowser) Run() {
 	//bw.BufferDB.Print()
 
 	log.Debugf("<%s> syncing to buffer", bw.name)
-	syncTreeToBuffer(bw.NodeTree, bw.BufferDB)
+	database.SyncTreeToBuffer(bw.NodeTree, bw.BufferDB)
 	log.Debugf("<%s> tree synced to buffer", bw.name)
 
 	//bw.BufferDB.Print()
@@ -339,7 +341,7 @@ func (bw *ChromeBrowser) Run() {
 	// If cacheDB is empty just copy buffer to cacheDB
 	// until local db is already populated and preloaded
 	//debugPrint("%d", BufferDB.Count())
-	if empty, err := CacheDB.isEmpty(); empty {
+	if empty, err := CacheDB.IsEmpty(); empty {
 		if err != nil {
 			log.Error(err)
 		}
@@ -351,8 +353,8 @@ func (bw *ChromeBrowser) Run() {
 		//elapsed := time.Since(start)
 		//debugPrint("copy in %s", elapsed)
 
-		log.Debugf("syncing <%s> to disk", CacheDB.name)
-		CacheDB.SyncToDisk(getDBFullPath())
+		log.Debugf("syncing <%s> to disk", CacheDB.Name)
+		CacheDB.SyncToDisk(database.GetDBFullPath())
 	}
 
 	bw.BufferDB.SyncTo(CacheDB)

@@ -1,24 +1,17 @@
-package main
+package tools
 
 import (
 	"errors"
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 )
 
-func getDefaultDBPath() string {
+func GetDefaultDBPath() string {
 	return "./"
 }
 
-func getDBFullPath() string {
-	dbdir := getDefaultDBPath()
-	dbpath := filepath.Join(dbdir, DBFileName)
-	return dbpath
-}
-
-func checkFileExists(file string) (bool, error) {
+func CheckFileExists(file string) (bool, error) {
 	info, err := os.Stat(file)
 	if err == nil {
 		if info.IsDir() {
@@ -36,7 +29,7 @@ func checkFileExists(file string) (bool, error) {
 	return false, err
 }
 
-func checkWriteable(dir string) error {
+func CheckWriteable(dir string) error {
 	_, err := os.Stat(dir)
 	if err == nil {
 		// dir exists, make sure we can write to it

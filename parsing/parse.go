@@ -1,9 +1,15 @@
-package main
+package parsing
 
 import (
+	"gomark/logging"
+	"gomark/tree"
 	"regexp"
 	"time"
 )
+
+type Node = tree.Node
+
+var log = logging.GetLogger("PARSE")
 
 const (
 	// First group is tag
@@ -18,19 +24,18 @@ const (
 	//tags with a #dot.caracter
 	//this is a end of sentence #tag
 
-	ReTags     = "\\B#(?P<tag>\\w+\\.?\\w+)"
-	TagJoinSep = "|"
+	ReTags = "\\B#(?P<tag>\\w+\\.?\\w+)"
 )
 
-type ParserStats struct {
-	lastParseTime    time.Duration
-	lastNodeCount    int
-	lastURLCount     int
-	currentNodeCount int
-	currentUrlCount  int
+type Stats struct {
+	LastParseTime    time.Duration
+	LastNodeCount    int
+	LastURLCount     int
+	CurrentNodeCount int
+	CurrentUrlCount  int
 }
 
-type ParseHook func(node *Node)
+type Hook func(node *Node)
 
 func ParseTags(node *Node) {
 
@@ -42,13 +47,11 @@ func ParseTags(node *Node) {
 	}
 	//res := regex.FindAllStringSubmatch(bk.Metadata, -1)
 
-	if IsDebugging() {
-		if len(node.Tags) > 0 {
-			log.Debugf("[in title] found following tags: %s", node.Tags)
-		}
+	if len(node.Tags) > 0 {
+		log.Debugf("[in title] found following tags: %s", node.Tags)
 	}
 }
 
-func _s(value interface{}) string {
+func S(value interface{}) string {
 	return string(value.([]byte))
 }

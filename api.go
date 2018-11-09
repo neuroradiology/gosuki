@@ -1,19 +1,22 @@
 package main
 
 import (
+	"gomark/bookmarks"
+	"gomark/database"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
+type Bookmark = bookmarks.Bookmark
+
 func getBookmarks(c *gin.Context) {
 
-	rows, err := CacheDB.handle.QueryContext(c, "SELECT URL, metadata, tags FROM bookmarks")
+	rows, err := CacheDB.Handle.QueryContext(c, "SELECT URL, metadata, tags FROM bookmarks")
 	if err != nil {
 		log.Error(err)
 	}
-
 	var bookmarks []Bookmark
 
 	var tags string
@@ -24,8 +27,7 @@ func getBookmarks(c *gin.Context) {
 			log.Error(err)
 		}
 
-		bookmark.Tags = strings.Split(tags, TagJoinSep)
-
+		bookmark.Tags = strings.Split(tags, database.TagJoinSep)
 		//log.Debugf("GET %s", tags)
 		//log.Debugf("%v", bookmark)
 

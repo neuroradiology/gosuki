@@ -1,40 +1,17 @@
 package main
 
-import (
-	"os"
-
-	logging "github.com/op/go-logging"
-)
+import "gomark/logging"
 
 var (
-	logBackend  *logging.LogBackend
-	log         *logging.Logger
-	debugFormat = logging.MustStringFormatter(
-		`%{color}%{level:.4s} %{time:15:04:05.000} %{shortfunc:.10s}: %{color:reset} %{message}`,
-	)
-	releaseFormat = logging.MustStringFormatter(
-		`[%{level}] - %{message}`,
-	)
+	// global logger
+	log   = logging.GetLogger("")
+	fflog = logging.GetLogger("FF")
 )
 
-func initLogging() {
-
-	log = logging.MustGetLogger("gomark")
-	logBackend = logging.NewLogBackend(os.Stderr, "", 0)
-
+func init() {
 	if IsDebugging() {
-		debugBackendFormatter := logging.NewBackendFormatter(logBackend, debugFormat)
-		logging.SetBackend(debugBackendFormatter)
+		logging.InitLogDebug()
 	} else {
-		backendFormatter := logging.NewBackendFormatter(logBackend, releaseFormat)
-		leveledBackend := logging.AddModuleLevel(backendFormatter)
-		leveledBackend.SetLevel(logging.WARNING, "")
-		logging.SetBackend(leveledBackend)
+		logging.InitLog()
 	}
-
-	log.Warningf("running in %s mode", RunMode())
-}
-
-func IsDebugging() bool {
-	return gomarkMode == debugCode
 }

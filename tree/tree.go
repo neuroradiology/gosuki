@@ -1,11 +1,17 @@
-package main
+package tree
 
 import (
 	"fmt"
+	"gomark/bookmarks"
+	"gomark/index"
+	"gomark/logging"
 
-	"github.com/sp4ke/hashmap"
 	"github.com/xlab/treeprint"
 )
+
+var log = logging.GetLogger("")
+
+type Bookmark = bookmarks.Bookmark
 
 type Node struct {
 	Name       string
@@ -17,16 +23,6 @@ type Node struct {
 	NameHash   uint64 // hash of the metadata
 	Parent     *Node
 	Children   []*Node
-}
-
-func (node *Node) GetBookmark() *Bookmark {
-	return &Bookmark{
-		URL:      node.URL,
-		Metadata: node.Name,
-		Desc:     node.Desc,
-		Tags:     node.Tags,
-		Node:     node,
-	}
 }
 
 func (node *Node) GetRoot() *Node {
@@ -54,7 +50,6 @@ func (node *Node) GetParentTags() []*Node {
 	walk = func(n *Node) {
 		nodePtr = n
 
-		//log.Debugf("type of %s --> %s", nodePtr.Type, nodePtr.Name)
 		if nodePtr.Type == "url" {
 			return
 		}
@@ -94,8 +89,7 @@ func PrintTree(root *Node) {
 	}
 
 	walk(root, tree)
-	log.Debug(tree.String())
-
+	fmt.Println(tree.String())
 }
 
 // Debuggin bookmark node tree
@@ -116,44 +110,25 @@ func WalkNode(node *Node) {
 
 // Rebuilds the memory url index after parsing all bookmarks.
 // Keeps memory index in sync with last known state of browser bookmarks
-func WalkBuildIndex(node *Node, b *BaseBrowser) {
-
+func WalkBuildIndex(node *Node, index index.HashTree) {
 	if node.Type == "url" {
-		b.URLIndex.Insert(node.URL, node)
+		index.Insert(node.URL, node)
 		//log.Debugf("Inserted URL: %s and Hash: %v", node.URL, node.NameHash)
 	}
 
 	if len(node.Children) > 0 {
 		for _, node := range node.Children {
-			go WalkBuildIndex(node, b)
+			go WalkBuildIndex(node, index)
 		}
 
 	}
 }
 
-func syncURLIndexToBuffer(urls []string, index *hashmap.RBTree, buffer *DB) {
-	for _, url := range urls {
-		iNode, exists := index.Get(url)
-		if !exists {
-			log.Warningf("url does not exist in index: %s", url)
-			break
-		}
-		node := iNode.(*Node)
-		bk := node.GetBookmark()
-		bk.InsertOrUpdateInDB(buffer)
-	}
-}
-
-func syncTreeToBuffer(node *Node, buffer *DB) {
-
-	if node.Type == "url" {
-		bk := node.GetBookmark()
-		bk.InsertOrUpdateInDB(buffer)
-	}
-
-	if len(node.Children) > 0 {
-		for _, node := range node.Children {
-			syncTreeToBuffer(node, buffer)
-		}
+func (node *Node) GetBookmark() *Bookmark {
+	return &Bookmark{
+		URL:      node.URL,
+		Metadata: node.Name,
+		Desc:     node.Desc,
+		Tags:     node.Tags,
 	}
 }

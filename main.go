@@ -5,7 +5,11 @@
 // - Run the gin server
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"gomark/parsing"
+
+	"github.com/gin-gonic/gin"
+)
 
 func mainLoop() {
 
@@ -21,8 +25,7 @@ func mainLoop() {
 	defer cb.Shutdown()
 	defer ff.Shutdown()
 
-	cb.RegisterHooks(ParseTags)
-
+	cb.RegisterHooks(parsing.ParseTags)
 	cb.Load()
 	ff.Load()
 
@@ -41,6 +44,4 @@ func main() {
 
 func init() {
 	initMode()
-	initLogging()
-	registerSqliteHooks()
 }

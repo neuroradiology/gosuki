@@ -1,57 +1,28 @@
-package main
+package database
 
 import (
+	"gomark/bookmarks"
 	"strings"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
-// Bookmark type
-type Bookmark struct {
-	URL      string   `json:"url"`
-	Metadata string   `json:"metadata"`
-	Tags     []string `json:"tags"`
-	Desc     string   `json:"desc"`
-	Node     *Node    `json:"-"`
-	//flags int
-}
+const TagJoinSep = "|"
 
-// Inserts a bookmarks to the passed DB
-// In case of conflict follow the default rules
-// which for sqlite is a fail with the error `sqlite3.ErrConstraint`
-func (bk *Bookmark) InsertInDB(db *DB) {
-	//log.Debugf("Adding bookmark %s", bk.URL)
-	_db := db.handle
-
-	tx, err := _db.Begin()
-	if err != nil {
-		log.Error(err)
-	}
-
-	stmt, err := tx.Prepare(`INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
-	logError(err)
-	defer stmt.Close()
-
-	_, err = stmt.Exec(bk.URL, bk.Metadata, strings.Join(bk.Tags, TagJoinSep), "", 0)
-	sqlErrorMsg(err, bk.URL)
-
-	err = tx.Commit()
-	logError(err)
-}
+type Bookmark = bookmarks.Bookmark
 
 // Inserts or updates a bookmarks to the passed DB
 // In case of a conflict for a UNIQUE URL constraint,
 // update the existing bookmark
-func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
-
+func (db *DB) InsertOrUpdateBookmark(bk *Bookmark) {
 	var sqlite3Err sqlite3.Error
 	var scannedTags string
 
+	_db := db.Handle
 	// TODO
 	// When updating we should only ADD tags and not replace previous ones
 
 	//log.Debugf("Adding bookmark %s", bk.URL)
-	_db := db.handle
 
 	// Prepare statement that does a pure insert only
 	tryInsertBk, err := _db.Prepare(
@@ -60,7 +31,9 @@ func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 			VALUES (?, ?, ?, ?, ?)`,
 	)
 	defer tryInsertBk.Close()
-	sqlErrorMsg(err, bk.URL)
+	if err != nil {
+		log.Errorf("%s: %s", err, bk.URL)
+	}
 
 	// Prepare statement that updates an existing bookmark in db
 	updateBk, err := _db.Prepare(
@@ -68,12 +41,16 @@ func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 		WHERE url=?`,
 	)
 	defer updateBk.Close()
-	sqlErrorMsg(err, bk.URL)
+	if err != nil {
+		log.Errorf("%s: %s", err, bk.URL)
+	}
 
 	// Stmt to fetch existing bookmark and tags in db
 	getTags, err := _db.Prepare(`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`)
 	defer getTags.Close()
-	sqlErrorMsg(err, bk.URL)
+	if err != nil {
+		log.Errorf("%s: %s", err, bk.URL)
+	}
 
 	// Begin transaction
 	tx, err := _db.Begin()
@@ -94,9 +71,8 @@ func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 	}
 
 	if err != nil && sqlite3Err.Code != sqlite3.ErrConstraint {
-		sqlErrorMsg(err, bk.URL)
+		log.Errorf("%s: %s", err, bk.URL)
 	}
-
 	// We will handle ErrConstraint ourselves
 
 	// ErrConstraint means the bookmark (url) already exists in table,
@@ -134,10 +110,42 @@ func (bk *Bookmark) InsertOrUpdateInDB(db *DB) {
 			bk.URL,
 		)
 
-		sqlErrorMsg(err, bk.URL)
+		if err != nil {
+			log.Errorf("%s: %s", err, bk.URL)
+		}
 	}
 
 	err = tx.Commit()
-	logError(err)
+	if err != nil {
+		log.Error(err)
+	}
 
+}
+
+// Inserts a bookmarks to the passed DB
+// In case of conflict follow the default rules
+// which for sqlite is a fail with the error `sqlite3.ErrConstraint`
+func (db *DB) InsertBookmark(bk *Bookmark) {
+	//log.Debugf("Adding bookmark %s", bk.URL)
+	_db := db.Handle
+	tx, err := _db.Begin()
+	if err != nil {
+		log.Error(err)
+	}
+
+	stmt, err := tx.Prepare(`INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
+	if err != nil {
+		log.Error(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(bk.URL, bk.Metadata, strings.Join(bk.Tags, TagJoinSep), "", 0)
+	if err != nil {
+		log.Errorf("%s: %s", err, bk.URL)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Error(err)
+	}
 }
