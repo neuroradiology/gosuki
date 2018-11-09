@@ -2,6 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"gomark/database"
+	"gomark/parsing"
+	"gomark/tools"
+	"gomark/watch"
 	"path"
 	"time"
 
@@ -17,7 +21,7 @@ const (
 	MozPlacesRootID       = 1
 	MozPlacesTagsRootID   = 4
 	MozPlacesMobileRootID = 6
-	MozMinJobInterval     = 1 * time.Second
+	MozMinJobInterval     = 500 * time.Millisecond
 )
 
 type FFBrowser struct {
@@ -35,17 +39,17 @@ type FFTag struct {
 }
 
 func FFPlacesUpdateHook(op int, db string, table string, rowid int64) {
-	log.Debug(op)
+	fflog.Debug(op)
 }
 
 func NewFFBrowser() IBrowser {
-	browser := &FFBrowser{}
+	browser := new(FFBrowser)
 	browser.name = "firefox"
 	browser.bType = TFirefox
 	browser.baseDir = Firefox.BookmarkDir
 	browser.bkFile = Firefox.BookmarkFile
 	browser.useFileWatcher = true
-	browser.Stats = &ParserStats{}
+	browser.Stats = &parsing.Stats{}
 	browser.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
 
 	// Initialize `places.sqlite`
@@ -59,10 +63,10 @@ func NewFFBrowser() IBrowser {
 	// Setup watcher
 
 	w := &Watch{
-		path:       path.Join(browser.baseDir),
-		eventTypes: []fsnotify.Op{fsnotify.Write},
-		eventNames: []string{path.Join(browser.baseDir, "places.sqlite-wal")},
-		resetWatch: false,
+		Path:       path.Join(browser.baseDir),
+		EventTypes: []fsnotify.Op{fsnotify.Write},
+		EventNames: []string{path.Join(browser.baseDir, "places.sqlite-wal")},
+		ResetWatch: false,
 	}
 
 	browser.SetupFileWatcher(w)
@@ -74,8 +78,7 @@ func NewFFBrowser() IBrowser {
 
 	browser.eventsChan = make(chan fsnotify.Event, EventsChanLen)
 
-	go reducer(MozMinJobInterval, browser.eventsChan, browser)
-
+	go tools.ReduceEvents(MozMinJobInterval, browser.eventsChan, browser)
 	// Prepare sql statements
 	// Check changed urls in DB
 	// Firefox records time UTC and microseconds
@@ -85,9 +88,9 @@ func NewFFBrowser() IBrowser {
 	WHERE(lastModified > ?
 		AND lastModified < strftime('%s', 'now') * 1000 * 1000)
 	`
-	stmt, err := browser.places.handle.Prepare(QPlacesDelta)
+	stmt, err := browser.places.Handle.Prepare(QPlacesDelta)
 	if err != nil {
-		log.Error(err)
+		fflog.Error(err)
 	}
 	browser.qChanges = stmt
 
@@ -96,32 +99,31 @@ func NewFFBrowser() IBrowser {
 
 func (bw *FFBrowser) Shutdown() {
 
-	log.Debugf("<%s> shutting down ... ", bw.name)
-
+	fflog.Debugf("shutting down ... ")
 	err := bw.qChanges.Close()
 	if err != nil {
-		log.Critical(err)
+		fflog.Critical(err)
 	}
 
 	err = bw.BaseBrowser.Close()
 	if err != nil {
-		log.Critical(err)
+		fflog.Critical(err)
 	}
 
 	err = bw.places.Close()
 	if err != nil {
-		log.Critical(err)
+		fflog.Critical(err)
 	}
 }
 
 func (bw *FFBrowser) Watch() bool {
 
-	log.Debugf("<%s> TODO ... ", bw.name)
+	fflog.Debugf("TODO ... ")
 
 	if !bw.isWatching {
-		go WatcherThread(bw)
+		go watch.WatcherThread(bw)
 		bw.isWatching = true
-		log.Infof("<%s> Watching %s", bw.name, bw.GetPath())
+		fflog.Infof("Watching %s", bw.GetPath())
 		return true
 	}
 
@@ -134,22 +136,22 @@ func (bw *FFBrowser) Load() {
 	// Parse bookmarks to a flat tree (for compatibility with tree system)
 	start := time.Now()
 	getFFBookmarks(bw)
-	bw.Stats.lastParseTime = time.Since(start)
+	bw.Stats.LastParseTime = time.Since(start)
 	bw.lastRunTime = time.Now().UTC()
 
 	// Finished parsing
 	//go PrintTree(bw.NodeTree) // debugging
-	log.Debugf("<%s> parsed %d bookmarks and %d nodes in %s", bw.name,
-		bw.Stats.currentUrlCount, bw.Stats.currentNodeCount, bw.Stats.lastParseTime)
-
+	fflog.Debugf("parsed %d bookmarks and %d nodes in %s",
+		bw.Stats.CurrentUrlCount,
+		bw.Stats.CurrentNodeCount,
+		bw.Stats.LastParseTime)
 	bw.ResetStats()
 
 	// Sync the URLIndex to the buffer
 	// We do not use the NodeTree here as firefox tags are represented
 	// as a flat tree which is not efficient, we use the go hashmap instead
 
-	syncURLIndexToBuffer(bw.URLIndexList, bw.URLIndex, bw.BufferDB)
-
+	database.SyncURLIndexToBuffer(bw.URLIndexList, bw.URLIndex, bw.BufferDB)
 	bw.BufferDB.SyncTo(CacheDB)
 }
 
@@ -175,9 +177,9 @@ func getFFBookmarks(bw *FFBrowser) {
 
 	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
 
-	rows, err := bw.places.handle.Query(QGetBookmarks, MozPlacesTagsRootID)
+	rows, err := bw.places.Handle.Query(QGetBookmarks, MozPlacesTagsRootID)
 	if err != nil {
-		log.Error(err)
+		fflog.Error(err)
 	}
 
 	tagMap := make(map[int]*Node)
@@ -197,9 +199,9 @@ func getFFBookmarks(bw *FFBrowser) {
 		var url, title, tagTitle, desc string
 		var tagId int
 		err = rows.Scan(&url, &title, &desc, &tagId, &tagTitle)
-		//log.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
+		//fflog.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
 		if err != nil {
-			log.Error(err)
+			fflog.Error(err)
 		}
 
 		/*
@@ -215,7 +217,7 @@ func getFFBookmarks(bw *FFBrowser) {
 			tagNode.Parent = rootNode
 			rootNode.Children = append(rootNode.Children, tagNode)
 			tagMap[tagId] = tagNode
-			bw.Stats.currentNodeCount++
+			bw.Stats.CurrentNodeCount++
 		}
 
 		// Add the url to the tag
@@ -243,8 +245,8 @@ func getFFBookmarks(bw *FFBrowser) {
 		// Add urlnode as child to tag node
 		tagMap[tagId].Children = append(tagMap[tagId].Children, urlNode)
 
-		bw.Stats.currentUrlCount++
-		bw.Stats.currentNodeCount++
+		bw.Stats.CurrentUrlCount++
+		bw.Stats.CurrentNodeCount++
 	}
 
 	/*
@@ -268,31 +270,31 @@ func getFFBookmarks(bw *FFBrowser) {
 
 func (bw *FFBrowser) Run() {
 
-	//log.Debugf("%d", bw.lastRunTime.Unix())
+	//fflog.Debugf("%d", bw.lastRunTime.Unix())
 	//var _time string
 	//row := bw.places.handle.QueryRow("SELECT strftime('%s', 'now') AS now")
 	//row.Scan(&_time)
-	//log.Debug(_time)
+	//fflog.Debug(_time)
 
-	log.Debugf("Checking changes since %s",
+	fflog.Debugf("Checking changes since %s",
 		bw.lastRunTime.Format("Mon Jan 2 15:04:05 MST 2006"))
 	start := time.Now()
 	rows, err := bw.qChanges.Query(bw.lastRunTime.UnixNano() / 1000)
 	if err != nil {
-		log.Error(err)
+		fflog.Error(err)
 	}
 	defer rows.Close()
 	elapsed := time.Since(start)
-	log.Debugf("Places test query in %s", elapsed)
+	fflog.Debugf("Places test query in %s", elapsed)
 
 	// Found new results in places db since last time we had changes
 	if rows.Next() {
 		bw.lastRunTime = time.Now().UTC()
-		log.Debugf("<%s> CHANGE ! Time: %s", bw.name,
+		fflog.Debugf("CHANGE ! Time: %s",
 			bw.lastRunTime.Format("Mon Jan 2 15:04:05 MST 2006"))
 		//DebugPrintRows(rows)
 	} else {
-		log.Debugf("<%s> no change", bw.name)
+		fflog.Debugf("no change")
 	}
 
 	//TODO: change logger for more granular debugging

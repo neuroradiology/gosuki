@@ -1,8 +1,12 @@
-package main
+package watch
 
 import (
+	"gomark/logging"
+
 	"github.com/fsnotify/fsnotify"
 )
+
+var log = logging.GetLogger("WATCH")
 
 // Used as input to WatcherThread
 // It does not have to be a browser as long is the interface is implemented
@@ -21,17 +25,17 @@ type IWatchable interface {
 
 // Wrapper around fsnotify watcher
 type Watcher struct {
-	w       *fsnotify.Watcher // underlying fsnotify watcher
-	watched map[string]*Watch // watched paths
-	watches []*Watch          // helper var
+	W       *fsnotify.Watcher // underlying fsnotify watcher
+	Watched map[string]*Watch // watched paths
+	Watches []*Watch          // helper var
 }
 
 // Details about the object being watched
 type Watch struct {
-	path       string        // Path to watch for events
-	eventTypes []fsnotify.Op // events to watch for
-	eventNames []string      // event names to watch for (file/dir names)
-	resetWatch bool          // Reset the watcher when the event happens (useful for create events)
+	Path       string        // Path to watch for events
+	EventTypes []fsnotify.Op // events to watch for
+	EventNames []string      // event names to watch for (file/dir names)
+	ResetWatch bool          // Reset the watcher when the event happens (useful for create events)
 }
 
 // Main thread for watching file changes
@@ -45,8 +49,7 @@ func WatcherThread(w IWatchable) {
 		resetWatch := false
 
 		select {
-		case event := <-watcher.w.Events:
-
+		case event := <-watcher.W.Events:
 			// Very verbose
 			//log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
 
@@ -61,10 +64,9 @@ func WatcherThread(w IWatchable) {
 			 * the newly created watcher to catch events even after rename/create
 			 */
 
-			for _, watched := range watcher.watches {
-				for _, watchedEv := range watched.eventTypes {
-					for _, watchedName := range watched.eventNames {
-
+			for _, watched := range watcher.Watches {
+				for _, watchedEv := range watched.EventTypes {
+					for _, watchedName := range watched.EventNames {
 						if event.Op&watchedEv == watchedEv &&
 							event.Name == watchedName {
 
@@ -79,7 +81,7 @@ func WatcherThread(w IWatchable) {
 
 							//log.Warning("event: %v | eventName: %v", event.Op, event.Name)
 
-							if watched.resetWatch {
+							if watched.ResetWatch {
 								log.Debugf("resetting watchers")
 								w.ResetWatcher()
 								resetWatch = true // needed to break out of big loop
@@ -103,7 +105,7 @@ func WatcherThread(w IWatchable) {
 			//ch <- event
 			////w.Run()
 			//}
-		case err := <-watcher.w.Errors:
+		case err := <-watcher.W.Errors:
 			log.Error(err)
 		}
 	}

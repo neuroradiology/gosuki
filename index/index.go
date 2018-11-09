@@ -1,9 +1,14 @@
-package main
+package index
 
 import (
+	"log"
+
 	"github.com/OneOfOne/xxhash"
 	"github.com/sp4ke/hashmap"
 )
+
+type Index = *hashmap.RBTree
+type HashTree = *hashmap.RBTree
 
 // In memory index used for fast lookup of url->node pairs
 // to quickly detect bookmark which changed when bookmarks are reloaded

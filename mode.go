@@ -47,3 +47,11 @@ func SetMode(value string) {
 func RunMode() string {
 	return modeName
 }
+
+func IsDebugging() bool {
+	return gomarkMode == debugCode
+}
+
+func init() {
+	log.Warningf("running in %s mode", RunMode())
+}

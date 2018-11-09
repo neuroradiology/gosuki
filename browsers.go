@@ -10,6 +10,11 @@ package main
 
 import (
 	"fmt"
+	"gomark/database"
+	"gomark/index"
+	"gomark/parsing"
+	"gomark/tree"
+	"gomark/watch"
 	"path"
 	"reflect"
 
@@ -17,6 +22,9 @@ import (
 	"github.com/sp4ke/hashmap"
 )
 
+type IWatchable = watch.IWatchable
+type Watcher = watch.Watcher
+type Watch = watch.Watch
 type BrowserType uint8
 
 // Browser types
@@ -39,9 +47,9 @@ type IBrowser interface {
 	IWatchable
 	InitBuffer() // init buffer db, TODO: defer closings and shutdown
 	InitIndex()  // Creates in memory Index (RB-Tree)
-	RegisterHooks(...ParseHook)
+	RegisterHooks(...parsing.Hook)
 	Load() // Loads bookmarks to db without watching
-	//Parse(...ParseHook) // Main parsing method with different parsing hooks
+	//Parse(...parsing.Hook) // Main parsing method with different parsing hooks
 	Shutdown() // Graceful shutdown, it should call the BaseBrowser.Close()
 }
 
@@ -73,15 +81,14 @@ type BaseBrowser struct {
 
 	// Pointer to the root of the node tree
 	// The node tree is built again for every Run job on a browser
-	NodeTree *Node
-
+	NodeTree *tree.Node
 	// Various parsing and timing stats
-	Stats          *ParserStats
+	Stats          *parsing.Stats
 	bType          BrowserType
 	name           string
 	isWatching     bool
 	useFileWatcher bool
-	parseHooks     []ParseHook
+	parseHooks     []parsing.Hook
 }
 
 func (bw *BaseBrowser) GetWatcher() *Watcher {
@@ -92,13 +99,12 @@ func (bw *BaseBrowser) GetWatcher() *Watcher {
 	}
 	return nil
 }
-
 func (bw *BaseBrowser) Load() {
 	log.Debug("BaseBrowser Load()")
 	bw.InitIndex()
 
 	// Check if cache is initialized
-	if CacheDB == nil || CacheDB.handle == nil {
+	if CacheDB == nil || CacheDB.Handle == nil {
 		log.Criticalf("<%s> Loading bookmarks while cache not yet initialized !", bw.name)
 	}
 
@@ -137,19 +143,19 @@ func (bw *BaseBrowser) SetupFileWatcher(watches ...*Watch) {
 
 	watchedMap := make(map[string]*Watch)
 	for _, v := range watches {
-		watchedMap[v.path] = v
+		watchedMap[v.Path] = v
 	}
 
 	bw.watcher = &Watcher{
-		w:       fswatcher,
-		watched: watchedMap,
-		watches: watches,
+		W:       fswatcher,
+		Watched: watchedMap,
+		Watches: watches,
 	}
 
 	// Add all watched paths
 	for _, v := range watches {
 
-		err = bw.watcher.w.Add(v.path)
+		err = bw.watcher.W.Add(v.Path)
 		if err != nil {
 			log.Critical(err)
 		}
@@ -158,15 +164,15 @@ func (bw *BaseBrowser) SetupFileWatcher(watches ...*Watch) {
 }
 
 func (bw *BaseBrowser) ResetWatcher() {
-	err := bw.watcher.w.Close()
+	err := bw.watcher.W.Close()
 	if err != nil {
 		log.Critical(err)
 	}
-	bw.SetupFileWatcher(bw.watcher.watches...)
+	bw.SetupFileWatcher(bw.watcher.Watches...)
 }
 
 func (bw *BaseBrowser) Close() error {
-	err := bw.watcher.w.Close()
+	err := bw.watcher.W.Close()
 	if err != nil {
 		return err
 	}
@@ -180,31 +186,34 @@ func (bw *BaseBrowser) Close() error {
 }
 
 func (b *BaseBrowser) InitIndex() {
-	b.URLIndex = NewIndex()
+	b.URLIndex = index.NewIndex()
 }
 
 func (b *BaseBrowser) RebuildIndex() {
 	log.Debugf("Rebuilding index based on current nodeTree")
-	b.URLIndex = NewIndex()
-	WalkBuildIndex(b.NodeTree, b)
+	b.URLIndex = index.NewIndex()
+	tree.WalkBuildIndex(b.NodeTree, b.URLIndex)
 }
 
 func (b *BaseBrowser) RebuildNodeTree() {
-	b.NodeTree = &Node{Name: "root", Parent: nil, Type: "root"}
+	b.NodeTree = &tree.Node{
+		Name:   "root",
+		Parent: nil,
+		Type:   "root",
+	}
 }
 
 func (b *BaseBrowser) InitBuffer() {
 
 	bufferName := fmt.Sprintf("buffer_%s", b.name)
-	bufferPath := fmt.Sprintf(DBBufferFmt, bufferName)
-
+	bufferPath := fmt.Sprintf(database.DBBufferFmt, bufferName)
 	b.BufferDB = DB{}.New(bufferName, bufferPath)
 	b.BufferDB.Init()
 
 	b.BufferDB.Attach(CacheDB)
 }
 
-func (b *BaseBrowser) RegisterHooks(hooks ...ParseHook) {
+func (b *BaseBrowser) RegisterHooks(hooks ...parsing.Hook) {
 	log.Debug("Registering hooks")
 	for _, hook := range hooks {
 		b.parseHooks = append(b.parseHooks, hook)
@@ -212,10 +221,10 @@ func (b *BaseBrowser) RegisterHooks(hooks ...ParseHook) {
 }
 
 func (b *BaseBrowser) ResetStats() {
-	b.Stats.lastURLCount = b.Stats.currentUrlCount
-	b.Stats.lastNodeCount = b.Stats.currentNodeCount
-	b.Stats.currentNodeCount = 0
-	b.Stats.currentUrlCount = 0
+	b.Stats.LastURLCount = b.Stats.CurrentUrlCount
+	b.Stats.LastNodeCount = b.Stats.CurrentNodeCount
+	b.Stats.CurrentNodeCount = 0
+	b.Stats.CurrentUrlCount = 0
 }
 
 func (b *BaseBrowser) HasReducer() bool {
@@ -227,7 +236,7 @@ func (b *BaseBrowser) Name() string {
 }
 
 // Runs browsed defined hooks on bookmark
-func (b *BaseBrowser) RunParseHooks(node *Node) {
+func (b *BaseBrowser) RunParseHooks(node *tree.Node) {
 	for _, hook := range b.parseHooks {
 		hook(node)
 	}
