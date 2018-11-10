@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"gomark/database"
 	"gomark/parsing"
 	"gomark/tools"
@@ -18,10 +19,7 @@ var Firefox = BrowserPaths{
 }
 
 const (
-	MozPlacesRootID       = 1
-	MozPlacesTagsRootID   = 4
-	MozPlacesMobileRootID = 6
-	MozMinJobInterval     = 500 * time.Millisecond
+	MozMinJobInterval = 500 * time.Millisecond
 )
 
 type FFBrowser struct {
@@ -33,9 +31,36 @@ type FFBrowser struct {
 	lastRunTime  time.Time
 }
 
+type FFBkType int
+
+const (
+	_ = iota
+	BkTypeURL
+	BkTypeTagFolder
+)
+
+type FFBookmarkParent int
+
+const (
+	_ = iota
+	ffBkRoot
+	ffBkMenu
+	ffBkToolbar
+	ffBkTags
+	ffBkOther
+	ffBkMobile
+)
+
 type FFTag struct {
 	id    int
 	title string
+}
+
+type FFBookmark struct {
+	id    int
+	title string
+	url   string
+	btype FFBkType
 }
 
 func FFPlacesUpdateHook(op int, db string, table string, rowid int64) {
@@ -86,14 +111,17 @@ func NewFFBrowser() IBrowser {
 	QPlacesDelta := `
 	SELECT * from moz_bookmarks
 	WHERE(lastModified > ?
-		AND lastModified < strftime('%s', 'now') * 1000 * 1000)
+		AND lastModified < strftime('%s', 'now') * 1000 * 1000
+		AND NOT id IN (%d,%d)
+		)
 	`
-	stmt, err := browser.places.Handle.Prepare(QPlacesDelta)
+	stmt, err := browser.places.Handle.Prepare(
+		fmt.Sprintf(QPlacesDelta, "%s", ffBkRoot, ffBkOther),
+	)
 	if err != nil {
 		fflog.Error(err)
 	}
 	browser.qChanges = stmt
-
 	return browser
 }
 
@@ -177,7 +205,7 @@ func getFFBookmarks(bw *FFBrowser) {
 
 	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
 
-	rows, err := bw.places.Handle.Query(QGetBookmarks, MozPlacesTagsRootID)
+	rows, err := bw.places.Handle.Query(QGetBookmarks, ffBkTags)
 	if err != nil {
 		fflog.Error(err)
 	}
@@ -288,11 +316,13 @@ func (bw *FFBrowser) Run() {
 	fflog.Debugf("Places test query in %s", elapsed)
 
 	// Found new results in places db since last time we had changes
+	database.DebugPrintRows(rows)
 	if rows.Next() {
 		bw.lastRunTime = time.Now().UTC()
 		fflog.Debugf("CHANGE ! Time: %s",
 			bw.lastRunTime.Format("Mon Jan 2 15:04:05 MST 2006"))
-		//DebugPrintRows(rows)
+		// Get the change
+
 	} else {
 		fflog.Debugf("no change")
 	}
