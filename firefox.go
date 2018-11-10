@@ -31,8 +31,6 @@ type FFBrowser struct {
 	lastRunTime  time.Time
 }
 
-type FFBkType int
-
 const (
 	_ = iota
 	BkTypeURL
@@ -40,6 +38,7 @@ const (
 )
 
 type FFBookmarkParent int
+type FFBkType int
 
 const (
 	_ = iota
@@ -316,7 +315,7 @@ func (bw *FFBrowser) Run() {
 	fflog.Debugf("Places test query in %s", elapsed)
 
 	// Found new results in places db since last time we had changes
-	database.DebugPrintRows(rows)
+	//database.DebugPrintRows(rows)
 	if rows.Next() {
 		bw.lastRunTime = time.Now().UTC()
 		fflog.Debugf("CHANGE ! Time: %s",
