@@ -41,7 +41,3 @@ func mainLoop() {
 func main() {
 	mainLoop()
 }
-
-func init() {
-	initMode()
-}
