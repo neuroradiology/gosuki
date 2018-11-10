@@ -1,8 +1,13 @@
-package main
+package logging
 
 import (
 	"os"
+
+	"github.com/gin-gonic/gin"
+	glogging "github.com/op/go-logging"
 )
+
+var log = glogging.MustGetLogger("MODE")
 
 const ENV_GOMARK_MODE = "GOMARK_MODE"
 
@@ -20,15 +25,6 @@ const (
 
 var gomarkMode = debugCode
 var modeName = DebugMode
-
-func initMode() {
-	mode := os.Getenv(ENV_GOMARK_MODE)
-	if mode == "" {
-		SetMode(DebugMode)
-	} else {
-		SetMode(mode)
-	}
-}
 
 func SetMode(value string) {
 	switch value {
@@ -53,5 +49,11 @@ func IsDebugging() bool {
 }
 
 func init() {
-	log.Warningf("running in %s mode", RunMode())
+	mode := os.Getenv(ENV_GOMARK_MODE)
+	if mode == "" {
+		SetMode(DebugMode)
+	} else {
+		SetMode(mode)
+		gin.SetMode(mode)
+	}
 }
