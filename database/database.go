@@ -8,8 +8,10 @@ import (
 	"gomark/logging"
 	"gomark/tools"
 	"gomark/tree"
+	"os"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
 	"github.com/sp4ke/hashmap"
@@ -510,6 +512,17 @@ func DebugPrintRows(rows *sql.Rows) {
 	count := len(cols)
 	values := make([]interface{}, count)
 	valuesPtrs := make([]interface{}, count)
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
+	for _, col := range cols {
+		fmt.Fprintf(w, "%s\t", col)
+	}
+	fmt.Fprintf(w, "\n")
+
+	for i := 0; i < count; i++ {
+		fmt.Fprintf(w, "\t")
+	}
+
+	fmt.Fprintf(w, "\n")
 
 	for rows.Next() {
 		for i, _ := range cols {
@@ -531,14 +544,12 @@ func DebugPrintRows(rows *sql.Rows) {
 			finalValues[col] = v
 		}
 
-		for col, val := range finalValues {
-
-			log.Debugf("%s -> %v", col, val)
+		for _, col := range cols {
+			fmt.Fprintf(w, "%v\t", finalValues[col])
 		}
-
-		log.Debug("---------------")
-
+		fmt.Fprintf(w, "\n")
 	}
+	w.Flush()
 }
 
 // Struct represetning the schema of `bookmarks` db.
