@@ -105,22 +105,6 @@ func PrintTree(root *Node) {
 	fmt.Println(tree.String())
 }
 
-// Debuggin bookmark node tree
-// TODO: Old function should get removed
-func WalkNode(node *Node) {
-	if node.Name == "root" {
-		log.Debugf("Node --> <name: %s> | <type: %s> | children: %d | parent: %v", node.Name, node.Type, len(node.Children), node.Name)
-	} else {
-		log.Debugf("Node --> <name: %s> | <type: %s> | children: %d | parent: %v", node.Name, node.Type, len(node.Children), node.Parent.Name)
-	}
-
-	if len(node.Children) > 0 {
-		for _, node := range node.Children {
-			go WalkNode(node)
-		}
-	}
-}
-
 // Rebuilds the memory url index after parsing all bookmarks.
 // Keeps memory index in sync with last known state of browser bookmarks
 func WalkBuildIndex(node *Node, index index.HashTree) {

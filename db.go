@@ -14,7 +14,6 @@ var (
 	CacheDB *DB // Main in memory db, is synced with disc
 )
 
-// TODO: Use context when making call from request/api
 func initDB() {
 	// Initialize memory db with schema
 	cachePath := fmt.Sprintf(database.DBMemcacheFmt, database.DBCacheName)
