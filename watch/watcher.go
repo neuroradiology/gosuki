@@ -76,7 +76,7 @@ func WatcherThread(w IWatchable) {
 								ch := w.EventsChan()
 								ch <- event
 							} else {
-								//w.Run()
+								w.Run()
 							}
 
 							//log.Warning("event: %v | eventName: %v", event.Op, event.Name)
