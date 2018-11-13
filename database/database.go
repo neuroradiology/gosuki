@@ -1,4 +1,5 @@
 //TODO: missing defer close() on sqlite funcs
+//TODO: handle `modified` time
 package database
 
 import (
@@ -40,13 +41,14 @@ const (
 //  Database schemas used for the creation of new databases
 const (
 	// metadata: name or title of resource
+	// modified: time.Now().Unix()
 	QCreateLocalDbSchema = `CREATE TABLE if not exists bookmarks (
 		id integer PRIMARY KEY,
 		URL text NOT NULL UNIQUE,
 		metadata text default '',
 		tags text default '',
 		desc text default '',
-		modified integer default ?,
+		modified integer default ?, 
 		flags integer default 0
 	)`
 
@@ -68,6 +70,7 @@ type DB struct {
 	Path       string
 	Handle     *sql.DB
 	EngineMode string
+	AttachedTo []string
 }
 
 func New(name string, path string) *DB {
@@ -113,7 +116,6 @@ func (db *DB) InitRO() *DB {
 // Initialize a sqlite database with Gomark Schema
 func (db *DB) Init() {
 
-	// TODO: Use context when making call from request/api
 	// `cacheDB` is a memory replica of disk db
 
 	var err error
@@ -161,9 +163,12 @@ func (db *DB) Attach(attached *DB) {
 		attached.Path,
 		attached.Name)
 	_, err := db.Handle.Exec(stmtStr)
+
 	if err != nil {
 		log.Error(err)
 	}
+
+	db.AttachedTo = append(db.AttachedTo, attached.Name)
 
 	/////////////////
 	// For debug only
@@ -239,9 +244,10 @@ func (db *DB) IsEmpty() (bool, error) {
 // For ever row in `src` try to insert it into `dst`.
 // If if fails then try to update it. It means `src` is synced to `dst`
 func (src *DB) SyncTo(dst *DB) {
-	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
 	var sqlite3Err sqlite3.Error
 	var existingUrls []*SBookmark
+
+	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
 
 	getSourceTable, err := src.Handle.Prepare(`SELECT * FROM bookmarks`)
 	defer getSourceTable.Close()

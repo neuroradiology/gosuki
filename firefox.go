@@ -16,12 +16,12 @@ import (
 
 const (
 	QGetBookmarkPlace = `
-SELECT id,url,description,title
-FROM moz_places
-WHERE id = ?
-`
+	SELECT id,url,description,title
+	FROM moz_places
+	WHERE id = ?
+	`
 	QPlacesDelta = `
-SELECT id,type,IFNULL(fk, -1),parent,IFNULL(title, '') from moz_bookmarks
+	SELECT id,type,IFNULL(fk, -1),parent,IFNULL(title, '') from moz_bookmarks
 	WHERE(lastModified > ?
 		AND lastModified < strftime('%s', 'now') * 1000 * 1000
 		AND NOT id IN (%d,%d)
@@ -56,9 +56,8 @@ const (
 )
 
 type FFBrowser struct {
-	BaseBrowser //embedding
-	places      *database.DB
-	// TODO: Use URLIndex instead
+	BaseBrowser  //embedding
+	places       *database.DB
 	URLIndexList []string // All elements stored in URLIndex
 	tagMap       map[int]*tree.Node
 	lastRunTime  time.Time
@@ -375,10 +374,7 @@ func (bw *FFBrowser) Run() {
 		// For each url
 		for urlId, place := range places {
 			var urlNode *tree.Node
-			log.Debug(changedURLS)
-			log.Debug(place.url)
-			changedURLS = extends(changedURLS, place.url)
-			log.Debug(changedURLS)
+			changedURLS = tools.Extends(changedURLS, place.url)
 			iUrlNode, urlNodeExists := bw.URLIndex.Get(place.url)
 			if !urlNodeExists {
 				urlNode = new(tree.Node)
@@ -399,7 +395,6 @@ func (bw *FFBrowser) Run() {
 					bk.btype != ffBkTags {
 
 					tagNode, tagNodeExists := bw.tagMap[bkId]
-					fflog.Debugf("tag %s", bk.title)
 					if !tagNodeExists {
 						tagNode = new(tree.Node)
 						tagNode.Type = "tag"
@@ -427,7 +422,7 @@ func (bw *FFBrowser) Run() {
 					if tagNodeExists && urlNode != nil {
 						//fflog.Debugf("URL has tag %s", tagNode.Name)
 
-						urlNode.Tags = extends(urlNode.Tags, tagNode.Name)
+						urlNode.Tags = tools.Extends(urlNode.Tags, tagNode.Name)
 
 						urlNode.Parent = bw.tagMap[bk.parent]
 						tree.Insert(bw.tagMap[bk.parent].Children, urlNode)

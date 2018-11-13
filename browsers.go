@@ -210,7 +210,6 @@ func (b *BaseBrowser) InitBuffer() {
 	bufferPath := fmt.Sprintf(database.DBBufferFmt, bufferName)
 	b.BufferDB = database.New(bufferName, bufferPath)
 	b.BufferDB.Init()
-
 	b.BufferDB.Attach(CacheDB)
 }
 
