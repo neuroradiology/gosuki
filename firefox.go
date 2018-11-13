@@ -436,5 +436,5 @@ func (bw *FFBrowser) Run() {
 	//TODO: change logger for more granular debugging
 
 	bw.Stats.LastWatchRunTime = time.Since(startRun)
-	fflog.Debugf("execution time %s", time.Since(startRun))
+	//fflog.Debugf("execution time %s", time.Since(startRun))
 }
