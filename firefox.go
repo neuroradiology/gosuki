@@ -217,10 +217,9 @@ func getFFBookmarks(bw *FFBrowser) {
 	}
 
 	// Rebuild node tree
-	// Note: the node tree is build only for compatilibity
-	// pruposes with tree based bookmark parsing.
-	// For efficiency reading after the initial parse from places.sqlite,
-	// reading should be done in loops in instead of tree parsing.
+	// Note: the node tree is build only for compatilibity with tree based
+	// bookmark parsing.  For efficiency reading after the initial Load() from
+	// places.sqlite should be done using a loop instad of tree traversal.
 	rootNode := bw.NodeTree
 
 	/*
@@ -333,12 +332,6 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 }
 
 func (bw *FFBrowser) Run() {
-
-	//fflog.Debugf("%d", bw.lastRunTime.Unix())
-	//var _time string
-	//row := bw.places.handle.QueryRow("SELECT strftime('%s', 'now') AS now")
-	//row.Scan(&_time)
-	//fflog.Debug(_time)
 
 	startRun := time.Now()
 	//fflog.Debugf("Checking changes since %s",
