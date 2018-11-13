@@ -39,6 +39,19 @@ func (node *Node) GetRoot() *Node {
 	return nodePtr
 }
 
+// Insert *Node in nodeList if it does not already exists
+func Insert(nodeList []*Node, node *Node) []*Node {
+	for _, n := range nodeList {
+		if node == n {
+			log.Error("Node already exists")
+			return nodeList
+		} else {
+			nodeList = append(nodeList, node)
+		}
+	}
+	return nodeList
+}
+
 // Returns all parent tags for URL nodes
 func (node *Node) GetParentTags() []*Node {
 	var parents []*Node

@@ -25,6 +25,7 @@ import (
 type IWatchable = watch.IWatchable
 type Watcher = watch.Watcher
 type Watch = watch.Watch
+
 type BrowserType uint8
 
 // Browser types
@@ -207,7 +208,7 @@ func (b *BaseBrowser) InitBuffer() {
 
 	bufferName := fmt.Sprintf("buffer_%s", b.name)
 	bufferPath := fmt.Sprintf(database.DBBufferFmt, bufferName)
-	b.BufferDB = DB{}.New(bufferName, bufferPath)
+	b.BufferDB = database.New(bufferName, bufferPath)
 	b.BufferDB.Init()
 
 	b.BufferDB.Attach(CacheDB)

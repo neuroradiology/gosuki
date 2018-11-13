@@ -5,24 +5,20 @@ import (
 	"gomark/database"
 	"gomark/tools"
 	"path/filepath"
-
-	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 type DB = database.DB
 
 // Global cache database
 var (
-	CacheDB              *DB                   // Main in memory db, is synced with disc
-	_sql3conns           []*sqlite3.SQLiteConn // Only used for backup hook
-	backupHookRegistered bool                  // set to true once the backup hook is registered
+	CacheDB *DB // Main in memory db, is synced with disc
 )
 
 // TODO: Use context when making call from request/api
 func initDB() {
 	// Initialize memory db with schema
 	cachePath := fmt.Sprintf(database.DBMemcacheFmt, database.DBCacheName)
-	CacheDB = DB{}.New(database.DBCacheName, cachePath)
+	CacheDB = database.New(database.DBCacheName, cachePath)
 	CacheDB.Init()
 
 	// Check and initialize local db as last step
@@ -43,8 +39,10 @@ func initDB() {
 			log.Warning(err)
 		}
 		log.Infof("<%s> exists, preloading to cache", dbpath)
-		CacheDB.SyncFromDisk(dbpath)
-		//CacheDB.Print()
+		er := CacheDB.SyncFromDisk(dbpath)
+		if er != nil {
+			log.Critical(er)
+		}
 	} else {
 		if err != nil {
 			log.Error(err)

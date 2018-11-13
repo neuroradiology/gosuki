@@ -28,11 +28,12 @@ const (
 )
 
 type Stats struct {
-	LastParseTime    time.Duration
-	LastNodeCount    int
-	LastURLCount     int
-	CurrentNodeCount int
-	CurrentUrlCount  int
+	LastFullTreeParseTime time.Duration
+	LastWatchRunTime      time.Duration
+	LastNodeCount         int
+	LastURLCount          int
+	CurrentNodeCount      int
+	CurrentUrlCount       int
 }
 
 type Hook func(node *Node)

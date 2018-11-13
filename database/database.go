@@ -3,7 +3,6 @@ package database
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"gomark/logging"
 	"gomark/tools"
@@ -71,7 +70,7 @@ type DB struct {
 	EngineMode string
 }
 
-func (db DB) New(name string, path string) *DB {
+func New(name string, path string) *DB {
 	return &DB{
 		Name:       name,
 		Path:       path,
@@ -80,20 +79,24 @@ func (db DB) New(name string, path string) *DB {
 	}
 }
 
+func NewRO(name string, path string) *DB {
+	return New(name, path).InitRO()
+}
+
 func (db *DB) Error() string {
 	errMsg := fmt.Sprintf("[error][db] name <%s>", db.Name)
 	return errMsg
 }
 
 // Initialize sqlite database for read only operations
-func (db *DB) InitRO() {
+func (db *DB) InitRO() *DB {
 	var err error
 
 	if db.Handle != nil {
 		if err != nil {
 			log.Errorf("%s: already initialized", db)
 		}
-		return
+		return db
 	}
 
 	// Create the sqlite connection
@@ -104,6 +107,7 @@ func (db *DB) InitRO() {
 		log.Critical(err)
 	}
 
+	return db
 }
 
 // Initialize a sqlite database with Gomark Schema
@@ -468,11 +472,6 @@ func (src *DB) SyncToDisk(dbpath string) error {
 
 func (dst *DB) SyncFromDisk(dbpath string) error {
 
-	if !backupHookRegistered {
-		errMsg := fmt.Sprintf("%s, %s", dst.Path, "db backup hook is not initialized")
-		return errors.New(errMsg)
-	}
-
 	log.Debugf("Syncing <%s> to <%s>", dbpath, dst.Name)
 
 	dbUri := fmt.Sprintf("file:%s", dbpath)
@@ -504,6 +503,50 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	bk.Finish()
 
 	return nil
+}
+
+// Print debug a single row (does not run rows.next())
+func DebugPrintRow(rows *sql.Rows) {
+	cols, _ := rows.Columns()
+	count := len(cols)
+	values := make([]interface{}, count)
+	valuesPtrs := make([]interface{}, count)
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
+	for _, col := range cols {
+		fmt.Fprintf(w, "%s\t", col)
+	}
+	fmt.Fprintf(w, "\n")
+
+	for i := 0; i < count; i++ {
+		fmt.Fprintf(w, "\t")
+	}
+
+	fmt.Fprintf(w, "\n")
+
+	for i, _ := range cols {
+		valuesPtrs[i] = &values[i]
+	}
+	rows.Scan(valuesPtrs...)
+
+	finalValues := make(map[string]interface{})
+	for i, col := range cols {
+		var v interface{}
+		val := values[i]
+		b, ok := val.([]byte)
+		if ok {
+			v = string(b)
+		} else {
+			v = val
+		}
+
+		finalValues[col] = v
+	}
+
+	for _, col := range cols {
+		fmt.Fprintf(w, "%v\t", finalValues[col])
+	}
+	fmt.Fprintf(w, "\n")
+	w.Flush()
 }
 
 // Print debug Rows results
@@ -619,7 +662,7 @@ func GetDBFullPath() string {
 func flushSqliteCon(con *sql.DB) {
 	con.Close()
 	_sql3conns = _sql3conns[:len(_sql3conns)-1]
-	log.Debugf("Flushed sqlite conns %v", _sql3conns)
+	log.Debugf("Flushed sqlite conns -> %v", _sql3conns)
 }
 
 func registerSqliteHooks() {
