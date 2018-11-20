@@ -16,6 +16,7 @@ import (
 	"gomark/tree"
 	"gomark/watch"
 	"path"
+	"path/filepath"
 	"reflect"
 
 	"github.com/fsnotify/fsnotify"
@@ -118,7 +119,11 @@ func (bw *BaseBrowser) Load() {
 }
 
 func (bw *BaseBrowser) GetPath() string {
-	return path.Join(bw.baseDir, bw.bkFile)
+	path, err := filepath.EvalSymlinks(path.Join(bw.baseDir, bw.bkFile))
+	if err != nil {
+		log.Error(err)
+	}
+	return path
 }
 
 func (bw *BaseBrowser) EventsChan() chan fsnotify.Event {
@@ -156,6 +161,9 @@ func (bw *BaseBrowser) SetupFileWatcher(watches ...*Watch) {
 	// Add all watched paths
 	for _, v := range watches {
 
+		if err != nil {
+			log.Critical(err)
+		}
 		err = bw.watcher.W.Add(v.Path)
 		if err != nil {
 			log.Critical(err)

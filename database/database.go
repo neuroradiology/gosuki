@@ -82,18 +82,21 @@ func New(name string, path string) *DB {
 	}
 }
 
-func NewRO(name string, path string) *DB {
-	return New(name, path).InitRO()
-}
-
 func (db *DB) Error() string {
 	errMsg := fmt.Sprintf("[error][db] name <%s>", db.Name)
 	return errMsg
 }
 
-// Initialize sqlite database for read only operations
-func (db *DB) InitRO() *DB {
+func NewRO(name string, path string) *DB {
 	var err error
+	expandedPath, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		log.Error(err)
+	}
+
+	pathRO := fmt.Sprintf("file:%s?mode=ro&immutable=1", expandedPath)
+
+	db := New(name, pathRO)
 
 	if db.Handle != nil {
 		if err != nil {
@@ -111,6 +114,7 @@ func (db *DB) InitRO() *DB {
 	}
 
 	return db
+
 }
 
 // Initialize a sqlite database with Gomark Schema

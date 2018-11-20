@@ -6,8 +6,6 @@
 package main
 
 import (
-	"gomark/parsing"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,16 +18,16 @@ func mainLoop() {
 	// Initialize sqlite database available in global `cacheDB` variable
 	initDB()
 
-	cb := NewChromeBrowser()
+	//cb := NewChromeBrowser()
 	ff := NewFFBrowser()
-	defer cb.Shutdown()
+	//defer cb.Shutdown()
 	defer ff.Shutdown()
 
-	cb.RegisterHooks(parsing.ParseTags)
-	cb.Load()
+	//cb.RegisterHooks(parsing.ParseTags)
+	//cb.Load()
 	ff.Load()
 
-	_ = cb.Watch()
+	//_ = cb.Watch()
 	_ = ff.Watch()
 
 	err := r.Run("127.0.0.1:4242")
