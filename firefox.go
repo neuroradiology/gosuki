@@ -9,6 +9,7 @@ import (
 	"gomark/tree"
 	"gomark/watch"
 	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -120,10 +121,16 @@ func NewFFBrowser() IBrowser {
 
 	// Setup watcher
 
+	expandedBaseDir, err := filepath.EvalSymlinks(browser.baseDir)
+
+	if err != nil {
+		log.Critical(err)
+	}
+
 	w := &Watch{
-		Path:       path.Join(browser.baseDir),
+		Path:       expandedBaseDir,
 		EventTypes: []fsnotify.Op{fsnotify.Write},
-		EventNames: []string{path.Join(browser.baseDir, "places.sqlite-wal")},
+		EventNames: []string{path.Join(expandedBaseDir, "places.sqlite-wal")},
 		ResetWatch: false,
 	}
 
@@ -210,10 +217,12 @@ func (bw *FFBrowser) Load() {
 func getFFBookmarks(bw *FFBrowser) {
 
 	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
+	//
 
 	rows, err := bw.places.Handle.Query(QGetBookmarks, ffBkTags)
 	if err != nil {
-		fflog.Error(err)
+		fflog.Errorf("%s: %s", bw.places.Name, err)
+		return
 	}
 
 	// Rebuild node tree
@@ -334,8 +343,8 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 func (bw *FFBrowser) Run() {
 
 	startRun := time.Now()
-	//fflog.Debugf("Checking changes since %s",
-	//bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+	fflog.Debugf("Checking changes since %s",
+		bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
 	rows, err := bw.places.Handle.Query(
 		// Pre Populate the query

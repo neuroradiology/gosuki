@@ -11,7 +11,7 @@ type Logger = glogging.Logger
 
 const (
 	debugDefaultFmt = `%{color} %{time:15:04:05.000} %{level:.4s} %{shortfunc:.10s}: %{color:reset} %{message}`
-	debugFmt        = `%{color} %{time:15:04:05.000} %{level:.4s} [%{module:.4s}] %{shortfunc:.10s}: %{color:reset} %{message}`
+	debugFmt        = `%{color} %{time:15:04:05.000} %{level:.4s} [%{module:.4s}] %{shortfile}:%{shortfunc:.10s}: %{color:reset} %{message}`
 	releaseFmt      = `[%{level}] - %{message}`
 )
 
