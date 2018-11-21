@@ -94,7 +94,7 @@ func NewRO(name string, path string) *DB {
 		log.Error(err)
 	}
 
-	pathRO := fmt.Sprintf("file:%s?mode=ro&immutable=1", expandedPath)
+	pathRO := fmt.Sprintf("file:%s?_journal_mode=WAL", expandedPath)
 
 	db := New(name, pathRO)
 
