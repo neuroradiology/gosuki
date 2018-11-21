@@ -342,6 +342,9 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 
 func (bw *FFBrowser) Run() {
 
+	//TODO: Watching is broken. Try to open a new connection on each
+	//  watch event
+
 	startRun := time.Now()
 	fflog.Debugf("Checking changes since %s",
 		bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
