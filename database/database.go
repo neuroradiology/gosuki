@@ -13,6 +13,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"
 	"github.com/sp4ke/hashmap"
 )
@@ -68,7 +69,7 @@ const (
 type DB struct {
 	Name       string
 	Path       string
-	Handle     *sql.DB
+	Handle     *sqlx.DB
 	EngineMode string
 	AttachedTo []string
 }
@@ -106,7 +107,7 @@ func NewRO(name string, path string) *DB {
 	}
 
 	// Create the sqlite connection
-	db.Handle, err = sql.Open(db.EngineMode, db.Path)
+	db.Handle, err = sqlx.Open(db.EngineMode, db.Path)
 	log.Debugf("<%s> opened at <%s> with mode <%s>", db.Name, db.Path,
 		db.EngineMode)
 	if err != nil {
@@ -130,7 +131,7 @@ func (db *DB) Init() {
 	}
 
 	// Create the memory cache db
-	db.Handle, err = sql.Open("sqlite3", db.Path)
+	db.Handle, err = sqlx.Open("sqlite3", db.Path)
 	//log.Debugf("db <%s> opend at at <%s>", db.Name, db.Path)
 	log.Debugf("<%s> opened at <%s>", db.Name, db.Path)
 	if err != nil {
@@ -410,7 +411,7 @@ func (src *DB) CopyTo(dst *DB) {
 		dst.Name,
 		dst.Count())
 
-	srcDb, err := sql.Open(DBBackupMode, src.Path)
+	srcDb, err := sqlx.Open(DBBackupMode, src.Path)
 	defer func() {
 		srcDb.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
@@ -421,7 +422,7 @@ func (src *DB) CopyTo(dst *DB) {
 
 	srcDb.Ping()
 
-	dstDb, err := sql.Open(DBBackupMode, dst.Path)
+	dstDb, err := sqlx.Open(DBBackupMode, dst.Path)
 	defer func() {
 		dstDb.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
@@ -448,7 +449,7 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
 
 	//log.Debugf("[flush] openeing <%s>", src.path)
-	srcDb, err := sql.Open(DBBackupMode, src.Path)
+	srcDb, err := sqlx.Open(DBBackupMode, src.Path)
 	defer flushSqliteCon(srcDb)
 	if err != nil {
 		return err
@@ -458,7 +459,7 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
 
 	dbUri := fmt.Sprintf("file:%s", dbpath)
-	bkDb, err := sql.Open(DBBackupMode, dbUri)
+	bkDb, err := sqlx.Open(DBBackupMode, dbUri)
 	defer flushSqliteCon(bkDb)
 	if err != nil {
 		return err
@@ -485,7 +486,7 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	log.Debugf("Syncing <%s> to <%s>", dbpath, dst.Name)
 
 	dbUri := fmt.Sprintf("file:%s", dbpath)
-	srcDb, err := sql.Open(DBBackupMode, dbUri)
+	srcDb, err := sqlx.Open(DBBackupMode, dbUri)
 	defer flushSqliteCon(srcDb)
 	if err != nil {
 		return err
@@ -493,7 +494,7 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	srcDb.Ping()
 
 	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
-	bkDb, err := sql.Open(DBBackupMode, dst.Path)
+	bkDb, err := sqlx.Open(DBBackupMode, dst.Path)
 	defer flushSqliteCon(bkDb)
 	if err != nil {
 		return err
@@ -669,7 +670,7 @@ func GetDBFullPath() string {
 	return dbpath
 }
 
-func flushSqliteCon(con *sql.DB) {
+func flushSqliteCon(con *sqlx.DB) {
 	con.Close()
 	_sql3conns = _sql3conns[:len(_sql3conns)-1]
 	log.Debugf("Flushed sqlite conns -> %v", _sql3conns)

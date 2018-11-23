@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"gomark/database"
 	"gomark/parsing"
 	"gomark/tools"
@@ -13,19 +12,20 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/jmoiron/sqlx"
 )
 
 const (
 	QGetBookmarkPlace = `
-	SELECT id,url,description,title
+	SELECT *
 	FROM moz_places
 	WHERE id = ?
 	`
-	QPlacesDelta = `
+	QBookmarksChanged = `
 	SELECT id,type,IFNULL(fk, -1),parent,IFNULL(title, '') from moz_bookmarks
-	WHERE(lastModified > ?
+	WHERE(lastModified > :last_runtime_utc
 		AND lastModified < strftime('%s', 'now') * 1000 * 1000
-		AND NOT id IN (%d,%d)
+		AND NOT id IN (:not_root_tags)
 		)
 	`
 
@@ -60,7 +60,7 @@ type FFBrowser struct {
 	BaseBrowser  //embedding
 	places       *database.DB
 	URLIndexList []string // All elements stored in URLIndex
-	tagMap       map[int]*tree.Node
+	tagMap       map[sqlid]*tree.Node
 	lastRunTime  time.Time
 }
 
@@ -70,8 +70,7 @@ const (
 	BkTypeTagFolder
 )
 
-type FFBookmarkParent int
-type FFBkType int
+type sqlid uint64
 
 const (
 	_ = iota
@@ -83,19 +82,31 @@ const (
 	ffBkMobile
 )
 
-type FFPlace struct {
-	id    int
-	url   string
-	desc  string
-	title string
+type AutoIncr struct {
+	ID sqlid
 }
 
+type FFPlace struct {
+	URL         string
+	Description sql.NullString
+	Title       sql.NullString
+	AutoIncr
+}
+
+//type FFBookmark struct {
+//BType  int `db:type`
+//Parent sqlid
+//FK     sql.NullInt64
+//Title  sql.NullString
+//AutoIncr
+//}
+
 type FFBookmark struct {
-	id     int
-	btype  FFBkType
-	parent int
-	fk     int
+	btype  int `db:type`
+	parent sqlid
+	fk     sqlid
 	title  string
+	id     sqlid
 }
 
 func FFPlacesUpdateHook(op int, db string, table string, rowid int64) {
@@ -111,7 +122,7 @@ func NewFFBrowser() IBrowser {
 	browser.useFileWatcher = true
 	browser.Stats = &parsing.Stats{}
 	browser.NodeTree = &tree.Node{Name: "root", Parent: nil, Type: "root"}
-	browser.tagMap = make(map[int]*tree.Node)
+	browser.tagMap = make(map[sqlid]*tree.Node)
 
 	// Initialize `places.sqlite`
 	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
@@ -237,7 +248,7 @@ func getFFBookmarks(bw *FFBrowser) {
 	 */
 	for rows.Next() {
 		var url, title, tagTitle, desc string
-		var tagId int
+		var tagId sqlid
 		err = rows.Scan(&url, &title, &desc, &tagId, &tagTitle)
 		//fflog.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
 		if err != nil {
@@ -291,14 +302,13 @@ func getFFBookmarks(bw *FFBrowser) {
 }
 
 func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
-	bookmarks map[int]*FFBookmark,
-	places map[int]*FFPlace) {
+	bookmarks map[sqlid]*FFBookmark,
+	places map[sqlid]*FFPlace) {
 
 	bk := new(FFBookmark)
 
 	// Get the URL that changed
 	rows.Scan(&bk.id, &bk.btype, &bk.fk, &bk.parent, &bk.title)
-	fflog.Debug(bk)
 
 	// We found URL change, urls are specified by
 	// type == 1
@@ -311,13 +321,12 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 	// 3. A (type==1) (fk-> moz_places.url) (parent == idOf(tag))
 
 	if bk.btype == BkTypeURL {
-		place := new(FFPlace)
-		res := bw.places.Handle.QueryRow(QGetBookmarkPlace, bk.fk)
-		res.Scan(&place.id, &place.url, &place.desc, &place.title)
-		fflog.Debugf("Changed URL: %s", place.url)
+		var place FFPlace
+		bw.places.Handle.QueryRowx(QGetBookmarkPlace, bk.fk).StructScan(&place)
+		fflog.Debugf("Changed URL: %s", place.URL)
 
 		// put url in the places map
-		places[place.id] = place
+		places[place.ID] = &place
 	}
 
 	// This is the tag link
@@ -346,20 +355,34 @@ func (bw *FFBrowser) Run() {
 	//  watch event
 
 	startRun := time.Now()
-	fflog.Debugf("Checking changes since %s",
-		bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+	//fflog.Debugf("Checking changes since %s",
+	//bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
-	rows, err := bw.places.Handle.Query(
-		// Pre Populate the query
-		fmt.Sprintf(QPlacesDelta, "%s", ffBkRoot, ffBkTags),
+	queryArgs := map[string]interface{}{
+		"not_root_tags":    []int{ffBkRoot, ffBkTags},
+		"last_runtime_utc": bw.lastRunTime.UTC().UnixNano() / 1000,
+	}
 
-		// Sql parameter
-		bw.lastRunTime.UnixNano()/1000,
+	query, args, err := sqlx.Named(
+		QBookmarksChanged,
+		queryArgs,
 	)
 	if err != nil {
 		fflog.Error(err)
 	}
+
+	query, args, err = sqlx.In(query, args...)
+	if err != nil {
+		fflog.Error(err)
+	}
+
+	query = bw.places.Handle.Rebind(query)
+	rows, err := bw.places.Handle.Query(query, args...)
 	defer rows.Close()
+
+	if err != nil {
+		fflog.Error(err)
+	}
 
 	// Found new results in places db since last time we had changes
 	//database.DebugPrintRows(rows)
@@ -370,8 +393,8 @@ func (bw *FFBrowser) Run() {
 		//fflog.Debugf("CHANGE ! Time: %s",
 		//bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
-		bookmarks := make(map[int]*FFBookmark)
-		places := make(map[int]*FFPlace)
+		bookmarks := make(map[sqlid]*FFBookmark)
+		places := make(map[sqlid]*FFPlace)
 
 		// Fetch all changes into bookmarks and places maps
 		bw.fetchUrlChanges(rows, bookmarks, places)
@@ -379,15 +402,15 @@ func (bw *FFBrowser) Run() {
 		// For each url
 		for urlId, place := range places {
 			var urlNode *tree.Node
-			changedURLS = tools.Extends(changedURLS, place.url)
-			iUrlNode, urlNodeExists := bw.URLIndex.Get(place.url)
+			changedURLS = tools.Extends(changedURLS, place.URL)
+			iUrlNode, urlNodeExists := bw.URLIndex.Get(place.URL)
 			if !urlNodeExists {
 				urlNode = new(tree.Node)
 				urlNode.Type = "url"
-				urlNode.URL = place.url
-				urlNode.Name = place.title
-				urlNode.Desc = place.desc
-				bw.URLIndex.Insert(place.url, urlNode)
+				urlNode.URL = place.URL
+				urlNode.Name = place.Title.String
+				urlNode.Desc = place.Description.String
+				bw.URLIndex.Insert(place.URL, urlNode)
 
 			} else {
 				urlNode = iUrlNode.(*tree.Node)
