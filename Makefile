@@ -1,4 +1,4 @@
-.PHONY: all run deps docs build
+.PHONY: all run deps docs build test
 
 TARGET=gomark
 
@@ -17,3 +17,5 @@ docs:
 build:
 	@go build -o $(TARGET) *.go
 
+test:
+	@go test ./... | grep -v 'no test files'
