@@ -1,11 +1,13 @@
+//TODO: unit test critical error should shutdown the browser
+//TODO: shutdown procedure (also close reducer)
 package main
 
 import (
 	"database/sql"
 	"gomark/database"
 	"gomark/parsing"
-	"gomark/tools"
 	"gomark/tree"
+	"gomark/utils"
 	"gomark/watch"
 	"path"
 	"path/filepath"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/jmoiron/sqlx"
+	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 const (
@@ -154,7 +157,25 @@ func NewFFBrowser() IBrowser {
 
 	browser.eventsChan = make(chan fsnotify.Event, EventsChanLen)
 
-	go tools.ReduceEvents(MozMinJobInterval, browser.eventsChan, browser)
+	go utils.ReduceEvents(MozMinJobInterval, browser.eventsChan, browser)
+
+	// Testing
+	pusers, err := utils.FileProcessUsers(browser.GetBookmarksPath())
+	if err != nil {
+		fflog.Error(err)
+	}
+	for _, p := range pusers {
+		pname, err := p.Name()
+		if err != nil {
+			fflog.Error(err)
+		}
+		fflog.Debugf("%s is using bookmark file", pname)
+	}
+	//
+	//
+	//
+	//
+	//
 
 	return browser
 }
@@ -179,7 +200,7 @@ func (bw *FFBrowser) Watch() bool {
 	if !bw.isWatching {
 		go watch.WatcherThread(bw)
 		bw.isWatching = true
-		fflog.Infof("Watching %s", bw.GetPath())
+		fflog.Infof("Watching %s", bw.GetBookmarksPath())
 		return true
 	}
 
@@ -231,6 +252,16 @@ func getFFBookmarks(bw *FFBrowser) {
 	//
 
 	rows, err := bw.places.Handle.Query(QGetBookmarks, ffBkTags)
+	log.Debugf("%#v", err)
+
+	// Locked database is critical
+	if e, ok := err.(sqlite3.Error); ok {
+		if e.Code == sqlite3.ErrBusy {
+			fflog.Critical(err)
+			bw.Shutdown()
+			return
+		}
+	}
 	if err != nil {
 		fflog.Errorf("%s: %s", bw.places.Name, err)
 		return
@@ -402,7 +433,7 @@ func (bw *FFBrowser) Run() {
 		// For each url
 		for urlId, place := range places {
 			var urlNode *tree.Node
-			changedURLS = tools.Extends(changedURLS, place.URL)
+			changedURLS = utils.Extends(changedURLS, place.URL)
 			iUrlNode, urlNodeExists := bw.URLIndex.Get(place.URL)
 			if !urlNodeExists {
 				urlNode = new(tree.Node)
@@ -450,7 +481,7 @@ func (bw *FFBrowser) Run() {
 					if tagNodeExists && urlNode != nil {
 						//fflog.Debugf("URL has tag %s", tagNode.Name)
 
-						urlNode.Tags = tools.Extends(urlNode.Tags, tagNode.Name)
+						urlNode.Tags = utils.Extends(urlNode.Tags, tagNode.Name)
 
 						urlNode.Parent = bw.tagMap[bk.parent]
 						tree.Insert(bw.tagMap[bk.parent].Children, urlNode)

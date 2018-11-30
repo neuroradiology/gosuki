@@ -3,8 +3,8 @@ package main
 import (
 	"gomark/database"
 	"gomark/parsing"
-	"gomark/tools"
 	"gomark/tree"
+	"gomark/utils"
 	"gomark/watch"
 	"io/ioutil"
 	"path"
@@ -74,8 +74,8 @@ func (rawNode *RawNode) parseItems(nodeData []byte) {
 // Returns *tree.Node from *RawNode
 func (rawNode *RawNode) getNode() *tree.Node {
 	node := new(tree.Node)
-	node.Type = tools.S(rawNode.nType)
-	node.Name = tools.S(rawNode.name)
+	node.Type = utils.S(rawNode.nType)
+	node.Name = utils.S(rawNode.name)
 
 	return node
 }
@@ -118,7 +118,7 @@ func (bw *ChromeBrowser) Watch() bool {
 	if !bw.isWatching {
 		go watch.WatcherThread(bw)
 		bw.isWatching = true
-		log.Infof("<%s> Watching %s", bw.name, bw.GetPath())
+		log.Infof("<%s> Watching %s", bw.name, bw.GetBookmarksPath())
 		return true
 	}
 
@@ -239,9 +239,9 @@ func (bw *ChromeBrowser) Run() {
 		}
 
 		// if node is url(leaf), handle the url
-		if tools.S(rawNode.nType) == jsonNodeTypes.URL {
+		if utils.S(rawNode.nType) == jsonNodeTypes.URL {
 
-			currentNode.URL = tools.S(rawNode.url)
+			currentNode.URL = utils.S(rawNode.url)
 			bw.Stats.CurrentUrlCount++
 			// Check if url-node already in index
 			var nodeVal *tree.Node

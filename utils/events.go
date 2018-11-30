@@ -1,4 +1,4 @@
-package tools
+package utils
 
 import (
 	"gomark/logging"
@@ -12,7 +12,9 @@ var log = logging.GetLogger("WATCH")
 
 // Run reducer in its own thread when the watcher is started
 // It receives a struct{event, func} and runs the func only once in the interval
-func ReduceEvents(interval time.Duration, input chan fsnotify.Event, w watch.IWatchable) {
+func ReduceEvents(interval time.Duration,
+	input chan fsnotify.Event,
+	w watch.IWatchable) {
 	log.Debug("Running reducer")
 
 	timer := time.NewTimer(interval)

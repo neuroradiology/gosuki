@@ -1,4 +1,4 @@
-package tools
+package utils
 
 // Return string from slice of bytes
 func S(value interface{}) string {
