@@ -117,6 +117,8 @@ func FFPlacesUpdateHook(op int, db string, table string, rowid int64) {
 }
 
 func NewFFBrowser() IBrowser {
+	var err error
+
 	browser := new(FFBrowser)
 	browser.name = "firefox"
 	browser.bType = TFirefox
@@ -129,7 +131,11 @@ func NewFFBrowser() IBrowser {
 
 	// Initialize `places.sqlite`
 	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
-	browser.places = database.NewRO("Places", bookmarkPath)
+	browser.places, err = database.NewForeign("Places", bookmarkPath)
+	if err != nil {
+		log.Critical(err)
+	}
+
 	// Buffer that lives accross Run() jobs
 	browser.InitBuffer()
 
@@ -182,17 +188,13 @@ func NewFFBrowser() IBrowser {
 
 func (bw *FFBrowser) Shutdown() {
 
+	err := bw.places.Close()
+	if err != nil {
+		fflog.Critical(err)
+	}
+
 	fflog.Debugf("shutting down ... ")
-
-	err := bw.BaseBrowser.Close()
-	if err != nil {
-		fflog.Critical(err)
-	}
-
-	err = bw.places.Close()
-	if err != nil {
-		fflog.Critical(err)
-	}
+	bw.BaseBrowser.Shutdown()
 }
 
 func (bw *FFBrowser) Watch() bool {

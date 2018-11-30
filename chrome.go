@@ -106,14 +106,6 @@ func NewChromeBrowser() IBrowser {
 	return browser
 }
 
-func (bw ChromeBrowser) Shutdown() {
-	log.Debugf("<%s> shutting down ... ", bw.name)
-	err := bw.BaseBrowser.Close()
-	if err != nil {
-		log.Error(err)
-	}
-}
-
 func (bw *ChromeBrowser) Watch() bool {
 	if !bw.isWatching {
 		go watch.WatcherThread(bw)
@@ -129,7 +121,6 @@ func (bw *ChromeBrowser) Load() {
 
 	// BaseBrowser load method
 	bw.BaseBrowser.Load()
-
 	bw.Run()
 }
 
