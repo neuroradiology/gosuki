@@ -3,7 +3,7 @@
 TARGET=gomark
 
 
-all: build
+all: test build
 
 run: 
 	@go run *.go
@@ -18,4 +18,7 @@ build:
 	@go build -o $(TARGET) *.go
 
 test:
-	@go test ./... | grep -v 'no test files'
+	@go test . ./... | grep -v 'no test files'
+
+testv:
+	@go test -v . ./... | grep -v 'no test files'

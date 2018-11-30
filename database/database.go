@@ -1,3 +1,5 @@
+//TODO: unit test New/NewRO should check if database is locked
+
 //TODO: missing defer close() on sqlite funcs
 //TODO: handle `modified` time
 package database
@@ -6,15 +8,15 @@ import (
 	"database/sql"
 	"fmt"
 	"gomark/logging"
-	"gomark/tools"
 	"gomark/tree"
+	"gomark/utils"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/jmoiron/sqlx"
-	sqlite3 "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 	"github.com/sp4ke/hashmap"
 )
 
@@ -43,17 +45,7 @@ const (
 const (
 	// metadata: name or title of resource
 	// modified: time.Now().Unix()
-	QCreateLocalDbSchema = `CREATE TABLE if not exists bookmarks (
-		id integer PRIMARY KEY,
-		URL text NOT NULL UNIQUE,
-		metadata text default '',
-		tags text default '',
-		desc text default '',
-		modified integer default ?, 
-		flags integer default 0
-	)`
-
-	QCreateMemDbSchema = `CREATE TABLE if not exists bookmarks (
+	QCreateGomarkDBSchema = `CREATE TABLE if not exists bookmarks (
 		id integer PRIMARY KEY,
 		URL text NOT NULL UNIQUE,
 		metadata text default '',
@@ -74,13 +66,21 @@ type DB struct {
 	AttachedTo []string
 }
 
-func New(name string, path string) *DB {
-	return &DB{
+func New(name string, path string) (*DB, error) {
+	db := &DB{
 		Name:       name,
 		Path:       path,
 		Handle:     nil,
 		EngineMode: DBDefaultMode,
 	}
+
+	//TODO: Check if DB is locked
+	err := db.Init()
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
 
 func NewRO(name string, path string) *DB {
@@ -92,13 +92,11 @@ func NewRO(name string, path string) *DB {
 
 	pathRO := fmt.Sprintf("file:%s?_journal_mode=WAL", expandedPath)
 
-	db := New(name, pathRO)
-
-	if db.Handle != nil {
-		if err != nil {
-			log.Errorf("%s: already initialized", db)
-		}
-		return db
+	db := &DB{
+		Name:       name,
+		Path:       pathRO,
+		Handle:     nil,
+		EngineMode: DBDefaultMode,
 	}
 
 	// Create the sqlite connection
@@ -113,48 +111,50 @@ func NewRO(name string, path string) *DB {
 
 }
 
-// Initialize a sqlite database with Gomark Schema
-func (db *DB) Init() {
+// Initialize a sqlite database with Gomark Schema if not already done
+func (db *DB) Init() error {
+	log.Debug("init")
 
 	// `cacheDB` is a memory replica of disk db
 
 	var err error
 
 	if db.Handle != nil {
-		log.Errorf("%s: already initialized", db)
-		return
+		log.Warningf("%s: already initialized", db)
+		return nil
 	}
 
 	// Create the memory cache db
-	db.Handle, err = sqlx.Open("sqlite3", db.Path)
-	//log.Debugf("db <%s> opend at at <%s>", db.Name, db.Path)
+	db.Handle, err = sqlx.Open(db.EngineMode, db.Path)
 	log.Debugf("<%s> opened at <%s>", db.Name, db.Path)
 	if err != nil {
-		log.Critical(err)
+		return err
 	}
 
 	// Populate db schema
 	tx, err := db.Handle.Begin()
 	if err != nil {
-		log.Error(err)
+		return err
 	}
 
-	stmt, err := tx.Prepare(QCreateMemDbSchema)
+	stmt, err := tx.Prepare(QCreateGomarkDBSchema)
 	if err != nil {
-		log.Error(err)
+		return err
 	}
 
 	_, err = stmt.Exec()
 	if err != nil {
-		log.Error(err)
+		return err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error(err)
+		return err
 	}
 
 	log.Debugf("<%s> initialized", db.Name)
+
+	return nil
 }
 
 func (db *DB) Attach(attached *DB) {
@@ -660,7 +660,7 @@ func SyncTreeToBuffer(node *Node, buffer *DB) {
 }
 
 func GetDBFullPath() string {
-	dbdir := tools.GetDefaultDBPath()
+	dbdir := utils.GetDefaultDBPath()
 	dbpath := filepath.Join(dbdir, DBFileName)
 	return dbpath
 }

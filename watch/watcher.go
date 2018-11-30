@@ -18,7 +18,7 @@ type IWatchable interface {
 	Run()                       // Callback fired on event
 	GetWatcher() *Watcher       // returns linked watcher
 	ResetWatcher()              // resets a new watcher
-	GetPath() string            // returns watched path
+	GetBookmarksPath() string   // returns watched path
 	GetDir() string             // returns watched dir
 	EventsChan() chan fsnotify.Event
 }

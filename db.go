@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"gomark/database"
-	"gomark/tools"
+	"gomark/utils"
 	"path/filepath"
 )
 
@@ -15,25 +15,29 @@ var (
 )
 
 func initDB() {
+	var err error
 	// Initialize memory db with schema
 	cachePath := fmt.Sprintf(database.DBMemcacheFmt, database.DBCacheName)
-	CacheDB = database.New(database.DBCacheName, cachePath)
-	CacheDB.Init()
+	CacheDB, err = database.New(database.DBCacheName, cachePath)
+	log.Debugf("cache %#v", CacheDB)
+	if err != nil {
+		log.Critical(err)
+	}
 
 	// Check and initialize local db as last step
 	// browser bookmarks should already be in cache
 
-	dbdir := tools.GetDefaultDBPath()
+	dbdir := utils.GetDefaultDBPath()
 	dbpath := filepath.Join(dbdir, database.DBFileName)
 	// Verifiy that local db directory path is writeable
-	err := tools.CheckWriteable(dbdir)
+	err = utils.CheckWriteable(dbdir)
 	if err != nil {
 		log.Critical(err)
 	}
 
 	// If local db exists load it to cacheDB
 	var exists bool
-	if exists, err = tools.CheckFileExists(dbpath); exists {
+	if exists, err = utils.CheckFileExists(dbpath); exists {
 		if err != nil {
 			log.Warning(err)
 		}

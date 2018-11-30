@@ -47,8 +47,8 @@ type BrowserPaths struct {
 
 type IBrowser interface {
 	IWatchable
-	InitBuffer() // init buffer db, TODO: defer closings and shutdown
-	InitIndex()  // Creates in memory Index (RB-Tree)
+	InitBuffer() error // init buffer db, TODO: defer closings and shutdown
+	InitIndex()        // Creates in memory Index (RB-Tree)
 	RegisterHooks(...parsing.Hook)
 	Load() // Loads bookmarks to db without watching
 	//Parse(...parsing.Hook) // Main parsing method with different parsing hooks
@@ -118,7 +118,7 @@ func (bw *BaseBrowser) Load() {
 	log.Debugf("<%s> preloading bookmarks", bw.name)
 }
 
-func (bw *BaseBrowser) GetPath() string {
+func (bw *BaseBrowser) GetBookmarksPath() string {
 	path, err := filepath.EvalSymlinks(path.Join(bw.baseDir, bw.bkFile))
 	if err != nil {
 		log.Error(err)
@@ -212,13 +212,20 @@ func (b *BaseBrowser) RebuildNodeTree() {
 	}
 }
 
-func (b *BaseBrowser) InitBuffer() {
+func (b *BaseBrowser) InitBuffer() error {
+	var err error
 
 	bufferName := fmt.Sprintf("buffer_%s", b.name)
 	bufferPath := fmt.Sprintf(database.DBBufferFmt, bufferName)
-	b.BufferDB = database.New(bufferName, bufferPath)
-	b.BufferDB.Init()
+	b.BufferDB, err = database.New(bufferName, bufferPath)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("attaching %v", CacheDB)
 	b.BufferDB.Attach(CacheDB)
+
+	return nil
 }
 
 func (b *BaseBrowser) RegisterHooks(hooks ...parsing.Hook) {
