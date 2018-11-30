@@ -83,11 +83,6 @@ func New(name string, path string) *DB {
 	}
 }
 
-func (db *DB) Error() string {
-	errMsg := fmt.Sprintf("[error][db] name <%s>", db.Name)
-	return errMsg
-}
-
 func NewRO(name string, path string) *DB {
 	var err error
 	expandedPath, err := filepath.EvalSymlinks(path)
