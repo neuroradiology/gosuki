@@ -15,6 +15,7 @@ import (
 	"gomark/parsing"
 	"gomark/tree"
 	"gomark/watch"
+	"io"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -50,8 +51,7 @@ type IBrowser interface {
 	InitBuffer() error // init buffer db, TODO: defer closings and shutdown
 	InitIndex()        // Creates in memory Index (RB-Tree)
 	RegisterHooks(...parsing.Hook)
-	Load() // Loads bookmarks to db without watching
-	//Parse(...parsing.Hook) // Main parsing method with different parsing hooks
+	Load()     // Loads bookmarks to db without watching
 	Shutdown() // Graceful shutdown, it should call the BaseBrowser.Close()
 }
 
@@ -91,6 +91,8 @@ type BaseBrowser struct {
 	isWatching     bool
 	useFileWatcher bool
 	parseHooks     []parsing.Hook
+
+	io.Closer // Close database connections
 }
 
 func (bw *BaseBrowser) GetWatcher() *Watcher {
@@ -192,6 +194,13 @@ func (bw *BaseBrowser) Close() error {
 	}
 
 	return nil
+}
+
+func (bw *BaseBrowser) Shutdown() {
+	err := bw.Close()
+	if err != nil {
+		log.Critical(err)
+	}
 }
 
 func (b *BaseBrowser) InitIndex() {

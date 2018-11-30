@@ -45,6 +45,10 @@ const (
 const (
 	// metadata: name or title of resource
 	// modified: time.Now().Unix()
+	//
+	// flags: designed to be extended in future using bitwise masks
+	// Masks:
+	//     0b00000001: set title immutable ((do not change title when updating the bookmarks from the web ))
 	QCreateGomarkDBSchema = `CREATE TABLE if not exists bookmarks (
 		id integer PRIMARY KEY,
 		URL text NOT NULL UNIQUE,
@@ -56,6 +60,13 @@ const (
 	)`
 )
 
+const (
+	DBGomark DBType = iota
+	DBForeign
+)
+
+type DBType int
+
 // DB encapsulates an sql.DB struct. All interactions with memory/buffer and
 // disk databases are done through the DB object
 type DB struct {
@@ -64,6 +75,7 @@ type DB struct {
 	Handle     *sqlx.DB
 	EngineMode string
 	AttachedTo []string
+	Type       DBType
 }
 
 func New(name string, path string) (*DB, error) {
@@ -74,7 +86,7 @@ func New(name string, path string) (*DB, error) {
 		EngineMode: DBDefaultMode,
 	}
 
-	//TODO: Check if DB is locked
+	//TODO: Should check if DB is locked
 	err := db.Init()
 	if err != nil {
 		return nil, err
@@ -83,32 +95,31 @@ func New(name string, path string) (*DB, error) {
 	return db, nil
 }
 
-func NewRO(name string, path string) *DB {
-	var err error
-	expandedPath, err := filepath.EvalSymlinks(path)
-	if err != nil {
-		log.Error(err)
-	}
+// Foreign databases do not use GomarkDB Schema
+// As an example this is used by Firefox implementation
+func NewForeign(name string, path string) (*DB, error) {
 
-	pathRO := fmt.Sprintf("file:%s?_journal_mode=WAL", expandedPath)
+	pathRO := fmt.Sprintf("file:%s?_journal_mode=WAL", path)
 
 	db := &DB{
 		Name:       name,
 		Path:       pathRO,
 		Handle:     nil,
 		EngineMode: DBDefaultMode,
+		Type:       DBForeign,
 	}
 
-	// Create the sqlite connection
-	db.Handle, err = sqlx.Open(db.EngineMode, db.Path)
-	log.Debugf("<%s> opened at <%s> with mode <%s>", db.Name, db.Path,
-		db.EngineMode)
+	//TODO: Should check if DB is locked
+	err := db.Init()
 	if err != nil {
-		log.Critical(err)
+		return nil, err
 	}
 
-	return db
+	return db, nil
+}
 
+type DBInitializer interface {
+	Init() error
 }
 
 // Initialize a sqlite database with Gomark Schema if not already done
@@ -126,9 +137,17 @@ func (db *DB) Init() error {
 
 	// Create the memory cache db
 	db.Handle, err = sqlx.Open(db.EngineMode, db.Path)
-	log.Debugf("<%s> opened at <%s>", db.Name, db.Path)
+	log.Debugf("<%s> opened at <%s> with mode <%s>",
+		db.Name,
+		db.Path,
+		db.EngineMode)
+
 	if err != nil {
 		return err
+	}
+
+	if db.Type == DBForeign {
+		return nil
 	}
 
 	// Populate db schema
