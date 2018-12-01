@@ -13,3 +13,7 @@ func TestOnShutdownCloseWatcherThread(t *testing.T) {
 func TestBrowserInterface(t *testing.T) {
 	t.Error("Check Browser required interface")
 }
+
+func TestInitBuffer(t *testing.T) {
+	t.Error("Create buffer and initialize")
+}
