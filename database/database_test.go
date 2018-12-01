@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
@@ -9,7 +10,15 @@ const (
 	TestDB = "testdata/gomarkdb_test.sqlite"
 )
 
-func TestNewDB(t *testing.T) {
+func TestInitDB(t *testing.T) {
+	testDB := &DB{
+		Name:       "test",
+		Path:       fmt.Sprintf(MemcacheFmt, "test"),
+		Handle:     nil,
+		EngineMode: DriverDefault,
+	}
+
+	//db.In
 	// Try to open locked db
 	t.Error("test if database is not locked")
 	t.Error("test if db path is not found")
