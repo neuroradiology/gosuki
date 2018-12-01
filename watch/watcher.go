@@ -10,16 +10,15 @@ var log = logging.GetLogger("WATCH")
 
 // Used as input to WatcherThread
 // It does not have to be a browser as long is the interface is implemented
-type IWatchable interface {
-	Name() string               // Name of the watchable
+type Watchable interface {
 	HasReducer() bool           // Does the watchable has a reducer
 	SetupFileWatcher(...*Watch) // Starts watching bookmarks and runs Load on change
 	Watch() bool                // starts watching linked watcher
-	Run()                       // Callback fired on event
 	GetWatcher() *Watcher       // returns linked watcher
 	ResetWatcher()              // resets a new watcher
 	GetBookmarksPath() string   // returns watched path
 	GetDir() string             // returns watched dir
+	Run()                       // Callbaks to run on event
 	EventsChan() chan fsnotify.Event
 }
 
@@ -39,9 +38,9 @@ type Watch struct {
 }
 
 // Main thread for watching file changes
-func WatcherThread(w IWatchable) {
+func WatcherThread(w Watchable) {
 
-	log.Infof("<%s> Started watcher", w.Name())
+	log.Infof("<%s> Started watcher", w)
 	for {
 		// Keep watcher here as it is reset from within
 		// the select block

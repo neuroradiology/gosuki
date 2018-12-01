@@ -31,14 +31,14 @@ type Node = tree.Node
 var log = logging.GetLogger("DB")
 
 const (
-	DBFileName    = "gomarks.db"
-	DBMemcacheFmt = "file:%s?mode=memory&cache=shared"
-	DBBufferFmt   = "file:%s?mode=memory&cache=shared"
-	DBCacheName   = "memcache"
+	DBFileName  = "gomarks.db"
+	MemcacheFmt = "file:%s?mode=memory&cache=shared"
+	BufferFmt   = "file:%s?mode=memory&cache=shared"
+	CacheName   = "memcache"
 
-	DBBackupMode  = "sqlite_hook_backup"
-	DBUpdateMode  = "sqlite_hook_update"
-	DBDefaultMode = "sqlite3"
+	DriverBackupMode = "sqlite_hook_backup"
+	DriverDefault    = "sqlite3"
+	GomarkMainTable  = "bookmarks"
 )
 
 //  Database schemas used for the creation of new databases
@@ -60,12 +60,51 @@ const (
 	)`
 )
 
+type DBType int
+
 const (
 	DBGomark DBType = iota
 	DBForeign
 )
 
-type DBType int
+type DBError struct {
+	// Database object where error occured
+	D *DB
+
+	// Error that occured
+	Err error
+}
+
+func (e *DBError) Error() string {
+	return fmt.Sprintf("<%s>: %s", e.D.Name, e.Err)
+}
+
+type Opener interface {
+	Open(driver string, dsn string) error
+}
+
+type SQLXOpener interface {
+	Opener
+	Get() *sqlx.DB
+}
+
+type SQLXDBOpener struct {
+	handle *sqlx.DB
+}
+
+func (o *SQLXDBOpener) Open(driver string, dataSourceName string) error {
+	var err error
+	o.handle, err = sqlx.Open(driver, dataSourceName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (o *SQLXDBOpener) Get() *sqlx.DB {
+	return o.handle
+}
 
 // DB encapsulates an sql.DB struct. All interactions with memory/buffer and
 // disk databases are done through the DB object
@@ -76,55 +115,59 @@ type DB struct {
 	EngineMode string
 	AttachedTo []string
 	Type       DBType
+
+	SQLXOpener
 }
 
-func New(name string, path string) (*DB, error) {
-	db := &DB{
+func (db *DB) Open() error {
+	var err error
+	err = db.SQLXOpener.Open(db.EngineMode, db.Path)
+	if err != nil {
+		return err
+	}
+
+	db.Handle = db.SQLXOpener.Get()
+
+	log.Debugf("<%s> opened at <%s> with mode <%s>",
+		db.Name,
+		db.Path,
+		db.EngineMode)
+
+	return nil
+}
+
+func New(name string, path string) *DB {
+	return &DB{
 		Name:       name,
 		Path:       path,
 		Handle:     nil,
-		EngineMode: DBDefaultMode,
+		EngineMode: DriverDefault,
+		SQLXOpener: &SQLXDBOpener{},
 	}
 
-	//TODO: Should check if DB is locked
-	err := db.Init()
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
 }
 
 // Foreign databases do not use GomarkDB Schema
-// As an example this is used by Firefox implementation
-func NewForeign(name string, path string) (*DB, error) {
+// As an example it is used by Firefox implementation
+func NewForeign(name string, path string) *DB {
 
 	pathRO := fmt.Sprintf("file:%s?_journal_mode=WAL", path)
 
-	db := &DB{
+	return &DB{
 		Name:       name,
 		Path:       pathRO,
 		Handle:     nil,
-		EngineMode: DBDefaultMode,
+		EngineMode: DriverDefault,
 		Type:       DBForeign,
+		SQLXOpener: &SQLXDBOpener{},
 	}
-
-	//TODO: Should check if DB is locked
-	err := db.Init()
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
 }
 
-type DBInitializer interface {
-	Init() error
-}
-
+//TODO: Should check if DB is locked
+// We should export Open() in its own method and wrap
+// with interface so we can mock it and test the lock status in Init()
 // Initialize a sqlite database with Gomark Schema if not already done
-func (db *DB) Init() error {
-	log.Debug("init")
+func (db *DB) Init() (*DB, error) {
 
 	// `cacheDB` is a memory replica of disk db
 
@@ -132,51 +175,45 @@ func (db *DB) Init() error {
 
 	if db.Handle != nil {
 		log.Warningf("%s: already initialized", db)
-		return nil
+		return db, nil
 	}
 
-	// Create the memory cache db
-	db.Handle, err = sqlx.Open(db.EngineMode, db.Path)
-	log.Debugf("<%s> opened at <%s> with mode <%s>",
-		db.Name,
-		db.Path,
-		db.EngineMode)
+	db.Open()
 
 	if err != nil {
-		return err
+		return nil, &DBError{D: db, Err: err}
 	}
 
+	// We don't initialize schema for a foreing db
 	if db.Type == DBForeign {
-		return nil
+		return db, nil
 	}
 
 	// Populate db schema
 	tx, err := db.Handle.Begin()
 	if err != nil {
-		return err
+		return nil, &DBError{D: db, Err: err}
 	}
 
 	stmt, err := tx.Prepare(QCreateGomarkDBSchema)
 	if err != nil {
-		return err
+		return nil, &DBError{D: db, Err: err}
 	}
 
-	_, err = stmt.Exec()
-	if err != nil {
-		return err
+	if _, err = stmt.Exec(); err != nil {
+		return nil, &DBError{D: db, Err: err}
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
+	if err = tx.Commit(); err != nil {
+		return nil, &DBError{D: db, Err: err}
 	}
 
 	log.Debugf("<%s> initialized", db.Name)
 
-	return nil
+	return db, nil
 }
 
-func (db *DB) Attach(attached *DB) {
+func (db *DB) AttachTo(attached *DB) {
 
 	stmtStr := fmt.Sprintf("ATTACH DATABASE '%s' AS '%s'",
 		attached.Path,
@@ -188,21 +225,6 @@ func (db *DB) Attach(attached *DB) {
 	}
 
 	db.AttachedTo = append(db.AttachedTo, attached.Name)
-
-	/////////////////
-	// For debug only
-	/////////////////
-	//var idx int
-	//var dt string
-	//var name string
-
-	//rows, err := db.Handle.Query("PRAGMA database_list;")
-	//logPanic(err)
-	//for rows.Next() {
-	//err = rows.Scan(&idx, &dt, &name)
-	//logPanic(err)
-	//log.Debugf("pragmalist: %s", dt)
-	//}
 }
 
 func (db *DB) Close() error {
@@ -212,18 +234,6 @@ func (db *DB) Close() error {
 		return err
 	}
 	return nil
-}
-
-func (db *DB) Count() int {
-	var count int
-
-	row := db.Handle.QueryRow("select count(*) from bookmarks")
-	err := row.Scan(&count)
-	if err != nil {
-		log.Error(err)
-	}
-
-	return count
 }
 
 func (db *DB) Print() error {
@@ -407,7 +417,7 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 
 	// If we are syncing to memcache, sync cache to disk
-	if dst.Name == DBCacheName {
+	if dst.Name == CacheName {
 		err = dst.SyncToDisk(GetDBFullPath())
 		if err != nil {
 			log.Error(err)
@@ -416,16 +426,25 @@ func (src *DB) SyncTo(dst *DB) {
 
 }
 
+func (db *DB) CountRows(table string) int {
+	var count int
+
+	row := db.Handle.QueryRow("select count(*) from ?", table)
+	err := row.Scan(&count)
+	if err != nil {
+		log.Error(err)
+	}
+
+	return count
+}
+
 // Copy from src DB to dst DB
 // Source DB os overwritten
 func (src *DB) CopyTo(dst *DB) {
 
-	log.Debugf("Copying <%s>(%d) to <%s>(%d)", src.Name,
-		src.Count(),
-		dst.Name,
-		dst.Count())
+	log.Debugf("Copying <%s> to <%s>", src.Name, dst.Name)
 
-	srcDb, err := sqlx.Open(DBBackupMode, src.Path)
+	srcDb, err := sqlx.Open(DriverBackupMode, src.Path)
 	defer func() {
 		srcDb.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
@@ -436,7 +455,7 @@ func (src *DB) CopyTo(dst *DB) {
 
 	srcDb.Ping()
 
-	dstDb, err := sqlx.Open(DBBackupMode, dst.Path)
+	dstDb, err := sqlx.Open(DriverBackupMode, dst.Path)
 	defer func() {
 		dstDb.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
@@ -463,7 +482,7 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
 
 	//log.Debugf("[flush] openeing <%s>", src.path)
-	srcDb, err := sqlx.Open(DBBackupMode, src.Path)
+	srcDb, err := sqlx.Open(DriverBackupMode, src.Path)
 	defer flushSqliteCon(srcDb)
 	if err != nil {
 		return err
@@ -473,7 +492,7 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
 
 	dbUri := fmt.Sprintf("file:%s", dbpath)
-	bkDb, err := sqlx.Open(DBBackupMode, dbUri)
+	bkDb, err := sqlx.Open(DriverBackupMode, dbUri)
 	defer flushSqliteCon(bkDb)
 	if err != nil {
 		return err
@@ -500,7 +519,7 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	log.Debugf("Syncing <%s> to <%s>", dbpath, dst.Name)
 
 	dbUri := fmt.Sprintf("file:%s", dbpath)
-	srcDb, err := sqlx.Open(DBBackupMode, dbUri)
+	srcDb, err := sqlx.Open(DriverBackupMode, dbUri)
 	defer flushSqliteCon(srcDb)
 	if err != nil {
 		return err
@@ -508,7 +527,7 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	srcDb.Ping()
 
 	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
-	bkDb, err := sqlx.Open(DBBackupMode, dst.Path)
+	bkDb, err := sqlx.Open(DriverBackupMode, dst.Path)
 	defer flushSqliteCon(bkDb)
 	if err != nil {
 		return err
@@ -692,9 +711,9 @@ func flushSqliteCon(con *sqlx.DB) {
 
 func registerSqliteHooks() {
 	// sqlite backup hook
-	log.Debugf("backup_hook: registering driver %s", DBBackupMode)
+	log.Debugf("backup_hook: registering driver %s", DriverBackupMode)
 	// Register the hook
-	sql.Register(DBBackupMode,
+	sql.Register(DriverBackupMode,
 		&sqlite3.SQLiteDriver{
 			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
 				//log.Debugf("[ConnectHook] registering new connection")

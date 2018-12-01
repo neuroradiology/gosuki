@@ -17,8 +17,8 @@ var (
 func initDB() {
 	var err error
 	// Initialize memory db with schema
-	cachePath := fmt.Sprintf(database.DBMemcacheFmt, database.DBCacheName)
-	CacheDB, err = database.New(database.DBCacheName, cachePath)
+	cachePath := fmt.Sprintf(database.MemcacheFmt, database.CacheName)
+	CacheDB, err = database.New(database.CacheName, cachePath).Init()
 	log.Debugf("cache %#v", CacheDB)
 	if err != nil {
 		log.Critical(err)
