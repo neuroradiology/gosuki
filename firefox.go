@@ -131,7 +131,7 @@ func NewFFBrowser() IBrowser {
 
 	// Initialize `places.sqlite`
 	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
-	browser.places, err = database.NewForeign("Places", bookmarkPath)
+	browser.places, err = database.NewForeign("Places", bookmarkPath).Init()
 	if err != nil {
 		log.Critical(err)
 	}

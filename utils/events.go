@@ -14,7 +14,7 @@ var log = logging.GetLogger("WATCH")
 // It receives a struct{event, func} and runs the func only once in the interval
 func ReduceEvents(interval time.Duration,
 	input chan fsnotify.Event,
-	w watch.IWatchable) {
+	w watch.Watchable) {
 	log.Debug("Running reducer")
 
 	timer := time.NewTimer(interval)

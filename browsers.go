@@ -24,7 +24,7 @@ import (
 	"github.com/sp4ke/hashmap"
 )
 
-type IWatchable = watch.IWatchable
+type IWatchable = watch.Watchable
 type Watcher = watch.Watcher
 type Watch = watch.Watch
 
@@ -225,14 +225,11 @@ func (b *BaseBrowser) InitBuffer() error {
 	var err error
 
 	bufferName := fmt.Sprintf("buffer_%s", b.name)
-	bufferPath := fmt.Sprintf(database.DBBufferFmt, bufferName)
-	b.BufferDB, err = database.New(bufferName, bufferPath)
+	bufferPath := fmt.Sprintf(database.BufferFmt, bufferName)
+	b.BufferDB, err = database.New(bufferName, bufferPath).Init()
 	if err != nil {
 		return err
 	}
-
-	log.Debugf("attaching %v", CacheDB)
-	b.BufferDB.Attach(CacheDB)
 
 	return nil
 }
@@ -255,7 +252,7 @@ func (b *BaseBrowser) HasReducer() bool {
 	return b.eventsChan != nil
 }
 
-func (b *BaseBrowser) Name() string {
+func (b *BaseBrowser) String() string {
 	return b.name
 }
 
