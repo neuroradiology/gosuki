@@ -75,7 +75,7 @@ type DBError struct {
 	Err error
 }
 
-func (e *DBError) Error() string {
+func (e DBError) Error() string {
 	return fmt.Sprintf("<%s>: %s", e.D.Name, e.Err)
 }
 
@@ -178,10 +178,19 @@ func (db *DB) Init() (*DB, error) {
 		return db, nil
 	}
 
-	db.Open()
+	// Open database
+	err = db.Open()
 
+	sqlErr, _ := err.(sqlite3.Error)
+
+	// If database is locked, try to unlock it
+	if err != nil && sqlErr.Code == sqlite3.ErrBusy {
+		log.Debug("DB IS LOCKED !!!!")
+	}
+
+	// Return all other errors
 	if err != nil {
-		return nil, &DBError{D: db, Err: err}
+		return nil, DBError{D: db, Err: err}
 	}
 
 	// We don't initialize schema for a foreing db
@@ -192,20 +201,20 @@ func (db *DB) Init() (*DB, error) {
 	// Populate db schema
 	tx, err := db.Handle.Begin()
 	if err != nil {
-		return nil, &DBError{D: db, Err: err}
+		return nil, DBError{D: db, Err: err}
 	}
 
 	stmt, err := tx.Prepare(QCreateGomarkDBSchema)
 	if err != nil {
-		return nil, &DBError{D: db, Err: err}
+		return nil, DBError{D: db, Err: err}
 	}
 
 	if _, err = stmt.Exec(); err != nil {
-		return nil, &DBError{D: db, Err: err}
+		return nil, DBError{D: db, Err: err}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return nil, &DBError{D: db, Err: err}
+		return nil, DBError{D: db, Err: err}
 	}
 
 	log.Debugf("<%s> initialized", db.Name)

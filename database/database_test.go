@@ -4,24 +4,54 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/mattn/go-sqlite3"
 )
 
 const (
 	TestDB = "testdata/gomarkdb_test.sqlite"
 )
 
-func TestInitDB(t *testing.T) {
+type LockedSQLXOpener struct {
+	handle *sqlx.DB
+	err    sqlite3.Error
+}
+
+func (o *LockedSQLXOpener) Open(driver string, dsn string) error {
+	return o.err
+
+}
+
+func (o *LockedSQLXOpener) Get() *sqlx.DB {
+	return nil
+}
+
+// We
+func TestDBLocked(t *testing.T) {
+	lockedOpener := &LockedSQLXOpener{
+		handle: nil,
+		err:    sqlite3.Error{Code: sqlite3.ErrBusy},
+	}
+
 	testDB := &DB{
 		Name:       "test",
 		Path:       fmt.Sprintf(MemcacheFmt, "test"),
-		Handle:     nil,
 		EngineMode: DriverDefault,
+		SQLXOpener: lockedOpener,
 	}
 
-	//db.In
-	// Try to open locked db
-	t.Error("test if database is not locked")
-	t.Error("test if db path is not found")
+	_, err := testDB.Init()
+	if err != nil {
+		e, _ := err.(DBError).Err.(sqlite3.Error)
+
+		if e.Code == sqlite3.ErrBusy {
+			t.Error("should handle locked database")
+		} else {
+			t.Error(err)
+		}
+	}
+
 }
 
 func TestGomarkDBCeate(t *testing.T) {
