@@ -225,8 +225,12 @@ func (b *BaseBrowser) InitBuffer() error {
 	var err error
 
 	bufferName := fmt.Sprintf("buffer_%s", b.name)
-	bufferPath := fmt.Sprintf(database.BufferFmt, bufferName)
-	b.BufferDB, err = database.New(bufferName, bufferPath).Init()
+	b.BufferDB, err = database.New(bufferName, "", database.DBTypeInMemoryDSN).Init()
+	if err != nil {
+		return err
+	}
+
+	err = b.BufferDB.InitSchema()
 	if err != nil {
 		return err
 	}

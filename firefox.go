@@ -131,9 +131,16 @@ func NewFFBrowser() IBrowser {
 
 	// Initialize `places.sqlite`
 	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
-	browser.places, err = database.NewForeign("Places", bookmarkPath).Init()
+
+	opts := database.DsnOptions{
+		"_journal_mode": "WAL",
+	}
+
+	browser.places, err = database.New("places",
+		bookmarkPath,
+		database.DBTypeFileDSN, opts).Init()
 	if err != nil {
-		log.Critical(err)
+		log.Fatal(err)
 	}
 
 	// Buffer that lives accross Run() jobs

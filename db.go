@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"gomark/database"
 	"gomark/utils"
 	"path/filepath"
@@ -17,9 +16,12 @@ var (
 func initDB() {
 	var err error
 	// Initialize memory db with schema
-	cachePath := fmt.Sprintf(database.MemcacheFmt, database.CacheName)
-	CacheDB, err = database.New(database.CacheName, cachePath).Init()
-	log.Debugf("cache %#v", CacheDB)
+	CacheDB, err = database.New(database.CacheName, "", database.DBTypeCacheDSN).Init()
+	if err != nil {
+		log.Critical(err)
+	}
+
+	err = CacheDB.InitSchema()
 	if err != nil {
 		log.Critical(err)
 	}

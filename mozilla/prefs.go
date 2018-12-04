@@ -9,13 +9,16 @@ import (
 )
 
 const (
-	PrefsFile      = "prefs.js"
+	PrefsFile = "prefs.js"
+
+	// Parses vales in prefs.js under the form:
+	// user_pref("my.pref.option", value);
 	REFirefoxPrefs = `user_pref\("(?P<option>%s)",\s+"*(?P<value>.*[^"])"*\);`
 )
 
-// Finds and returns a prefernce definition
+// Finds and returns a prefernce definition.
+// Returns empty string ("") if no pref found
 func FindPref(path string, name string) (string, error) {
-	// ioutil.ReadFile(path) ([]byte, error)
 	text, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -34,6 +37,19 @@ func FindPref(path string, name string) (string, error) {
 	}
 
 	return results["value"], nil
+}
+
+func HasPref(path string, name string) (bool, error) {
+	res, err := FindPref(path, name)
+	if err != nil {
+		return false, err
+	}
+
+	if res != "" {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 //TODO:  Pass profile name and use standard `prefs.js` file name in base
