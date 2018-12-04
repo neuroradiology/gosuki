@@ -13,7 +13,12 @@ const (
 
 	// Parses vales in prefs.js under the form:
 	// user_pref("my.pref.option", value);
-	REFirefoxPrefs = `user_pref\("(?P<option>%s)",\s+"*(?P<value>.*[^"])"*\);`
+	REFirefoxPrefs = `user_pref\("(?P<option>%s)",\s+"*(?P<value>.*[^"])"*\)\s*;\s*(\n|$)`
+)
+
+var (
+	ErrPrefNotFound = errors.New("pref not defined")
+	ErrPrefNotBool  = errors.New("pref is not bool")
 )
 
 // Finds and returns a prefernce definition.
@@ -39,6 +44,7 @@ func FindPref(path string, name string) (string, error) {
 	return results["value"], nil
 }
 
+// Returns true if the `name` preference is found in `prefs.js`
 func HasPref(path string, name string) (bool, error) {
 	res, err := FindPref(path, name)
 	if err != nil {
@@ -62,7 +68,7 @@ func GetPrefBool(path string, name string) (bool, error) {
 	}
 
 	if val == "" {
-		return false, errors.New("not found")
+		return false, ErrPrefNotFound
 	}
 
 	if val == "true" {
@@ -71,7 +77,7 @@ func GetPrefBool(path string, name string) (bool, error) {
 		return false, nil
 	}
 
-	return false, errors.New("not a bool")
+	return false, ErrPrefNotBool
 
 }
 
@@ -84,18 +90,43 @@ func SetPrefBool(path string, name string, val bool) error {
 	}
 	mode := info.Mode()
 
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, mode)
-	defer f.Close()
+	// Pref already defined, replace it
+	if v, _ := HasPref(path, name); v {
 
-	if err != nil {
-		return err
-	}
+		f, err := os.OpenFile(path, os.O_RDWR, mode)
+		defer f.Sync()
+		defer f.Close()
 
-	fmt.Println(name, val)
-	fmt.Fprintf(f, "user_pref(\"%s\", %t);\n", name, val)
-	err = f.Sync()
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+
+		re := regexp.MustCompile(fmt.Sprintf(REFirefoxPrefs, name))
+		template := []byte(fmt.Sprintf("user_pref(\"$option\", %t) ;\n", val))
+		text, err := ioutil.ReadAll(f)
+		if err != nil {
+			return err
+		}
+
+		_, err = f.Seek(0, 0)
+		if err != nil {
+			return err
+		}
+
+		output := string(re.ReplaceAll(text, template))
+		fmt.Fprint(f, output)
+
+	} else {
+		f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, mode)
+		defer f.Sync()
+		defer f.Close()
+
+		if err != nil {
+			return err
+		}
+
+		// Append pref
+		fmt.Fprintf(f, "user_pref(\"%s\", %t);\n", name, val)
 	}
 
 	return nil

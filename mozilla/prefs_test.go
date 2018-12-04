@@ -1,10 +1,12 @@
 package mozilla
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 )
 
 const (
@@ -91,6 +93,9 @@ func resetTestPrefFile(f *os.File) {
 	if err != nil {
 		panic(err)
 	}
+
+	f.Seek(0, 0)
+	f.Sync()
 }
 
 func TestFindPref(t *testing.T) {
@@ -137,35 +142,94 @@ func TestGetPrefBool(t *testing.T) {
 
 		_, err := GetPrefBool(prefsTempFile.Name(), TestPrefs["STRING"].name)
 		if err != nil &&
-			err.Error() != "not a bool" {
+			err != ErrPrefNotBool {
+			t.Error(err)
+		}
+	})
+
+	// Should return false for undefined pref
+	t.Run("NOTDEFINED", func(t *testing.T) {
+
+		val, err := GetPrefBool(prefsTempFile.Name(), "not.exists.bool")
+		if err != nil && err != ErrPrefNotFound {
 			t.Error(err)
 		}
 
+		if val != false {
+			t.Fail()
+		}
 	})
 }
 
 func TestSetPrefBool(t *testing.T) {
-	resetTestPrefFile(prefsTempFile)
 
-	// Write some data to test the append behavior
-	writeTestPrefFile(prefsTempFile, TestPrefs["STRING"])
+	t.Run("APPEND", func(t *testing.T) {
 
-	setVal, _ := TestPrefs["TRUE"].value.(bool)
+		resetTestPrefFile(prefsTempFile)
 
-	err := SetPrefBool(prefsTempFile.Name(), TestPrefs["TRUE"].name, setVal)
+		// Write some data to test the append behavior
+		writeTestPrefFile(prefsTempFile, TestPrefs["STRING"])
 
-	if err != nil {
-		t.Error(err)
-	}
+		setVal, _ := TestPrefs["TRUE"].value.(bool)
 
-	res, err := GetPrefBool(prefsTempFile.Name(), TestPrefs["TRUE"].name)
-	if err != nil {
-		t.Error(err)
-	}
+		err := SetPrefBool(prefsTempFile.Name(), TestPrefs["TRUE"].name, setVal)
 
-	if res != setVal {
-		t.Fail()
-	}
+		if err != nil {
+			t.Error(err)
+		}
+
+		res, err := GetPrefBool(prefsTempFile.Name(), TestPrefs["TRUE"].name)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if res != setVal {
+			t.Fail()
+		}
+	})
+
+	t.Run("REPLACE", func(t *testing.T) {
+		resetTestPrefFile(prefsTempFile)
+		scanner := bufio.NewScanner(prefsTempFile)
+
+		writeTestPrefFile(prefsTempFile, TestPrefs["STRING"])
+		writeTestPrefFile(prefsTempFile, TestPrefs["FALSE"])
+
+		prefsTempFile.Seek(0, 0)
+
+		// Check if line was replaces
+		var lines int
+		for scanner.Scan() {
+			lines++
+		}
+
+		err := SetPrefBool(prefsTempFile.Name(), TestPrefs["FALSE"].name, true)
+		if err != nil {
+			t.Error(err)
+		}
+
+		prefsTempFile.Seek(0, 0)
+		scanner = bufio.NewScanner(prefsTempFile)
+		// Check if line was replaces
+		for lines = 0; scanner.Scan(); {
+			lines++
+		}
+
+		if lines != 2 {
+			t.Error("SetPrefBool should replace existing Pref")
+		}
+
+		res, err := GetPrefBool(prefsTempFile.Name(), TestPrefs["FALSE"].name)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if !res {
+			t.Fail()
+		}
+
+		time.Sleep(4 * time.Second)
+	})
 }
 
 func TestHasPref(t *testing.T) {

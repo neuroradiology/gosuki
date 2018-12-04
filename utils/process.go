@@ -18,8 +18,10 @@ func FileProcessUsers(path string) ([]*psutil.Process, error) {
 	for _, p := range processes {
 
 		files, err := p.OpenFiles()
+		errPath, _ := err.(*os.PathError)
+
 		if err != nil &&
-			err != os.ErrPermission {
+			errPath.Err.Error() != os.ErrPermission.Error() {
 			log.Error(err)
 			return nil, err
 		}

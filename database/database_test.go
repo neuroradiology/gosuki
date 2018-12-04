@@ -119,7 +119,7 @@ func TestInitLocked(t *testing.T) {
 			t.Fail()
 		}
 
-		if err != DBErr(testDB.Name, ErrVfsLocked) {
+		if err != ErrVfsLocked {
 			t.Fail()
 		}
 
@@ -142,9 +142,7 @@ func TestInitLocked(t *testing.T) {
 			t.Fail()
 		}
 
-		e, _ := err.(DBError).Err.(sqlite3.Error)
-
-		if e.Code != sqlite3.ErrBusy {
+		if err != ErrVfsLocked {
 			t.Fail()
 		}
 
