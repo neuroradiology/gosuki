@@ -5,6 +5,7 @@ package main
 import (
 	"database/sql"
 	"gomark/database"
+	"gomark/mozilla"
 	"gomark/parsing"
 	"gomark/tree"
 	"gomark/utils"
@@ -52,7 +53,7 @@ const (
 
 var Firefox = BrowserPaths{
 	BookmarkFile: "places.sqlite",
-	BookmarkDir:  "/home/spike/.mozilla/firefox/p1rrgord.default/",
+	BookmarkDir:  "/home/spike/.mozilla/firefox/7otsk3vs.test_bookmarks",
 }
 
 const (
@@ -116,6 +117,9 @@ func FFPlacesUpdateHook(op int, db string, table string, rowid int64) {
 	fflog.Debug(op)
 }
 
+//TODO: Test browser creation errors
+// In case of critical errors degrade the browser to only log errors and disable
+// all directives
 func NewFFBrowser() IBrowser {
 	var err error
 
@@ -142,7 +146,15 @@ func NewFFBrowser() IBrowser {
 	if err != nil {
 
 		//Check Lock Error
-		log.Fatal(err)
+		if err == database.ErrVfsLocked {
+			// Try to unlock db
+			e := mozilla.UnlockPlaces(browser.baseDir)
+			if e != nil {
+				log.Panic(e)
+			}
+		} else {
+			log.Panic(err)
+		}
 	}
 
 	// Buffer that lives accross Run() jobs

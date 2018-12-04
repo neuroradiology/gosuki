@@ -217,17 +217,6 @@ func New(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB {
 
 }
 
-//TODO: try unlock at the browser level !
-func (db *DB) tryUnlock() error {
-	log.Debug("Unlocking ...")
-
-	// Find if multiProcessAccess option is defined
-	//TODO:
-	//if v, err := mozilla.HasPref(path ???)
-	//
-	return nil
-}
-
 //TODO: Should check if DB is locked
 // We should export Open() in its own method and wrap
 // with interface so we can mock it and test the lock status in Init()
@@ -253,7 +242,7 @@ func (db *DB) Init() (*DB, error) {
 		}
 
 		if locked {
-			return nil, DBErr(db.Name, ErrVfsLocked)
+			return nil, ErrVfsLocked
 		}
 
 	}
@@ -265,7 +254,7 @@ func (db *DB) Init() (*DB, error) {
 
 	// Secondary lock check provided by sqlx Ping() method
 	if err != nil && sqlErr.Code == sqlite3.ErrBusy {
-		return nil, DBError{DBName: db.Name, Err: err}
+		return nil, ErrVfsLocked
 
 	}
 
