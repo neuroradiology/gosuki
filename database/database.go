@@ -9,11 +9,8 @@ import (
 	"fmt"
 	"gomark/logging"
 	"gomark/tree"
-	"gomark/utils"
-	"os"
-	"path/filepath"
+	"net/url"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
@@ -31,14 +28,31 @@ type Node = tree.Node
 var log = logging.GetLogger("DB")
 
 const (
-	DBFileName  = "gomarks.db"
-	MemcacheFmt = "file:%s?mode=memory&cache=shared"
-	BufferFmt   = "file:%s?mode=memory&cache=shared"
-	CacheName   = "memcache"
+	DBFileName = "gomarks.db"
+	CacheName  = "memcache"
+	//MemcacheFmt = "file:%s?mode=memory&cache=shared"
+	//BufferFmt   = "file:%s?mode=memory&cache=shared"
+
+	DBTypeInMemoryDSN = "file:%s?mode=memory&cache=shared"
+	DBTypeCacheDSN    = DBTypeInMemoryDSN
+	DBTypeFileDSN     = "file:%s"
 
 	DriverBackupMode = "sqlite_hook_backup"
 	DriverDefault    = "sqlite3"
 	GomarkMainTable  = "bookmarks"
+)
+
+type DBType int
+
+const (
+	DBTypeInMemory DBType = iota
+	DBTypeRegularFile
+)
+
+// Differentiate between gomarkdb.sqlite and other sqlite DBs
+const (
+	DBGomark DBType = iota
+	DBForeign
 )
 
 //  Database schemas used for the creation of new databases
@@ -60,12 +74,7 @@ const (
 	)`
 )
 
-type DBType int
-
-const (
-	DBGomark DBType = iota
-	DBForeign
-)
+type DsnOptions map[string]string
 
 type DBError struct {
 	// Database object where error occured
@@ -116,7 +125,10 @@ type DB struct {
 	AttachedTo []string
 	Type       DBType
 
+	filePath string
+
 	SQLXOpener
+	LockChecker
 }
 
 func (db *DB) Open() error {
@@ -127,8 +139,12 @@ func (db *DB) Open() error {
 	}
 
 	db.Handle = db.SQLXOpener.Get()
+	err = db.Handle.Ping()
+	if err != nil {
+		return err
+	}
 
-	log.Debugf("<%s> opened at <%s> with mode <%s>",
+	log.Debugf("<%s> opened at <%s> with driver <%s>",
 		db.Name,
 		db.Path,
 		db.EngineMode)
@@ -136,31 +152,70 @@ func (db *DB) Open() error {
 	return nil
 }
 
-func New(name string, path string) *DB {
+func (db *DB) Locked() (bool, error) {
+	return db.LockChecker.Locked()
+}
+
+// dbPath is empty string ("") when using in memory sqlite db
+// Call to Init() required before using
+func New(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB {
+
+	var path string
+	var dbType DBType
+
+	// Use name as path for  in memory database
+	if dbPath == "" {
+		path = fmt.Sprintf(dbFormat, name)
+		dbType = DBTypeInMemory
+	} else {
+		path = fmt.Sprintf(dbFormat, dbPath)
+		dbType = DBTypeRegularFile
+	}
+
+	// Handle DSN options
+	if len(opts) > 0 {
+		dsn := url.Values{}
+		for _, o := range opts {
+			for k, v := range o {
+				dsn.Set(k, v)
+			}
+		}
+
+		// Test if path has already query params
+		pos := strings.IndexRune(path, '?')
+
+		// Path already has query params
+		if pos >= 1 {
+			path = fmt.Sprintf("%s&%s", path, dsn.Encode()) //append
+		} else {
+			path = fmt.Sprintf("%s?%s", path, dsn.Encode())
+		}
+
+	}
+
 	return &DB{
 		Name:       name,
 		Path:       path,
 		Handle:     nil,
 		EngineMode: DriverDefault,
 		SQLXOpener: &SQLXDBOpener{},
+		Type:       dbType,
+		filePath:   dbPath,
+		LockChecker: &VFSLockChecker{
+			path: dbPath,
+		},
 	}
 
 }
 
-// Foreign databases do not use GomarkDB Schema
-// As an example it is used by Firefox implementation
-func NewForeign(name string, path string) *DB {
+func (db *DB) tryUnlock() error {
+	log.Debug("Unlocking ...")
 
-	pathRO := fmt.Sprintf("file:%s?_journal_mode=WAL", path)
-
-	return &DB{
-		Name:       name,
-		Path:       pathRO,
-		Handle:     nil,
-		EngineMode: DriverDefault,
-		Type:       DBForeign,
-		SQLXOpener: &SQLXDBOpener{},
-	}
+	// Find if multiProcessAccess option is defined
+	//TODO:
+	//if v, err := mozilla.HasPref(path ???)
+	//
+	return nil
 }
 
 //TODO: Should check if DB is locked
@@ -178,14 +233,31 @@ func (db *DB) Init() (*DB, error) {
 		return db, nil
 	}
 
+	// Detect if database file is locked
+	if db.Type == DBTypeRegularFile {
+
+		locked, err := db.Locked()
+
+		if err != nil {
+			return nil, DBError{D: db, Err: err}
+		}
+
+		if locked {
+			log.Warningf("<%s> is locked !", db.Path)
+			db.tryUnlock()
+		}
+
+	}
+
 	// Open database
 	err = db.Open()
 
 	sqlErr, _ := err.(sqlite3.Error)
 
-	// If database is locked, try to unlock it
+	// Secondary lock check provided by sqlx Ping() method
 	if err != nil && sqlErr.Code == sqlite3.ErrBusy {
-		log.Debug("DB IS LOCKED !!!!")
+		return nil, DBError{D: db, Err: err}
+
 	}
 
 	// Return all other errors
@@ -193,33 +265,33 @@ func (db *DB) Init() (*DB, error) {
 		return nil, DBError{D: db, Err: err}
 	}
 
-	// We don't initialize schema for a foreing db
-	if db.Type == DBForeign {
-		return db, nil
-	}
+	return db, nil
+}
+
+func (db *DB) InitSchema() error {
 
 	// Populate db schema
 	tx, err := db.Handle.Begin()
 	if err != nil {
-		return nil, DBError{D: db, Err: err}
+		return DBError{D: db, Err: err}
 	}
 
 	stmt, err := tx.Prepare(QCreateGomarkDBSchema)
 	if err != nil {
-		return nil, DBError{D: db, Err: err}
+		return DBError{D: db, Err: err}
 	}
 
 	if _, err = stmt.Exec(); err != nil {
-		return nil, DBError{D: db, Err: err}
+		return DBError{D: db, Err: err}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return nil, DBError{D: db, Err: err}
+		return DBError{D: db, Err: err}
 	}
 
 	log.Debugf("<%s> initialized", db.Name)
 
-	return db, nil
+	return nil
 }
 
 func (db *DB) AttachTo(attached *DB) {
@@ -238,27 +310,16 @@ func (db *DB) AttachTo(attached *DB) {
 
 func (db *DB) Close() error {
 	log.Debugf("Closing DB <%s>", db.Name)
+
+	if db.Handle == nil {
+		log.Warningf("<%s> handle is nil", db.Name)
+		return nil
+	}
+
 	err := db.Handle.Close()
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (db *DB) Print() error {
-
-	var url, tags string
-
-	rows, err := db.Handle.Query("select url,tags from bookmarks")
-
-	for rows.Next() {
-		err = rows.Scan(&url, &tags)
-		if err != nil {
-			return err
-		}
-		log.Debugf("url:%s  tags:%s", url, tags)
-	}
-
 	return nil
 }
 
@@ -279,162 +340,6 @@ func (db *DB) IsEmpty() (bool, error) {
 	return true, nil
 }
 
-// For ever row in `src` try to insert it into `dst`.
-// If if fails then try to update it. It means `src` is synced to `dst`
-func (src *DB) SyncTo(dst *DB) {
-	var sqlite3Err sqlite3.Error
-	var existingUrls []*SBookmark
-
-	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
-
-	getSourceTable, err := src.Handle.Prepare(`SELECT * FROM bookmarks`)
-	defer getSourceTable.Close()
-	if err != nil {
-		log.Error(err)
-	}
-
-	getDstTags, err := dst.Handle.Prepare(
-		`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`,
-	)
-	defer getDstTags.Close()
-	if err != nil {
-		log.Error(err)
-	}
-
-	tryInsertDstRow, err := dst.Handle.Prepare(
-		`INSERT INTO
-		bookmarks(url, metadata, tags, desc, flags)
-		VALUES (?, ?, ?, ?, ?)`,
-	)
-	defer tryInsertDstRow.Close()
-	if err != nil {
-		log.Error(err)
-	}
-
-	updateDstRow, err := dst.Handle.Prepare(
-		`UPDATE bookmarks
-		SET (metadata, tags, desc, modified, flags) = (?,?,?,strftime('%s'),?)
-		WHERE url=?
-		`,
-	)
-
-	defer updateDstRow.Close()
-	if err != nil {
-		log.Error(err)
-	}
-
-	srcTable, err := getSourceTable.Query()
-	if err != nil {
-		log.Error(err)
-	}
-
-	// Lock destination db
-	dstTx, err := dst.Handle.Begin()
-	if err != nil {
-		log.Error(err)
-	}
-
-	// Start syncing all entries from source table
-	for srcTable.Next() {
-
-		// Fetch on row
-		scan, err := ScanBookmarkRow(srcTable)
-		if err != nil {
-			log.Error(err)
-		}
-
-		// Try to insert to row in dst table
-		_, err = dstTx.Stmt(tryInsertDstRow).Exec(
-			scan.Url,
-			scan.metadata,
-			scan.tags,
-			scan.desc,
-			scan.flags,
-		)
-
-		if err != nil {
-			sqlite3Err = err.(sqlite3.Error)
-		}
-
-		if err != nil && sqlite3Err.Code != sqlite3.ErrConstraint {
-			log.Error(err)
-		}
-
-		// Record already exists in dst table, we need to use update
-		// instead.
-		if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
-			existingUrls = append(existingUrls, scan)
-		}
-	}
-
-	err = dstTx.Commit()
-	if err != nil {
-		log.Error(err)
-	}
-
-	// Start a new transaction to update the existing urls
-	dstTx, err = dst.Handle.Begin() // Lock dst db
-	if err != nil {
-		log.Error(err)
-	}
-
-	// Traverse existing urls and try an update this time
-	for _, scan := range existingUrls {
-		var tags string
-
-		//log.Debugf("updating existing %s", scan.Url)
-
-		row := getDstTags.QueryRow(
-			scan.Url,
-		)
-		row.Scan(&tags)
-
-		//log.Debugf("src tags: %v", scan.tags)
-		//log.Debugf("dst tags: %v", dstTags)
-		srcTags := strings.Split(scan.tags, TagJoinSep)
-		dstTags := strings.Split(tags, TagJoinSep)
-		tagMap := make(map[string]bool)
-		for _, v := range srcTags {
-			tagMap[v] = true
-		}
-		for _, v := range dstTags {
-			tagMap[v] = true
-		}
-
-		var newTags []string //merged tags
-		for k, _ := range tagMap {
-			newTags = append(newTags, k)
-		}
-
-		_, err = dstTx.Stmt(updateDstRow).Exec(
-			scan.metadata,
-			strings.Join(newTags, TagJoinSep),
-			scan.desc,
-			0, //flags
-			scan.Url,
-		)
-
-		if err != nil {
-			log.Errorf("%s: %s", err, scan.Url)
-		}
-
-	}
-
-	err = dstTx.Commit()
-	if err != nil {
-		log.Error(err)
-	}
-
-	// If we are syncing to memcache, sync cache to disk
-	if dst.Name == CacheName {
-		err = dst.SyncToDisk(GetDBFullPath())
-		if err != nil {
-			log.Error(err)
-		}
-	}
-
-}
-
 func (db *DB) CountRows(table string) int {
 	var count int
 
@@ -445,207 +350,6 @@ func (db *DB) CountRows(table string) int {
 	}
 
 	return count
-}
-
-// Copy from src DB to dst DB
-// Source DB os overwritten
-func (src *DB) CopyTo(dst *DB) {
-
-	log.Debugf("Copying <%s> to <%s>", src.Name, dst.Name)
-
-	srcDb, err := sqlx.Open(DriverBackupMode, src.Path)
-	defer func() {
-		srcDb.Close()
-		_sql3conns = _sql3conns[:len(_sql3conns)-1]
-	}()
-	if err != nil {
-		log.Error(err)
-	}
-
-	srcDb.Ping()
-
-	dstDb, err := sqlx.Open(DriverBackupMode, dst.Path)
-	defer func() {
-		dstDb.Close()
-		_sql3conns = _sql3conns[:len(_sql3conns)-1]
-	}()
-	if err != nil {
-		log.Error(err)
-	}
-	dstDb.Ping()
-
-	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
-	if err != nil {
-		log.Error(err)
-	}
-
-	_, err = bk.Step(-1)
-	if err != nil {
-		log.Error(err)
-	}
-
-	bk.Finish()
-}
-
-func (src *DB) SyncToDisk(dbpath string) error {
-	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
-
-	//log.Debugf("[flush] openeing <%s>", src.path)
-	srcDb, err := sqlx.Open(DriverBackupMode, src.Path)
-	defer flushSqliteCon(srcDb)
-	if err != nil {
-		return err
-	}
-	srcDb.Ping()
-
-	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
-
-	dbUri := fmt.Sprintf("file:%s", dbpath)
-	bkDb, err := sqlx.Open(DriverBackupMode, dbUri)
-	defer flushSqliteCon(bkDb)
-	if err != nil {
-		return err
-	}
-	bkDb.Ping()
-
-	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
-	if err != nil {
-		return err
-	}
-
-	_, err = bk.Step(-1)
-	if err != nil {
-		return err
-	}
-
-	bk.Finish()
-
-	return nil
-}
-
-func (dst *DB) SyncFromDisk(dbpath string) error {
-
-	log.Debugf("Syncing <%s> to <%s>", dbpath, dst.Name)
-
-	dbUri := fmt.Sprintf("file:%s", dbpath)
-	srcDb, err := sqlx.Open(DriverBackupMode, dbUri)
-	defer flushSqliteCon(srcDb)
-	if err != nil {
-		return err
-	}
-	srcDb.Ping()
-
-	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
-	bkDb, err := sqlx.Open(DriverBackupMode, dst.Path)
-	defer flushSqliteCon(bkDb)
-	if err != nil {
-		return err
-	}
-	bkDb.Ping()
-
-	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
-	if err != nil {
-		return err
-	}
-
-	_, err = bk.Step(-1)
-	if err != nil {
-		return err
-	}
-
-	bk.Finish()
-
-	return nil
-}
-
-// Print debug a single row (does not run rows.next())
-func DebugPrintRow(rows *sql.Rows) {
-	cols, _ := rows.Columns()
-	count := len(cols)
-	values := make([]interface{}, count)
-	valuesPtrs := make([]interface{}, count)
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
-	for _, col := range cols {
-		fmt.Fprintf(w, "%s\t", col)
-	}
-	fmt.Fprintf(w, "\n")
-
-	for i := 0; i < count; i++ {
-		fmt.Fprintf(w, "\t")
-	}
-
-	fmt.Fprintf(w, "\n")
-
-	for i, _ := range cols {
-		valuesPtrs[i] = &values[i]
-	}
-	rows.Scan(valuesPtrs...)
-
-	finalValues := make(map[string]interface{})
-	for i, col := range cols {
-		var v interface{}
-		val := values[i]
-		b, ok := val.([]byte)
-		if ok {
-			v = string(b)
-		} else {
-			v = val
-		}
-
-		finalValues[col] = v
-	}
-
-	for _, col := range cols {
-		fmt.Fprintf(w, "%v\t", finalValues[col])
-	}
-	fmt.Fprintf(w, "\n")
-	w.Flush()
-}
-
-// Print debug Rows results
-func DebugPrintRows(rows *sql.Rows) {
-	cols, _ := rows.Columns()
-	count := len(cols)
-	values := make([]interface{}, count)
-	valuesPtrs := make([]interface{}, count)
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
-	for _, col := range cols {
-		fmt.Fprintf(w, "%s\t", col)
-	}
-	fmt.Fprintf(w, "\n")
-
-	for i := 0; i < count; i++ {
-		fmt.Fprintf(w, "\t")
-	}
-
-	fmt.Fprintf(w, "\n")
-
-	for rows.Next() {
-		for i, _ := range cols {
-			valuesPtrs[i] = &values[i]
-		}
-		rows.Scan(valuesPtrs...)
-
-		finalValues := make(map[string]interface{})
-		for i, col := range cols {
-			var v interface{}
-			val := values[i]
-			b, ok := val.([]byte)
-			if ok {
-				v = string(b)
-			} else {
-				v = val
-			}
-
-			finalValues[col] = v
-		}
-
-		for _, col := range cols {
-			fmt.Fprintf(w, "%v\t", finalValues[col])
-		}
-		fmt.Fprintf(w, "\n")
-	}
-	w.Flush()
 }
 
 // Struct represetning the schema of `bookmarks` db.
@@ -704,12 +408,6 @@ func SyncTreeToBuffer(node *Node, buffer *DB) {
 			SyncTreeToBuffer(node, buffer)
 		}
 	}
-}
-
-func GetDBFullPath() string {
-	dbdir := utils.GetDefaultDBPath()
-	dbpath := filepath.Join(dbdir, DBFileName)
-	return dbpath
 }
 
 func flushSqliteCon(con *sqlx.DB) {

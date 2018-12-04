@@ -15,10 +15,11 @@ docs:
 	@godoc2md gomark > API.md
 
 build:
+	@echo building ...
 	@go build -o $(TARGET) *.go
 
 test:
-	@go test . ./... | grep -v 'no test files'
+	@go test . ./...
 
 testv:
-	@go test -v . ./... | grep -v 'no test files'
+	@go test -v . ./...

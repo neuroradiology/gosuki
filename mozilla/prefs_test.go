@@ -168,6 +168,22 @@ func TestSetPrefBool(t *testing.T) {
 	}
 }
 
+func TestHasPref(t *testing.T) {
+	resetTestPrefFile(prefsTempFile)
+
+	writeTestPrefFile(prefsTempFile, TestPrefs["STRING"])
+
+	res, err := HasPref(prefsTempFile.Name(), TestPrefs["STRING"].name)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !res {
+		t.Fail()
+	}
+
+}
+
 func TestMain(m *testing.M) {
 
 	prefsTempFile = tempFile(TempFileName)
