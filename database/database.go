@@ -6,6 +6,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"gomark/logging"
 	"gomark/tree"
@@ -78,15 +79,23 @@ type DsnOptions map[string]string
 
 type DBError struct {
 	// Database object where error occured
-	D *DB
+	DBName string
 
 	// Error that occured
 	Err error
 }
 
-func (e DBError) Error() string {
-	return fmt.Sprintf("<%s>: %s", e.D.Name, e.Err)
+func DBErr(dbName string, err error) DBError {
+	return DBError{Err: err}
 }
+
+func (e DBError) Error() string {
+	return fmt.Sprintf("<%s>: %s", e.DBName, e.Err)
+}
+
+var (
+	ErrVfsLocked = errors.New("vfs locked")
+)
 
 type Opener interface {
 	Open(driver string, dsn string) error
@@ -208,6 +217,7 @@ func New(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB {
 
 }
 
+//TODO: try unlock at the browser level !
 func (db *DB) tryUnlock() error {
 	log.Debug("Unlocking ...")
 
@@ -239,12 +249,11 @@ func (db *DB) Init() (*DB, error) {
 		locked, err := db.Locked()
 
 		if err != nil {
-			return nil, DBError{D: db, Err: err}
+			return nil, DBError{DBName: db.Name, Err: err}
 		}
 
 		if locked {
-			log.Warningf("<%s> is locked !", db.Path)
-			db.tryUnlock()
+			return nil, DBErr(db.Name, ErrVfsLocked)
 		}
 
 	}
@@ -256,13 +265,13 @@ func (db *DB) Init() (*DB, error) {
 
 	// Secondary lock check provided by sqlx Ping() method
 	if err != nil && sqlErr.Code == sqlite3.ErrBusy {
-		return nil, DBError{D: db, Err: err}
+		return nil, DBError{DBName: db.Name, Err: err}
 
 	}
 
 	// Return all other errors
 	if err != nil {
-		return nil, DBError{D: db, Err: err}
+		return nil, DBError{DBName: db.Name, Err: err}
 	}
 
 	return db, nil
@@ -273,20 +282,20 @@ func (db *DB) InitSchema() error {
 	// Populate db schema
 	tx, err := db.Handle.Begin()
 	if err != nil {
-		return DBError{D: db, Err: err}
+		return DBError{DBName: db.Name, Err: err}
 	}
 
 	stmt, err := tx.Prepare(QCreateGomarkDBSchema)
 	if err != nil {
-		return DBError{D: db, Err: err}
+		return DBError{DBName: db.Name, Err: err}
 	}
 
 	if _, err = stmt.Exec(); err != nil {
-		return DBError{D: db, Err: err}
+		return DBError{DBName: db.Name, Err: err}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return DBError{D: db, Err: err}
+		return DBError{DBName: db.Name, Err: err}
 	}
 
 	log.Debugf("<%s> initialized", db.Name)

@@ -72,11 +72,11 @@ func TestNew(t *testing.T) {
 }
 
 type AlwaysLockedChecker struct {
-	err error
+	locked bool
 }
 
 func (f *AlwaysLockedChecker) Locked() (bool, error) {
-	return true, nil
+	return f.locked, nil
 }
 
 type LockedSQLXOpener struct {
@@ -99,42 +99,57 @@ func TestInitLocked(t *testing.T) {
 		err:    sqlite3.Error{Code: sqlite3.ErrBusy},
 	}
 
-	lockChecker := &AlwaysLockedChecker{}
+	lockCheckerTrue := &AlwaysLockedChecker{locked: true}
+	lockCheckerFalse := &AlwaysLockedChecker{locked: false}
 
-	testDB := &DB{
-		Name:        "test",
-		Path:        "file:test",
-		EngineMode:  DriverDefault,
-		SQLXOpener:  lockedOpener,
-		Type:        DBTypeRegularFile,
-		LockChecker: lockChecker,
-	}
+	t.Run("VFSLockChecker", func(t *testing.T) {
 
-	_, err := testDB.Init()
+		testDB := &DB{
+			Name:        "test",
+			Path:        "file:test",
+			EngineMode:  DriverDefault,
+			LockChecker: lockCheckerTrue,
+			SQLXOpener:  lockedOpener,
+			Type:        DBTypeRegularFile,
+		}
 
-	if err != nil {
-		t.Log(err)
+		_, err := testDB.Init()
 
-		t.Run("VFSLockChecker", func(t *testing.T) {
+		if err == nil {
+			t.Fail()
+		}
 
-			t.Error("TODO")
+		if err != DBErr(testDB.Name, ErrVfsLocked) {
+			t.Fail()
+		}
 
-		})
+	})
 
-		t.Run("SQLXLockChecker", func(t *testing.T) {
+	t.Run("SQLXLockChecker", func(t *testing.T) {
 
-			e, _ := err.(DBError).Err.(sqlite3.Error)
+		testDB := &DB{
+			Name:        "test",
+			Path:        "file:test",
+			EngineMode:  DriverDefault,
+			LockChecker: lockCheckerFalse,
+			SQLXOpener:  lockedOpener,
+			Type:        DBTypeRegularFile,
+		}
 
-			if e.Code == sqlite3.ErrBusy {
-				t.Error("should handle locked database")
-			} else {
-				t.Fail()
-			}
-			t.Error("TODO")
+		_, err := testDB.Init()
 
-		})
+		if err == nil {
+			t.Fail()
+		}
 
-	}
+		e, _ := err.(DBError).Err.(sqlite3.Error)
+
+		if e.Code != sqlite3.ErrBusy {
+			t.Fail()
+		}
+
+	})
+
 }
 
 func TestGomarkDBCeate(t *testing.T) {

@@ -140,6 +140,8 @@ func NewFFBrowser() IBrowser {
 		bookmarkPath,
 		database.DBTypeFileDSN, opts).Init()
 	if err != nil {
+
+		//Check Lock Error
 		log.Fatal(err)
 	}
 
