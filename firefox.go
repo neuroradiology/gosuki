@@ -52,8 +52,8 @@ const (
 )
 
 var Firefox = BrowserPaths{
-	BookmarkFile: "places.sqlite",
-	BookmarkDir:  "/home/spike/.mozilla/firefox/7otsk3vs.test_bookmarks",
+	BookmarkFile: mozilla.BookmarkFile,
+	BookmarkDir:  mozilla.BookmarkDir,
 }
 
 const (
@@ -171,7 +171,7 @@ func NewFFBrowser() IBrowser {
 	w := &Watch{
 		Path:       expandedBaseDir,
 		EventTypes: []fsnotify.Op{fsnotify.Write},
-		EventNames: []string{path.Join(expandedBaseDir, "places.sqlite-wal")},
+		EventNames: []string{filepath.Join(expandedBaseDir, "places.sqlite-wal")},
 		ResetWatch: false,
 	}
 
@@ -186,18 +186,6 @@ func NewFFBrowser() IBrowser {
 
 	go utils.ReduceEvents(MozMinJobInterval, browser.eventsChan, browser)
 
-	// Testing
-	pusers, err := utils.FileProcessUsers(browser.GetBookmarksPath())
-	if err != nil {
-		fflog.Error(err)
-	}
-	for _, p := range pusers {
-		pname, err := p.Name()
-		if err != nil {
-			fflog.Error(err)
-		}
-		fflog.Debugf("%s is using bookmark file", pname)
-	}
 	//
 	//
 	//

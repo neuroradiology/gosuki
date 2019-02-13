@@ -2,8 +2,17 @@ package mozilla
 
 import (
 	"errors"
+	"fmt"
 	"gomark/logging"
+	"gomark/utils"
 	"path"
+)
+
+var fflog = logging.GetLogger("FF")
+
+const (
+	BookmarkFile = "places.sqlite"
+	BookmarkDir  = "/home/spike/.mozilla/firefox/7otsk3vs.test_bookmarks"
 )
 
 const (
@@ -39,7 +48,7 @@ var (
 // property in prefs.js
 
 func UnlockPlaces(dir string) error {
-	log.Debug("Unlocking ...")
+	log.Debug("Unlocking places.sqlite ...")
 
 	prefsPath := path.Join(dir, PrefsFile)
 
@@ -52,13 +61,28 @@ func UnlockPlaces(dir string) error {
 
 	// If pref already defined and true raise an error
 	if pref {
-		log.Criticalf("pref <%s> already defined as <%s>",
+		log.Criticalf("pref <%s> already defined as <%v>",
 			PrefMultiProcessAccess, pref)
 		return ErrMultiProcessAlreadyEnabled
 
 		// Set the preference
 	} else {
-		log.Debug("pref not defined")
+
+		// Checking if firefox is running
+		// TODO: #multiprocess add CLI to unlock places.sqlite
+		pusers, err := utils.FileProcessUsers(path.Join(BookmarkDir, BookmarkFile))
+		if err != nil {
+			fflog.Error(err)
+		}
+
+		for pid, p := range pusers {
+			pname, err := p.Name()
+			if err != nil {
+				fflog.Error(err)
+			}
+			return errors.New(fmt.Sprintf("multiprocess not enabled and %s(%d) is running", pname, pid))
+		}
+		// End testing
 
 		// enable multi process access in firefox
 		err = SetPrefBool(prefsPath,
