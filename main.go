@@ -6,50 +6,21 @@
 package main
 
 import (
-	"gomark/parsing"
+	"os"
 
-	"github.com/gin-gonic/gin"
+	"github.com/urfave/cli"
 )
 
-func mainLoop() {
-
-	r := gin.Default()
-
-	r.GET("/urls", getBookmarks)
-
-	// Initialize sqlite database available in global `cacheDB` variable
-	initDB()
-
-	browsers := []IBrowser{
-		NewFFBrowser(),
-		NewChromeBrowser(),
-	}
-
-	for _, b := range browsers {
-		defer b.Shutdown()
-		b.RegisterHooks(parsing.ParseTags)
-		b.Load()
-		b.Watch()
-	}
-
-	//cb := NewChromeBrowser()
-	//ff := NewFFBrowser()
-	//defer cb.Shutdown()
-	//defer ff.Shutdown()
-
-	//cb.RegisterHooks(parsing.ParseTags)
-	//cb.Load()
-	//ff.Load()
-
-	//_ = cb.Watch()
-	//_ = ff.Watch()
-
-	err := r.Run("127.0.0.1:4243")
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
 func main() {
-	mainLoop()
+	app := cli.NewApp()
+	app.Name = "gomark"
+	app.Version = "1.0"
+
+	app.Commands = []cli.Command{
+		startServerCmd,
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
 }
