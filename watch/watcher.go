@@ -105,7 +105,9 @@ func WatcherThread(w Watchable) {
 			////w.Run()
 			//}
 		case err := <-watcher.W.Errors:
-			log.Error(err)
+			if err != nil {
+				log.Error(err)
+			}
 		}
 	}
 }
