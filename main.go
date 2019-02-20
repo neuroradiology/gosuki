@@ -18,6 +18,7 @@ func main() {
 
 	app.Commands = []cli.Command{
 		startServerCmd,
+		unlockFirefoxCmd,
 	}
 
 	if err := app.Run(os.Args); err != nil {

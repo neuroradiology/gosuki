@@ -4,11 +4,21 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
 	"path"
 )
 
 func GetDefaultDBPath() string {
 	return "./"
+}
+
+func CheckDirExists(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if err == nil {
+		return info.IsDir(), nil
+	}
+
+	return false, err
 }
 
 func CheckFileExists(file string) (bool, error) {
@@ -55,4 +65,9 @@ func CheckWriteable(dir string) error {
 	}
 
 	return err
+}
+
+func GetHomeDir() string {
+	user, _ := user.Current()
+	return user.HomeDir
 }
