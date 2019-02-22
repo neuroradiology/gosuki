@@ -4,11 +4,8 @@ import (
 	"gomark/logging"
 )
 
-var fflog = logging.GetLogger("FF")
-
 const (
 	BookmarkFile = "places.sqlite"
-	BookmarkDir  = "/home/spike/.mozilla/firefox/7otsk3vs.test_bookmarks"
 )
 
 var (
@@ -16,5 +13,14 @@ var (
 	PlacesDSN = map[string]string{
 		"_jouranl_mode": "WAL",
 	}
-	log = logging.GetLogger("MOZ")
+
+	log = logging.GetLogger("FF")
+
+	// Bookmark directory
+	BookmarkDir string
 )
+
+func SetBookmarkDir(dir string) {
+	log.Debugf("setting bookmarks dir to <%s>", dir)
+	BookmarkDir = dir
+}

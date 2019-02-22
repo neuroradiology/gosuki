@@ -63,9 +63,16 @@ func startServer(c *cli.Context) {
 	// Initialize sqlite database available in global `cacheDB` variable
 	initDB()
 
-	browsers := []IBrowser{
-		NewFFBrowser(),
-		NewChromeBrowser(),
+	var browsers []IBrowser
+
+	ff := NewFFBrowser()
+	if ff != nil {
+		browsers = append(browsers, ff)
+	}
+
+	cr := NewChromeBrowser()
+	if cr != nil {
+		browsers = append(browsers, cr)
 	}
 
 	for _, b := range browsers {

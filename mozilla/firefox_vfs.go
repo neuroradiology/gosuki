@@ -52,13 +52,13 @@ func UnlockPlaces(dir string) error {
 		// TODO: #multiprocess add CLI to unlock places.sqlite
 		pusers, err := utils.FileProcessUsers(path.Join(BookmarkDir, BookmarkFile))
 		if err != nil {
-			fflog.Error(err)
+			log.Error(err)
 		}
 
 		for pid, p := range pusers {
 			pname, err := p.Name()
 			if err != nil {
-				fflog.Error(err)
+				log.Error(err)
 			}
 			return errors.New(fmt.Sprintf("multiprocess not enabled and %s(%d) is running. Close firefox and disable VFS lock", pname, pid))
 		}
