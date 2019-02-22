@@ -4,6 +4,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"gomark/database"
 	"gomark/mozilla"
 	"gomark/parsing"
@@ -51,10 +52,15 @@ const (
 	ORDER BY url`
 )
 
-var Firefox = BrowserPaths{
-	BookmarkFile: mozilla.BookmarkFile,
-	BookmarkDir:  mozilla.BookmarkDir,
-}
+var (
+	Firefox = BrowserPaths{
+
+		BookmarkFile: mozilla.BookmarkFile,
+		BookmarkDir:  mozilla.BookmarkDir,
+	}
+
+	ErrInitFirefox = errors.New("Could not start Firefox watcher")
+)
 
 const (
 	MozMinJobInterval = 500 * time.Millisecond
@@ -135,6 +141,19 @@ func NewFFBrowser() IBrowser {
 
 	// Initialize `places.sqlite`
 	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
+
+	// Check if BookmarkPath exists
+	exists, err := utils.CheckFileExists(bookmarkPath)
+	if err != nil {
+		log.Critical(err)
+		log.Critical(ErrInitFirefox)
+		return nil
+	}
+	if !exists {
+		log.Criticalf("Bookmark path <%s> does not exist", bookmarkPath)
+		log.Critical(ErrInitFirefox)
+		return nil
+	}
 
 	opts := database.DsnOptions{
 		"_journal_mode": "WAL",

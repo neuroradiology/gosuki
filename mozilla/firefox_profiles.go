@@ -1,6 +1,7 @@
 package mozilla
 
 import (
+	"errors"
 	"gomark/profiles"
 	"gomark/utils"
 	"path/filepath"
@@ -9,6 +10,10 @@ import (
 	ini "gopkg.in/ini.v1"
 )
 
+type ProfileManager = profiles.ProfileManager
+type ProfileGetter = profiles.ProfileGetter
+type PathGetter = profiles.PathGetter
+
 const (
 	ProfilesFile = "profiles.ini"
 )
@@ -16,14 +21,40 @@ const (
 var (
 	ConfigFolder  = ".mozilla/firefox"
 	ReIniProfiles = regexp.MustCompile(`(?i)profile`)
+
+	firefoxProfile = &ProfileGetter{
+		//BasePath to be set at runtime in init
+		ProfilesFile: ProfilesFile,
+	}
+
+	FirefoxProfileManager = &FFProfileManager{
+		pathGetter: firefoxProfile,
+	}
+
+	ErrProfilesIni      = errors.New("Could not parse Firefox profiles.ini file")
+	ErrNoDefaultProfile = errors.New("No default profile found")
 )
 
 type FFProfileManager struct {
-	basePath     string
 	profilesFile *ini.File
+	pathGetter   PathGetter
+	ProfileManager
+}
+
+func (pm *FFProfileManager) loadProfile() error {
+
+	log.Debugf("loading profile from <%s>", pm.pathGetter.Get())
+	pFile, err := ini.Load(pm.pathGetter.Get())
+	if err != nil {
+		return err
+	}
+
+	pm.profilesFile = pFile
+	return nil
 }
 
 func (pm *FFProfileManager) GetProfiles() ([]*profiles.Profile, error) {
+	pm.loadProfile()
 	sections := pm.profilesFile.Sections()
 	var filtered []*ini.Section
 	var result []*profiles.Profile
@@ -48,7 +79,32 @@ func (pm *FFProfileManager) GetProfiles() ([]*profiles.Profile, error) {
 	return result, nil
 }
 
-func (pm *FFProfileManager) ListProfiles() []string {
+func (pm *FFProfileManager) GetDefaultProfilePath() (string, error) {
+	log.Debugf("using config dir %s", ConfigFolder)
+	p, err := pm.GetDefaultProfile()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(ConfigFolder, p.Path), nil
+}
+
+func (pm *FFProfileManager) GetDefaultProfile() (*profiles.Profile, error) {
+	profs, err := pm.GetProfiles()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range profs {
+		if p.Name == "default" {
+			return p, nil
+		}
+	}
+
+	return nil, ErrNoDefaultProfile
+}
+
+func (pm *FFProfileManager) ListProfiles() ([]string, error) {
+	pm.loadProfile()
 	sections := pm.profilesFile.SectionStrings()
 	var result []string
 	for _, s := range sections {
@@ -57,22 +113,11 @@ func (pm *FFProfileManager) ListProfiles() []string {
 		}
 	}
 
-	return result
-}
-
-func NewFFProfileManager() (*FFProfileManager, error) {
-	profiles, err := ini.Load(filepath.Join(ConfigFolder, ProfilesFile))
-
-	if err != nil {
-		return nil, err
+	if len(result) == 0 {
+		return nil, ErrProfilesIni
 	}
 
-	pm := &FFProfileManager{
-		basePath:     ConfigFolder,
-		profilesFile: profiles,
-	}
-
-	return pm, nil
+	return result, nil
 }
 
 func init() {
@@ -81,12 +126,21 @@ func init() {
 	// Check if base folder exists
 	configFolderExists, err := utils.CheckDirExists(ConfigFolder)
 	if !configFolderExists {
-		fflog.Criticalf("The base firefox folder <%s> does not exist",
+		log.Criticalf("The base firefox folder <%s> does not exist",
 			ConfigFolder)
 	}
 
 	if err != nil {
-		fflog.Critical(err)
+		log.Critical(err)
 	}
+
+	firefoxProfile.BasePath = ConfigFolder
+
+	bookmarkDir, err := FirefoxProfileManager.GetDefaultProfilePath()
+	if err != nil {
+		log.Error(err)
+	}
+
+	SetBookmarkDir(bookmarkDir)
 
 }

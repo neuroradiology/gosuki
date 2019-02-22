@@ -105,6 +105,7 @@ func (bw *BaseBrowser) GetWatcher() *Watcher {
 }
 func (bw *BaseBrowser) Load() {
 	log.Debug("BaseBrowser Load()")
+
 	bw.InitIndex()
 
 	// Check if cache is initialized
