@@ -78,8 +78,3 @@ func UnlockPlaces(dir string) error {
 	return nil
 
 }
-
-//
-//TODO: try unlock at the browser level !
-// Try to unlock vfs locked places.sqlite by setting the `PrefMultiProcessAccess`
-// property in prefs.js

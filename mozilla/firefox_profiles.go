@@ -1,3 +1,4 @@
+//TODO: Add cli options to choose firefox profile
 package mozilla
 
 import (

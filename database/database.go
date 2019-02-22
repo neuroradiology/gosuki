@@ -1,6 +1,3 @@
-//TODO: unit test New/NewRO should check if database is locked
-
-//TODO: missing defer close() on sqlite funcs
 //TODO: handle `modified` time
 package database
 
@@ -14,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/mattn/go-sqlite3"
+	sqlite3 "github.com/mattn/go-sqlite3"
 	"github.com/sp4ke/hashmap"
 )
 
