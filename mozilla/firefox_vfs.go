@@ -27,10 +27,15 @@ var (
 	ErrMultiProcessAlreadyEnabled = errors.New("multiProcessAccess already enabled")
 )
 
-func UnlockPlaces(dir string) error {
-	log.Debug("Unlocking places.sqlite ...")
+func CheckVFSLock() error {
+	log.Debugf("Checking VFS for <%s>", BookmarkDir)
+	return nil
+}
 
-	prefsPath := path.Join(dir, PrefsFile)
+func UnlockPlaces() error {
+	log.Debugf("Unlocking VFS <%s>", path.Join(BookmarkDir, PrefsFile))
+
+	prefsPath := path.Join(BookmarkDir, PrefsFile)
 
 	// Find if multiProcessAccess option is defined
 
@@ -41,9 +46,9 @@ func UnlockPlaces(dir string) error {
 
 	// If pref already defined and true raise an error
 	if pref {
-		log.Criticalf("pref <%s> already defined as <%v>",
+		log.Warningf("pref <%s> already defined as <%v>",
 			PrefMultiProcessAccess, pref)
-		return ErrMultiProcessAlreadyEnabled
+		return nil
 
 		// Set the preference
 	} else {

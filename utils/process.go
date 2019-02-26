@@ -27,7 +27,7 @@ func FileProcessUsers(path string) (map[int32]*psutil.Process, error) {
 
 		files, err := p.OpenFiles()
 
-		//TODO: use os.IsNotExist to test the path error
+		//TEST: use os.IsNotExist to test the path error
 		if err != nil && os.IsNotExist(err) {
 			continue
 		}

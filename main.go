@@ -6,6 +6,7 @@
 package main
 
 import (
+	"gomark/cmd"
 	"os"
 
 	"github.com/urfave/cli"
@@ -18,7 +19,7 @@ func main() {
 
 	app.Commands = []cli.Command{
 		startServerCmd,
-		unlockFirefoxCmd,
+		cmd.FirefoxCmds,
 	}
 
 	if err := app.Run(os.Args); err != nil {
