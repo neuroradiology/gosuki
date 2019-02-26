@@ -5,7 +5,8 @@ import (
 	"os"
 
 	"git.sp4ke.com/sp4ke/gum"
-	"github.com/urfave/cli"
+
+	cli "gopkg.in/urfave/cli.v1"
 )
 
 var startServerCmd = cli.Command{

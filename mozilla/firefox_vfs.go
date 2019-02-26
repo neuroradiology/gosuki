@@ -28,14 +28,14 @@ var (
 )
 
 func CheckVFSLock() error {
-	log.Debugf("Checking VFS for <%s>", BookmarkDir)
+	log.Debugf("Checking VFS for <%s>", GetBookmarkDir())
 	return nil
 }
 
 func UnlockPlaces() error {
-	log.Debugf("Unlocking VFS <%s>", path.Join(BookmarkDir, PrefsFile))
+	log.Debugf("Unlocking VFS <%s>", path.Join(GetBookmarkDir(), PrefsFile))
 
-	prefsPath := path.Join(BookmarkDir, PrefsFile)
+	prefsPath := path.Join(GetBookmarkDir(), PrefsFile)
 
 	// Find if multiProcessAccess option is defined
 
@@ -55,7 +55,7 @@ func UnlockPlaces() error {
 
 		// Checking if firefox is running
 		// TODO: #multiprocess add CLI to unlock places.sqlite
-		pusers, err := utils.FileProcessUsers(path.Join(BookmarkDir, BookmarkFile))
+		pusers, err := utils.FileProcessUsers(path.Join(GetBookmarkDir(), BookmarkFile))
 		if err != nil {
 			log.Error(err)
 		}

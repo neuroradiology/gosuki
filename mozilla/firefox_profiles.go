@@ -142,6 +142,7 @@ func init() {
 		log.Error(err)
 	}
 
+	log.Debugf("Using default profile %s", bookmarkDir)
 	SetBookmarkDir(bookmarkDir)
 
 }
