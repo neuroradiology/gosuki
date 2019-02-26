@@ -1,3 +1,4 @@
+//TODO: add cli options to set/get options
 package cmd
 
 import (

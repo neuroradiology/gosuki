@@ -58,8 +58,6 @@ func HasPref(path string, name string) (bool, error) {
 	return false, nil
 }
 
-//TODO:  Pass profile name and use standard `prefs.js` file name in base
-// directory of profile
 func GetPrefBool(path string, name string) (bool, error) {
 	val, err := FindPref(path, name)
 
