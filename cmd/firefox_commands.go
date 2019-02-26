@@ -6,7 +6,7 @@ import (
 	"gomark/mozilla"
 	"path/filepath"
 
-	"github.com/urfave/cli"
+	cli "gopkg.in/urfave/cli.v1"
 )
 
 var fflog = logging.GetLogger("FF")
@@ -65,8 +65,9 @@ func ffListProfiles(c *cli.Context) {
 	}
 
 	for _, p := range profs {
-		fmt.Printf("<%s>: %s\n", p.Id, filepath.Join(mozilla.BookmarkDir, p.Path))
+		fmt.Printf("<%s>: %s\n", p.Name, filepath.Join(mozilla.GetBookmarkDir(), p.Path))
 	}
+
 }
 
 func ffCheckVFS(c *cli.Context) {

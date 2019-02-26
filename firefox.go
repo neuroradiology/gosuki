@@ -56,7 +56,7 @@ var (
 	Firefox = BrowserPaths{
 
 		BookmarkFile: mozilla.BookmarkFile,
-		BookmarkDir:  mozilla.BookmarkDir,
+		BookmarkDir:  mozilla.GetBookmarkDir(),
 	}
 
 	ErrInitFirefox = errors.New("Could not start Firefox watcher")
@@ -155,9 +155,7 @@ func NewFFBrowser() IBrowser {
 		return nil
 	}
 
-	opts := database.DsnOptions{
-		"_journal_mode": "WAL",
-	}
+	opts := mozilla.PlacesDSN
 
 	browser.places, err = database.New("places",
 		bookmarkPath,
