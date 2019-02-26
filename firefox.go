@@ -167,7 +167,7 @@ func NewFFBrowser() IBrowser {
 		//Check Lock Error
 		if err == database.ErrVfsLocked {
 			// Try to unlock db
-			e := mozilla.UnlockPlaces(browser.baseDir)
+			e := mozilla.UnlockPlaces()
 			if e != nil {
 				log.Panic(e)
 			}
