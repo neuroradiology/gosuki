@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"gomark/config"
+	"gomark/mozilla"
 	"strings"
 
 	"github.com/gobuffalo/flect"
@@ -21,8 +23,12 @@ var FirefoxGlobalFlags = []cli.Flag{
 func GlobalFirefoxFlagsManager(c *cli.Context) error {
 	flags := c.GlobalFlagNames()
 	for _, f := range flags {
+
+		if !c.GlobalIsSet(f) {
+			continue
+		}
+
 		sp := strings.Split(f, "-")
-		fflog.Critical(sp)
 
 		if len(sp) < 2 {
 			continue
@@ -32,7 +38,7 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 			continue
 		}
 
-		optionName := flect.Pascalize(strings.Join(sp[1:], ""))
+		optionName := flect.Pascalize(strings.Join(sp[1:], " "))
 		var destVal interface{}
 
 		// Find the corresponding flag
@@ -48,6 +54,12 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 				}
 
 			}
+		}
+
+		err := config.RegisterModuleOpt(mozilla.ConfigName,
+			optionName, destVal)
+		if err != nil {
+			fflog.Fatal(err)
 		}
 
 	}

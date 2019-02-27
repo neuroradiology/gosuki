@@ -51,10 +51,10 @@ func RegisterGlobalOption(key string, val interface{}) {
 	configs[GlobalConfigName].Set(key, val)
 }
 
-func RegisterModuleOpt(module string, opt string, val interface{}) {
-	log.Debugf("adding option %s = %s", opt, val)
+func RegisterModuleOpt(module string, opt string, val interface{}) error {
+	log.Debugf("setting option %s: %s = %s", module, opt, val)
 	dest := configs[module]
-	dest.Set(opt, val)
+	return dest.Set(opt, val)
 }
 
 // Get all configs as a map[string]interface{}

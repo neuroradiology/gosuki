@@ -112,8 +112,8 @@ func (pm *FFProfileManager) GetDefaultProfile() (*profiles.Profile, error) {
 		return nil, err
 	}
 
+	log.Debugf("looking for profile %s", Config.DefaultProfile)
 	for _, p := range profs {
-		log.Debugf("looking for %s", Config.DefaultProfile)
 		if p.Name == Config.DefaultProfile {
 			return p, nil
 		}
@@ -156,6 +156,7 @@ func initFirefoxConfig() {
 
 	firefoxProfile.BasePath = ConfigFolder
 
+	//log.Debug(Config)
 	bookmarkDir, err := FirefoxProfileManager.GetDefaultProfilePath()
 	if err != nil {
 		log.Error(err)
