@@ -10,7 +10,6 @@ import (
 	"gomark/config"
 	"os"
 
-	altsrc "github.com/urfave/cli/altsrc"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -30,27 +29,21 @@ func main() {
 
 	app.Before = func(c *cli.Context) error {
 
-		err := altsrc.InitInputSourceWithContext(flags,
-			altsrc.NewTomlSourceFromFlagFunc("config"))(c)
+		err := cmd.GlobalFirefoxFlagsManager(c)
 		if err != nil {
 			return err
 		}
 
-		//TODO: check altsrc how to parse subsection for options
-		//for _, conf := range c.GlobalFlagNames() {
-
-		//log.Debug(conf)
-		//err := config.RegisterConf(flect.Pascalize(conf), c.GlobalString(conf))
-		//if err != nil {
-		//return err
-		//}
-
-		//}
+		// Execute config hooks
+		config.RunConfHooks()
 
 		return nil
 	}
 
 	app.Flags = flags
+	for _, f := range cmd.FirefoxGlobalFlags {
+		app.Flags = append(app.Flags, f)
+	}
 
 	app.Commands = []cli.Command{
 		startServerCmd,
