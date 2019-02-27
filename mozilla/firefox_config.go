@@ -5,30 +5,27 @@ import (
 )
 
 var (
-	// mutable config
+	// user mutable config
 	Config *FirefoxConfig
-)
-
-// Default data source name query options for `places.sqlite` db
-var PlacesDSN = database.DsnOptions{
-	"_journal_mode": "WAL",
-}
-
-type FirefoxConfig struct {
 
 	// Bookmark directory (including profile path)
 	bookmarkDir string
+)
 
+// Config modifiable by user
+type FirefoxConfig struct {
+	// Default data source name query options for `places.sqlite` db
+	PlacesDSN        database.DsnOptions
 	WatchAllProfiles bool
 	DefaultProfile   string
 }
 
 func SetBookmarkDir(dir string) {
-	Config.bookmarkDir = dir
+	bookmarkDir = dir
 }
 
 func GetBookmarkDir() string {
-	return Config.bookmarkDir
+	return bookmarkDir
 }
 
 func SetConfig(c *FirefoxConfig) {

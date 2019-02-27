@@ -3,6 +3,8 @@ package mozilla
 
 import (
 	"errors"
+	"fmt"
+	"gomark/config"
 	"gomark/profiles"
 	"gomark/utils"
 	"path/filepath"
@@ -89,6 +91,21 @@ func (pm *FFProfileManager) GetDefaultProfilePath() (string, error) {
 	return filepath.Join(ConfigFolder, p.Path), nil
 }
 
+func (pm *FFProfileManager) GetProfileByName(name string) (*profiles.Profile, error) {
+	profs, err := pm.GetProfiles()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range profs {
+		if p.Name == name {
+			return p, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Profile %s not found", name)
+}
+
 func (pm *FFProfileManager) GetDefaultProfile() (*profiles.Profile, error) {
 	profs, err := pm.GetProfiles()
 	if err != nil {
@@ -96,7 +113,8 @@ func (pm *FFProfileManager) GetDefaultProfile() (*profiles.Profile, error) {
 	}
 
 	for _, p := range profs {
-		if p.Name == "default" {
+		log.Debugf("looking for %s", Config.DefaultProfile)
+		if p.Name == Config.DefaultProfile {
 			return p, nil
 		}
 	}
@@ -121,7 +139,8 @@ func (pm *FFProfileManager) ListProfiles() ([]string, error) {
 	return result, nil
 }
 
-func init() {
+func initFirefoxConfig() {
+	log.Debug("Initializing firefox config")
 	ConfigFolder = filepath.Join(utils.GetHomeDir(), ConfigFolder)
 
 	// Check if base folder exists
@@ -144,5 +163,8 @@ func init() {
 
 	log.Debugf("Using default profile %s", bookmarkDir)
 	SetBookmarkDir(bookmarkDir)
+}
 
+func init() {
+	config.RegisterConfReadyHooks(initFirefoxConfig)
 }

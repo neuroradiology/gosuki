@@ -8,7 +8,6 @@ package main
 import (
 	"gomark/cmd"
 	"gomark/config"
-	"gomark/utils"
 	"os"
 
 	altsrc "github.com/urfave/cli/altsrc"
@@ -31,21 +30,7 @@ func main() {
 
 	app.Before = func(c *cli.Context) error {
 
-		// Check if config file exists
-		exists, err := utils.CheckFileExists(config.ConfigFile)
-		if err != nil {
-			return err
-		}
-
-		if !exists {
-			// Initialize default config
-			InitDefaultConfig()
-		} else {
-			//TODO: maybe no need to preload if we can preparse options with altsrc
-			LoadConfig()
-		}
-
-		err = altsrc.InitInputSourceWithContext(flags,
+		err := altsrc.InitInputSourceWithContext(flags,
 			altsrc.NewTomlSourceFromFlagFunc("config"))(c)
 		if err != nil {
 			return err
