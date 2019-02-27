@@ -155,7 +155,7 @@ func NewFFBrowser() IBrowser {
 		return nil
 	}
 
-	opts := mozilla.PlacesDSN
+	opts := mozilla.Config.PlacesDSN
 
 	browser.places, err = database.New("places",
 		bookmarkPath,

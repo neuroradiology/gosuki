@@ -1,19 +1,20 @@
 package config
 
 import (
-	"fmt"
 	"gomark/logging"
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/gobuffalo/flect"
-
 	"github.com/fatih/structs"
+	"github.com/mitchellh/mapstructure"
 )
 
-var log = logging.GetLogger("CONF")
-
-var C *GlobalConfig
+var (
+	log            = logging.GetLogger("CONF")
+	ConfReadyHooks []func()
+	GlobalConfig   = Config{}
+	C              = GlobalConfig
+)
 
 const (
 	ConfigFile = "config.toml"
@@ -21,51 +22,27 @@ const (
 
 type Config map[string]interface{}
 
-type GlobalConfig struct {
-	Firefox Config
-	Chrome  Config
+// Map a config to destination struct
+func (c Config) MapTo(module string, dest interface{}) error {
+	return mapstructure.Decode(c[module], dest)
 }
 
-func RegisterGlobalVal(key string, val interface{}) error {
+func RegisterGlobalOption(key string, val interface{}) {
 	log.Debugf("Registring global option %s = %v", key, val)
-	//s := structs.New(C)
-
-	return nil
+	C[key] = val
 }
 
-func RegisterConf(module string, val interface{}) error {
-	module = flect.Pascalize(module)
-	log.Debug("registering config for module ", module)
-	s := structs.New(C)
+func RegisterBrowserConf(module string, val interface{}) {
 
-	// Store option in global config
+	// Use global conf func instead
 	if module == "" {
-		log.Debugf("Registring global conf  %v", val)
-
-		// Store option in a config submodule
-	} else {
-
-		log.Debugf("Registering conf module <%s>  = %v", module, val)
-
-		field, ok := s.FieldOk(module)
-
-		if !ok {
-			return fmt.Errorf("Module <%s> not defined in config", module)
-		}
-
-		err := field.Set(val)
-		if err != nil {
-			return err
-		}
-
+		return
 	}
 
-	return nil
+	// Store option in a config submodule
+	log.Debugf("Registering conf module <%s>  = %v", module, val)
+	C[module] = val
 }
-
-//func LoadConfigFile() error {
-
-//}
 
 func InitConfigFile() error {
 	configFile, err := os.Create(ConfigFile)
@@ -74,7 +51,7 @@ func InitConfigFile() error {
 	}
 
 	tomlEncoder := toml.NewEncoder(configFile)
-	err = tomlEncoder.Encode(C)
+	err = tomlEncoder.Encode(&C)
 	if err != nil {
 		return err
 	}
@@ -82,12 +59,32 @@ func InitConfigFile() error {
 	return nil
 }
 
-func LoadConfigFile() (*GlobalConfig, error) {
-	_, err := toml.DecodeFile(ConfigFile, C)
+func LoadConfigFile() (Config, error) {
+	_, err := toml.DecodeFile(ConfigFile, &C)
 
 	return C, err
 }
 
-func init() {
-	C = new(GlobalConfig)
+// Copies a src struct to dest struct
+func MapConfStruct(src interface{}, dst interface{}) {
+	s := structs.New(src)
+	d := structs.New(dst)
+	for _, f := range s.Fields() {
+		if f.IsExported() {
+			dF := d.Field(f.Name())
+			dF.Set(f.Value())
+		}
+	}
+}
+
+func RegisterConfReadyHooks(hooks ...func()) {
+	for _, f := range hooks {
+		ConfReadyHooks = append(ConfReadyHooks, f)
+	}
+}
+
+func RunConfHooks() {
+	for _, f := range ConfReadyHooks {
+		f()
+	}
 }

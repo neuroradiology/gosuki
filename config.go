@@ -2,12 +2,23 @@ package main
 
 import (
 	"gomark/config"
+	"gomark/database"
 	"gomark/mozilla"
+	"gomark/utils"
+)
 
-	"github.com/fatih/structs"
+// Config names
+const (
+	FirefoxConf = "firefox"
+	ChromeConf  = "chrome"
 )
 
 var FirefoxDefaultConfig = mozilla.FirefoxConfig{
+
+	// Default data source name query options for `places.sqlite` db
+	PlacesDSN: database.DsnOptions{
+		"_journal_mode": "WAL",
+	},
 
 	// default profile to use
 	DefaultProfile: "default",
@@ -16,25 +27,16 @@ var FirefoxDefaultConfig = mozilla.FirefoxConfig{
 }
 
 func InitDefaultConfig() {
+	//TODO: handle chrome
 	log.Debug("Creating default config on config.toml")
-	s := structs.New(FirefoxDefaultConfig)
 
 	// Export default firefox config
-	err := config.RegisterConf("firefox", s.Map())
-	if err != nil {
-		log.Fatal(err)
-	}
+	config.RegisterBrowserConf(FirefoxConf, FirefoxDefaultConfig)
 
 	// Set default values for firefox module
-	dest := structs.New(mozilla.Config)
-	for _, f := range s.Fields() {
-		if f.IsExported() {
-			destF := dest.Field(f.Name())
-			destF.Set(f.Value())
-		}
-	}
+	config.MapConfStruct(FirefoxDefaultConfig, mozilla.Config)
 
-	err = config.InitConfigFile()
+	err := config.InitConfigFile()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,20 +51,31 @@ func LoadConfig() {
 	}
 
 	// Sync to firefox module config
-	dest := structs.New(mozilla.Config)
-	for k, v := range c.Firefox {
-		f := dest.Field(k)
-		if f != nil {
+	err = c.MapTo(FirefoxConf, mozilla.Config)
 
-			err := f.Set(v)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-
-		}
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	log.Warningf("%#v", mozilla.Config)
+}
 
+func init() {
+
+	// Check if config file exists
+	exists, err := utils.CheckFileExists(config.ConfigFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if !exists {
+		// Initialize default config
+		InitDefaultConfig()
+	} else {
+		//TODO: maybe no need to preload if we can preparse options with altsrc
+		LoadConfig()
+	}
+
+	// Execute config hooks
+	config.RunConfHooks()
 }
