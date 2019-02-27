@@ -72,10 +72,7 @@ func init() {
 		// Initialize default config
 		InitDefaultConfig()
 	} else {
-		//TODO: maybe no need to preload if we can preparse options with altsrc
 		LoadConfig()
 	}
 
-	// Execute config hooks
-	config.RunConfHooks()
 }
