@@ -9,6 +9,7 @@ import (
 	"gomark/cmd"
 	"gomark/config"
 	"os"
+	"strings"
 
 	altsrc "github.com/urfave/cli/altsrc"
 	cli "gopkg.in/urfave/cli.v1"
@@ -20,6 +21,9 @@ func main() {
 	app.Version = "1.0"
 
 	flags := []cli.Flag{
+		altsrc.NewStringFlag(cli.StringFlag{
+			Name: "firefox.DefaultProfile",
+		}),
 
 		cli.StringFlag{
 			Name:  "config",
@@ -35,17 +39,44 @@ func main() {
 		if err != nil {
 			return err
 		}
+		//log.Warning(c.GlobalString("firefox.DefaultProfile"))
 
 		//TODO: check altsrc how to parse subsection for options
-		//for _, conf := range c.GlobalFlagNames() {
+		for _, conf := range c.GlobalFlagNames() {
 
-		//log.Debug(conf)
-		//err := config.RegisterConf(flect.Pascalize(conf), c.GlobalString(conf))
-		//if err != nil {
-		//return err
-		//}
+			// Check if this is a submodule option
+			sp := strings.Split(conf, ".")
+			// Submodule options
+			if len(sp) > 1 {
+				log.Warning(conf)
+				log.Critical(config.GetAll())
 
-		//}
+				module := sp[0]
+				option := sp[1]
+
+				// find the flag
+				for _, f := range flags {
+					if f.GetName() == conf {
+
+						// Type switch
+
+						switch f.(type) {
+
+						// String flags
+						case *altsrc.StringFlag:
+							//log.Criticalf("%s is String flag", conf)
+							//log.Criticalf("%s, %s, %s", module, option, c.GlobalString(conf))
+
+							config.RegisterModuleOpt(module,
+								option, c.GlobalString(conf))
+
+						}
+					}
+				}
+
+			}
+
+		}
 
 		return nil
 	}
