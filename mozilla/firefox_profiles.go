@@ -169,3 +169,5 @@ func initFirefoxConfig() {
 func init() {
 	config.RegisterConfReadyHooks(initFirefoxConfig)
 }
+
+//TODO: fix error bookmark path on loading
