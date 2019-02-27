@@ -5,43 +5,65 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/fatih/structs"
-	"github.com/mitchellh/mapstructure"
 )
 
 var (
 	log            = logging.GetLogger("CONF")
 	ConfReadyHooks []func()
-	GlobalConfig   = Config{}
-	C              = GlobalConfig
+	configs        = make(map[string]Configurator)
 )
 
 const (
-	ConfigFile = "config.toml"
+	ConfigFile       = "config.toml"
+	GlobalConfigName = "global"
 )
 
+type Configurator interface {
+	Set(opt string, v interface{}) error
+	Get(opt string) (interface{}, error)
+	Dump() map[string]interface{}
+	MapFrom(interface{}) error
+}
+
+// Used to store the global config
 type Config map[string]interface{}
 
-// Map a config to destination struct
-func (c Config) MapTo(module string, dest interface{}) error {
-	return mapstructure.Decode(c[module], dest)
+func (c Config) Set(opt string, v interface{}) error {
+	c[opt] = v
+	return nil
+}
+
+func (c Config) Get(opt string) (interface{}, error) {
+	return c[opt], nil
+}
+
+func (c Config) Dump() map[string]interface{} {
+	return c
+}
+
+func (c Config) MapFrom(src interface{}) error {
+	// Not used here
+	return nil
 }
 
 func RegisterGlobalOption(key string, val interface{}) {
 	log.Debugf("Registring global option %s = %v", key, val)
-	C[key] = val
+	configs[GlobalConfigName].Set(key, val)
 }
 
-func RegisterBrowserConf(module string, val interface{}) {
+func RegisterModuleOpt(module string, opt string, val interface{}) {
+	log.Debugf("adding option %s = %s", opt, val)
+	dest := configs[module]
+	dest.Set(opt, val)
+}
 
-	// Use global conf func instead
-	if module == "" {
-		return
+// Get all configs as a map[string]interface{}
+func GetAll() Config {
+	result := make(Config)
+	for k, c := range configs {
+		result[k] = c
 	}
-
-	// Store option in a config submodule
-	log.Debugf("Registering conf module <%s>  = %v", module, val)
-	C[module] = val
+	return result
 }
 
 func InitConfigFile() error {
@@ -50,8 +72,10 @@ func InitConfigFile() error {
 		return err
 	}
 
+	allConf := GetAll()
+
 	tomlEncoder := toml.NewEncoder(configFile)
-	err = tomlEncoder.Encode(&C)
+	err = tomlEncoder.Encode(&allConf)
 	if err != nil {
 		return err
 	}
@@ -59,22 +83,19 @@ func InitConfigFile() error {
 	return nil
 }
 
-func LoadConfigFile() (Config, error) {
-	_, err := toml.DecodeFile(ConfigFile, &C)
+// TODO: parse config back to each module conf
+func LoadFromTomlFile() error {
+	dest := make(Config)
+	_, err := toml.DecodeFile(ConfigFile, &dest)
 
-	return C, err
-}
-
-// Copies a src struct to dest struct
-func MapConfStruct(src interface{}, dst interface{}) {
-	s := structs.New(src)
-	d := structs.New(dst)
-	for _, f := range s.Fields() {
-		if f.IsExported() {
-			dF := d.Field(f.Name())
-			dF.Set(f.Value())
+	for k, val := range dest {
+		// send the conf to its own module
+		if _, ok := configs[k]; ok {
+			configs[k].MapFrom(val)
 		}
 	}
+
+	return err
 }
 
 func RegisterConfReadyHooks(hooks ...func()) {
@@ -87,4 +108,15 @@ func RunConfHooks() {
 	for _, f := range ConfReadyHooks {
 		f()
 	}
+}
+
+func RegisterConfigurator(name string, c Configurator) {
+	log.Debugf("Registering configurator %s", name)
+	configs[name] = c
+}
+
+func init() {
+	// Initialize the global config
+	configs[GlobalConfigName] = make(Config)
+
 }

@@ -10,6 +10,7 @@ import (
 	"gomark/config"
 	"os"
 
+	"github.com/urfave/cli/altsrc"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -19,6 +20,9 @@ func main() {
 	app.Version = "1.0"
 
 	flags := []cli.Flag{
+		altsrc.NewStringFlag(cli.StringFlag{
+			Name: "firefox.DefaultProfile",
+		}),
 
 		cli.StringFlag{
 			Name:  "config",
@@ -33,6 +37,7 @@ func main() {
 		if err != nil {
 			return err
 		}
+		//log.Warning(c.GlobalString("firefox.DefaultProfile"))
 
 		// Execute config hooks
 		config.RunConfHooks()

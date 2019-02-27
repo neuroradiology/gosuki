@@ -1,12 +1,21 @@
 package mozilla
 
 import (
+	"fmt"
+	"gomark/config"
 	"gomark/database"
+
+	"github.com/fatih/structs"
+	"github.com/mitchellh/mapstructure"
+)
+
+const (
+	ConfigName = "firefox"
 )
 
 var (
 	// user mutable config
-	Config *FirefoxConfig
+	Config = FirefoxDefaultConfig
 
 	// Bookmark directory (including profile path)
 	bookmarkDir string
@@ -18,6 +27,40 @@ type FirefoxConfig struct {
 	PlacesDSN        database.DsnOptions
 	WatchAllProfiles bool
 	DefaultProfile   string
+}
+
+func (fc *FirefoxConfig) Set(opt string, v interface{}) error {
+	s := structs.New(fc)
+	f, ok := s.FieldOk(opt)
+	if !ok {
+		return fmt.Errorf("%s option not defined", opt)
+	}
+
+	return f.Set(v)
+}
+
+func (fc *FirefoxConfig) Get(opt string) (interface{}, error) {
+	s := structs.New(fc)
+	f, ok := s.FieldOk(opt)
+	if !ok {
+		return nil, fmt.Errorf("%s option not defined", opt)
+	}
+
+	return f.Value(), nil
+}
+
+func (fc *FirefoxConfig) Dump() map[string]interface{} {
+	s := structs.New(fc)
+	return s.Map()
+}
+
+func (fc *FirefoxConfig) String() string {
+	s := structs.New(fc)
+	return fmt.Sprintf("%v", s.Map())
+}
+
+func (fc *FirefoxConfig) MapFrom(src interface{}) error {
+	return mapstructure.Decode(src, fc)
 }
 
 func SetBookmarkDir(dir string) {
@@ -33,5 +76,5 @@ func SetConfig(c *FirefoxConfig) {
 }
 
 func init() {
-	Config = new(FirefoxConfig)
+	config.RegisterConfigurator(ConfigName, Config)
 }
