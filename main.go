@@ -25,7 +25,7 @@ func main() {
 		}),
 
 		cli.StringFlag{
-			Name:  "config",
+			Name:  "config-file",
 			Value: config.ConfigFile,
 			Usage: "TOML config `FILE` path",
 		},
@@ -53,6 +53,7 @@ func main() {
 	app.Commands = []cli.Command{
 		startServerCmd,
 		cmd.FirefoxCmds,
+		cmd.ConfigCmds,
 	}
 
 	if err := app.Run(os.Args); err != nil {
