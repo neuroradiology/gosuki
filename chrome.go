@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gomark/chrome"
 	"gomark/database"
 	"gomark/parsing"
 	"gomark/tree"
@@ -17,8 +18,7 @@ import (
 
 //TODO: replace with new profile manager
 var ChromeData = BrowserPaths{
-	BookmarkFile: "Bookmarks",
-	BookmarkDir:  "/home/spike/.config/google-chrome-unstable/Default/",
+	BookmarkDir: "/home/spike/.config/google-chrome-unstable/Default/",
 }
 
 var jsonNodeTypes = struct {
@@ -86,7 +86,7 @@ func NewChromeBrowser() IBrowser {
 	browser.name = "chrome"
 	browser.bType = TChrome
 	browser.baseDir = ChromeData.BookmarkDir
-	browser.bkFile = ChromeData.BookmarkFile
+	browser.bkFile = chrome.BookmarkFile
 	browser.Stats = new(parsing.Stats)
 	browser.NodeTree = &tree.Node{Name: "root", Parent: nil, Type: "root"}
 	browser.useFileWatcher = true
@@ -116,7 +116,6 @@ func (bw *ChromeBrowser) Watch() bool {
 }
 
 func (bw *ChromeBrowser) Init() error {
-	log.Debug("chrome init")
 	return bw.BaseBrowser.Init()
 }
 

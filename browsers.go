@@ -13,7 +13,6 @@ import (
 	"gomark/database"
 	"gomark/index"
 	"gomark/parsing"
-	"gomark/profiles"
 	"gomark/tree"
 	"gomark/watch"
 	"io"
@@ -49,7 +48,9 @@ type BrowserPaths struct {
 
 type IBrowser interface {
 	IWatchable
-	Init() error // browser initializiation goes here
+
+	Name() string // Browser name
+	Init() error  // browser initializiation goes here
 	RegisterHooks(...parsing.Hook)
 	Load() error // Loads bookmarks to db without watching
 	Shutdown()   // Graceful shutdown, it should call the BaseBrowser.Close()
@@ -96,9 +97,6 @@ type BaseBrowser struct {
 
 	baseInit   bool
 	bufferInit bool
-
-	//TODO: profile manager here
-	ProfileManager profiles.ProfileManager
 }
 
 func (bw *BaseBrowser) GetWatcher() *Watcher {
@@ -109,8 +107,12 @@ func (bw *BaseBrowser) GetWatcher() *Watcher {
 	}
 	return nil
 }
+
+func (bw *BaseBrowser) Name() string {
+	return bw.name
+}
+
 func (bw *BaseBrowser) Load() error {
-	log.Debug("base loader")
 
 	if !bw.baseInit {
 		return fmt.Errorf("base init on <%s> missing, call Init() on BaseBrowser !", bw.name)
@@ -194,13 +196,15 @@ func (bw *BaseBrowser) ResetWatcher() {
 }
 
 func (bw *BaseBrowser) Close() error {
-	err := bw.watcher.W.Close()
-	if err != nil {
-		return err
+	if bw.watcher != nil {
+		err := bw.watcher.W.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	if bw.bufferInit {
-		err = bw.BufferDB.Close()
+		err := bw.BufferDB.Close()
 		if err != nil {
 			return err
 		}
@@ -218,7 +222,6 @@ func (b *BaseBrowser) Shutdown() {
 }
 
 func (b *BaseBrowser) Init() error {
-	log.Debug("base init")
 
 	// Init browser buffer
 	err := b.initBuffer()
@@ -236,7 +239,7 @@ func (b *BaseBrowser) Init() error {
 }
 
 func (b *BaseBrowser) RebuildIndex() {
-	log.Debugf("Rebuilding index based on current nodeTree")
+	log.Debugf("<%s> rebuilding index based on current nodeTree", b.name)
 	b.URLIndex = index.NewIndex()
 	tree.WalkBuildIndex(b.NodeTree, b.URLIndex)
 }
@@ -268,7 +271,7 @@ func (b *BaseBrowser) initBuffer() error {
 }
 
 func (b *BaseBrowser) RegisterHooks(hooks ...parsing.Hook) {
-	log.Debug("Registering hooks")
+	log.Debugf("<%s> registering hooks", b.name)
 	for _, hook := range hooks {
 		b.parseHooks = append(b.parseHooks, hook)
 	}

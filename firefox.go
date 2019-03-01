@@ -137,13 +137,17 @@ func NewFFBrowser() IBrowser {
 }
 
 func (bw *FFBrowser) Shutdown() {
+	fflog.Debugf("shutting down ... ")
 
-	err := bw.places.Close()
-	if err != nil {
-		fflog.Critical(err)
+	if bw.places != nil {
+
+		err := bw.places.Close()
+		if err != nil {
+			fflog.Critical(err)
+		}
+
 	}
 
-	fflog.Debugf("shutting down ... ")
 	bw.BaseBrowser.Shutdown()
 }
 
@@ -160,7 +164,6 @@ func (bw *FFBrowser) Watch() bool {
 }
 
 func (browser *FFBrowser) Init() error {
-	log.Debug("ff init")
 
 	// Initialize `places.sqlite`
 	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
