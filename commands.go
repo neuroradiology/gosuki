@@ -43,7 +43,21 @@ func startServer(c *cli.Context) {
 	for _, b := range browsers {
 		defer b.Shutdown()
 		b.RegisterHooks(parsing.ParseTags)
-		b.Load()
+
+		err := b.Init()
+		if err != nil {
+			log.Critical(err)
+			b.Shutdown()
+			continue
+		}
+
+		err = b.Load()
+		if err != nil {
+			log.Critical(err)
+			b.Shutdown()
+			continue
+		}
+
 		b.Watch()
 	}
 
