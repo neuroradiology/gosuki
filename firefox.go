@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"gomark/browsers"
 	"gomark/database"
 	"gomark/mozilla"
 	"gomark/parsing"
@@ -124,11 +125,11 @@ func FFPlacesUpdateHook(op int, db string, table string, rowid int64) {
 func NewFFBrowser() IBrowser {
 
 	browser := new(FFBrowser)
-	browser.name = "firefox"
-	browser.bType = TFirefox
-	browser.bkFile = mozilla.BookmarkFile
-	browser.baseDir = mozilla.GetBookmarkDir()
-	browser.useFileWatcher = true
+	browser.Name = "firefox"
+	browser.Type = browsers.TFirefox
+	browser.BkFile = mozilla.BookmarkFile
+	browser.BaseDir = mozilla.GetBookmarkDir()
+	browser.UseFileWatcher = true
 	browser.Stats = &parsing.Stats{}
 	browser.NodeTree = &tree.Node{Name: "root", Parent: nil, Type: "root"}
 	browser.tagMap = make(map[sqlid]*tree.Node)
@@ -153,9 +154,9 @@ func (bw *FFBrowser) Shutdown() {
 
 func (bw *FFBrowser) Watch() bool {
 
-	if !bw.isWatching {
+	if !bw.IsWatching {
 		go watch.WatcherThread(bw)
-		bw.isWatching = true
+		bw.IsWatching = true
 		fflog.Infof("Watching %s", bw.GetBookmarksPath())
 		return true
 	}
@@ -166,7 +167,7 @@ func (bw *FFBrowser) Watch() bool {
 func (browser *FFBrowser) Init() error {
 
 	// Initialize `places.sqlite`
-	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
+	bookmarkPath := path.Join(browser.BaseDir, browser.BkFile)
 
 	// Check if BookmarkPath exists
 	exists, err := utils.CheckFileExists(bookmarkPath)
@@ -201,13 +202,13 @@ func (browser *FFBrowser) Init() error {
 
 	// Setup watcher
 
-	expandedBaseDir, err := filepath.EvalSymlinks(browser.baseDir)
+	expandedBaseDir, err := filepath.EvalSymlinks(browser.BaseDir)
 
 	if err != nil {
 		return err
 	}
 
-	w := &Watch{
+	w := &watch.Watch{
 		Path:       expandedBaseDir,
 		EventTypes: []fsnotify.Op{fsnotify.Write},
 		EventNames: []string{filepath.Join(expandedBaseDir, "places.sqlite-wal")},
@@ -221,9 +222,9 @@ func (browser *FFBrowser) Init() error {
 	 *when a batch of events is received
 	 */
 
-	browser.eventsChan = make(chan fsnotify.Event, EventsChanLen)
+	browser.InitEventsChan()
 
-	go utils.ReduceEvents(MozMinJobInterval, browser.eventsChan, browser)
+	go utils.ReduceEvents(MozMinJobInterval, browser.EventsChan(), browser)
 
 	// Base browser init
 	err = browser.BaseBrowser.Init()
@@ -281,7 +282,7 @@ func getFFBookmarks(bw *FFBrowser) {
 	//
 
 	rows, err := bw.places.Handle.Query(QGetBookmarks, ffBkTags)
-	log.Debugf("%#v", err)
+	//log.Debugf("%#v", err)
 
 	// Locked database is critical
 	if e, ok := err.(sqlite3.Error); ok {

@@ -18,6 +18,9 @@ import (
 var (
 	_sql3conns           []*sqlite3.SQLiteConn // Only used for backup hook
 	backupHookRegistered bool                  // set to true once the backup hook is registered
+
+	// Global cache database
+	CacheDB *DB // Main in memory db, is synced with disc
 )
 
 type Index = *hashmap.RBTree
@@ -427,6 +430,21 @@ func registerSqliteHooks() {
 
 }
 
+func initCache() {
+	var err error
+	// Initialize memory db with schema
+	CacheDB, err = New(CacheName, "", DBTypeCacheDSN).Init()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = CacheDB.InitSchema()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func init() {
+	initCache()
 	registerSqliteHooks()
 }
