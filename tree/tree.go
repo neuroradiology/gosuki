@@ -115,7 +115,7 @@ func WalkBuildIndex(node *Node, index index.HashTree) {
 
 	if len(node.Children) > 0 {
 		for _, node := range node.Children {
-			go WalkBuildIndex(node, index)
+			WalkBuildIndex(node, index)
 		}
 
 	}
