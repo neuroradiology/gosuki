@@ -46,14 +46,14 @@ func startServer(c *cli.Context) {
 
 		err := b.Init()
 		if err != nil {
-			log.Criticalf("<%s> %s", b.Name(), err)
+			log.Criticalf("<%s> %s", b, err)
 			b.Shutdown()
 			continue
 		}
 
 		err = b.Load()
 		if err != nil {
-			log.Criticalf("<%s> %s", b.Name(), err)
+			log.Criticalf("<%s> %s", b, err)
 			b.Shutdown()
 			continue
 		}

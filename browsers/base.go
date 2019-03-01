@@ -6,12 +6,13 @@
 //
 // You must then implement a `func New[BrowserType]() IBrowser` function and
 // implement parsing.
-package main
+package browsers
 
 import (
 	"fmt"
 	"gomark/database"
 	"gomark/index"
+	"gomark/logging"
 	"gomark/parsing"
 	"gomark/tree"
 	"gomark/watch"
@@ -27,6 +28,9 @@ import (
 type IWatchable = watch.Watchable
 type Watcher = watch.Watcher
 type Watch = watch.Watch
+
+var log = logging.GetLogger("BASE")
+var CacheDB = database.CacheDB
 
 type BrowserType uint8
 
@@ -49,8 +53,7 @@ type BrowserPaths struct {
 type IBrowser interface {
 	IWatchable
 
-	Name() string // Browser name
-	Init() error  // browser initializiation goes here
+	Init() error // browser initializiation goes here
 	RegisterHooks(...parsing.Hook)
 	Load() error // Loads bookmarks to db without watching
 	Shutdown()   // Graceful shutdown, it should call the BaseBrowser.Close()
@@ -71,12 +74,12 @@ type IBrowser interface {
 type BaseBrowser struct {
 	watcher    *Watcher
 	eventsChan chan fsnotify.Event
-	baseDir    string
-	bkFile     string
+	BaseDir    string
+	BkFile     string
 
 	// In memory sqlite db (named `memcache`).
 	// Used to keep a browser's state of bookmarks across jobs.
-	BufferDB *DB
+	BufferDB *database.DB
 
 	// Fast query db using an RB-Tree hashmap.
 	// It represents a URL index of the last running job
@@ -87,10 +90,10 @@ type BaseBrowser struct {
 	NodeTree *tree.Node
 	// Various parsing and timing stats
 	Stats          *parsing.Stats
-	bType          BrowserType
-	name           string
-	isWatching     bool
-	useFileWatcher bool
+	Type           BrowserType
+	Name           string
+	IsWatching     bool
+	UseFileWatcher bool
 	parseHooks     []parsing.Hook
 
 	io.Closer // Close database connections
@@ -108,37 +111,37 @@ func (bw *BaseBrowser) GetWatcher() *Watcher {
 	return nil
 }
 
-func (bw *BaseBrowser) Name() string {
-	return bw.name
-}
-
 func (bw *BaseBrowser) Load() error {
 
 	if !bw.baseInit {
-		return fmt.Errorf("base init on <%s> missing, call Init() on BaseBrowser !", bw.name)
+		return fmt.Errorf("base init on <%s> missing, call Init() on BaseBrowser !", bw.Name)
 	}
 
 	// Check if cache is initialized
 	if CacheDB == nil || CacheDB.Handle == nil {
-		return fmt.Errorf("<%s> Loading bookmarks while cache not yet initialized !", bw.name)
+		return fmt.Errorf("<%s> Loading bookmarks while cache not yet initialized !", bw.Name)
 	}
 
 	// In case we use other types of watchers/events
-	if bw.useFileWatcher && bw.watcher == nil {
-		return fmt.Errorf("<%s> watcher not initialized, use SetupFileWatcher() when creating the browser !", bw.name)
+	if bw.UseFileWatcher && bw.watcher == nil {
+		return fmt.Errorf("<%s> watcher not initialized, use SetupFileWatcher() when creating the browser !", bw.Name)
 	}
 
-	log.Debugf("<%s> preloading bookmarks", bw.name)
+	log.Debugf("<%s> preloading bookmarks", bw.Name)
 
 	return nil
 }
 
 func (bw *BaseBrowser) GetBookmarksPath() string {
-	path, err := filepath.EvalSymlinks(path.Join(bw.baseDir, bw.bkFile))
+	path, err := filepath.EvalSymlinks(path.Join(bw.BaseDir, bw.BkFile))
 	if err != nil {
 		log.Error(err)
 	}
 	return path
+}
+
+func (bw *BaseBrowser) InitEventsChan() {
+	bw.eventsChan = make(chan fsnotify.Event, EventsChanLen)
 }
 
 func (bw *BaseBrowser) EventsChan() chan fsnotify.Event {
@@ -146,14 +149,14 @@ func (bw *BaseBrowser) EventsChan() chan fsnotify.Event {
 }
 
 func (bw *BaseBrowser) GetDir() string {
-	return bw.baseDir
+	return bw.BaseDir
 }
 
 // Setup file watcher using the provided []Watch elements
 func (bw *BaseBrowser) SetupFileWatcher(watches ...*Watch) {
 	var err error
 
-	if !bw.useFileWatcher {
+	if !bw.UseFileWatcher {
 		return
 	}
 
@@ -239,7 +242,7 @@ func (b *BaseBrowser) Init() error {
 }
 
 func (b *BaseBrowser) RebuildIndex() {
-	log.Debugf("<%s> rebuilding index based on current nodeTree", b.name)
+	log.Debugf("<%s> rebuilding index based on current nodeTree", b.Name)
 	b.URLIndex = index.NewIndex()
 	tree.WalkBuildIndex(b.NodeTree, b.URLIndex)
 }
@@ -256,7 +259,7 @@ func (b *BaseBrowser) RebuildNodeTree() {
 func (b *BaseBrowser) initBuffer() error {
 	var err error
 
-	bufferName := fmt.Sprintf("buffer_%s", b.name)
+	bufferName := fmt.Sprintf("buffer_%s", b.Name)
 	b.BufferDB, err = database.New(bufferName, "", database.DBTypeInMemoryDSN).Init()
 	if err != nil {
 		return err
@@ -271,7 +274,7 @@ func (b *BaseBrowser) initBuffer() error {
 }
 
 func (b *BaseBrowser) RegisterHooks(hooks ...parsing.Hook) {
-	log.Debugf("<%s> registering hooks", b.name)
+	log.Debugf("<%s> registering hooks", b.Name)
 	for _, hook := range hooks {
 		b.parseHooks = append(b.parseHooks, hook)
 	}
@@ -289,7 +292,7 @@ func (b *BaseBrowser) HasReducer() bool {
 }
 
 func (b *BaseBrowser) String() string {
-	return b.name
+	return b.Name
 }
 
 // Runs browsed defined hooks on bookmark

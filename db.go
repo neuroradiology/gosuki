@@ -9,22 +9,10 @@ import (
 type DB = database.DB
 
 // Global cache database
-var (
-	CacheDB *DB // Main in memory db, is synced with disc
-)
+var CacheDB = database.CacheDB
 
 func initDB() {
 	var err error
-	// Initialize memory db with schema
-	CacheDB, err = database.New(database.CacheName, "", database.DBTypeCacheDSN).Init()
-	if err != nil {
-		log.Critical(err)
-	}
-
-	err = CacheDB.InitSchema()
-	if err != nil {
-		log.Critical(err)
-	}
 
 	// Check and initialize local db as last step
 	// browser bookmarks should already be in cache

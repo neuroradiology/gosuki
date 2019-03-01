@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gomark/browsers"
 	"gomark/chrome"
 	"gomark/database"
 	"gomark/parsing"
@@ -16,8 +17,11 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+type BaseBrowser = browsers.BaseBrowser
+type IBrowser = browsers.IBrowser
+
 //TODO: replace with new profile manager
-var ChromeData = BrowserPaths{
+var ChromeData = browsers.BrowserPaths{
 	BookmarkDir: "/home/spike/.config/google-chrome-unstable/Default/",
 }
 
@@ -83,20 +87,20 @@ func (rawNode *RawNode) getNode() *tree.Node {
 
 func NewChromeBrowser() IBrowser {
 	browser := new(ChromeBrowser)
-	browser.name = "chrome"
-	browser.bType = TChrome
-	browser.baseDir = ChromeData.BookmarkDir
-	browser.bkFile = chrome.BookmarkFile
+	browser.Name = "chrome"
+	browser.Type = browsers.TChrome
+	browser.BaseDir = ChromeData.BookmarkDir
+	browser.BkFile = chrome.BookmarkFile
 	browser.Stats = new(parsing.Stats)
 	browser.NodeTree = &tree.Node{Name: "root", Parent: nil, Type: "root"}
-	browser.useFileWatcher = true
+	browser.UseFileWatcher = true
 
 	// Create watch objects, we will watch the basedir for create events
 	watchedEvents := []fsnotify.Op{fsnotify.Create}
-	w := &Watch{
-		Path:       browser.baseDir,
+	w := &watch.Watch{
+		Path:       browser.BaseDir,
 		EventTypes: watchedEvents,
-		EventNames: []string{path.Join(browser.baseDir, browser.bkFile)},
+		EventNames: []string{path.Join(browser.BaseDir, browser.BkFile)},
 		ResetWatch: true,
 	}
 	browser.SetupFileWatcher(w)
@@ -105,10 +109,10 @@ func NewChromeBrowser() IBrowser {
 }
 
 func (bw *ChromeBrowser) Watch() bool {
-	if !bw.isWatching {
+	if !bw.IsWatching {
 		go watch.WatcherThread(bw)
-		bw.isWatching = true
-		log.Infof("<%s> Watching %s", bw.name, bw.GetBookmarksPath())
+		bw.IsWatching = true
+		log.Infof("<%s> Watching %s", bw.Name, bw.GetBookmarksPath())
 		return true
 	}
 
@@ -139,7 +143,7 @@ func (bw *ChromeBrowser) Run() {
 	bw.RebuildNodeTree()
 
 	// Load bookmark file
-	bookmarkPath := path.Join(bw.baseDir, bw.bkFile)
+	bookmarkPath := path.Join(bw.BaseDir, bw.BkFile)
 	f, err := ioutil.ReadFile(bookmarkPath)
 	if err != nil {
 		log.Critical(err)
@@ -299,7 +303,7 @@ func (bw *ChromeBrowser) Run() {
 	// Start a new node tree building job
 	jsonparser.ObjectEach(rootsData, jsonParseRoots)
 	bw.Stats.LastFullTreeParseTime = time.Since(startRun)
-	log.Debugf("<%s> parsed tree in %s", bw.name, bw.Stats.LastFullTreeParseTime)
+	log.Debugf("<%s> parsed tree in %s", bw.Name, bw.Stats.LastFullTreeParseTime)
 	// Finished node tree building job
 
 	// Debug walk tree
@@ -309,17 +313,17 @@ func (bw *ChromeBrowser) Run() {
 	bw.RebuildIndex()
 
 	// Finished parsing
-	log.Debugf("<%s> parsed %d bookmarks and %d nodes", bw.name, bw.Stats.CurrentUrlCount, bw.Stats.CurrentNodeCount)
+	log.Debugf("<%s> parsed %d bookmarks and %d nodes", bw.Name, bw.Stats.CurrentUrlCount, bw.Stats.CurrentNodeCount)
 	// Reset parser counter
 	bw.ResetStats()
 
 	//Add nodeTree to Cache
-	//log.Debugf("<%s> buffer content", bw.name)
+	//log.Debugf("<%s> buffer content", bw.Name)
 	//bw.BufferDB.Print()
 
-	log.Debugf("<%s> syncing to buffer", bw.name)
+	log.Debugf("<%s> syncing to buffer", bw.Name)
 	database.SyncTreeToBuffer(bw.NodeTree, bw.BufferDB)
-	log.Debugf("<%s> tree synced to buffer", bw.name)
+	log.Debugf("<%s> tree synced to buffer", bw.Name)
 
 	//bw.BufferDB.Print()
 
