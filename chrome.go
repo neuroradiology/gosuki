@@ -15,6 +15,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+//TODO: replace with new profile manager
 var ChromeData = BrowserPaths{
 	BookmarkFile: "Bookmarks",
 	BookmarkDir:  "/home/spike/.config/google-chrome-unstable/Default/",

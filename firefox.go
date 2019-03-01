@@ -53,12 +53,6 @@ const (
 )
 
 var (
-	Firefox = BrowserPaths{
-
-		BookmarkFile: mozilla.BookmarkFile,
-		BookmarkDir:  mozilla.GetBookmarkDir(),
-	}
-
 	ErrInitFirefox = errors.New("Could not start Firefox watcher")
 )
 
@@ -132,8 +126,8 @@ func NewFFBrowser() IBrowser {
 	browser := new(FFBrowser)
 	browser.name = "firefox"
 	browser.bType = TFirefox
-	browser.baseDir = Firefox.BookmarkDir
-	browser.bkFile = Firefox.BookmarkFile
+	browser.bkFile = mozilla.BookmarkFile
+	browser.baseDir = mozilla.GetBookmarkDir()
 	browser.useFileWatcher = true
 	browser.Stats = &parsing.Stats{}
 	browser.NodeTree = &tree.Node{Name: "root", Parent: nil, Type: "root"}

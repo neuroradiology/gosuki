@@ -65,6 +65,7 @@ func (fc *FirefoxConfig) MapFrom(src interface{}) error {
 }
 
 func SetBookmarkDir(dir string) {
+	log.Debugf("setting bookmark dir to %s", dir)
 	bookmarkDir = dir
 }
 
