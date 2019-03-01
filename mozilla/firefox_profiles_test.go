@@ -4,23 +4,17 @@ import (
 	"testing"
 )
 
-var OkProfile = &ProfileGetter{
+var OkProfile = &INIProfileLoader{
 	BasePath:     "testdata",
 	ProfilesFile: "profiles_ok.ini",
 }
 
-var BadProfile = &ProfileGetter{
+var BadProfile = &INIProfileLoader{
 	BasePath:     "testdata",
 	ProfilesFile: "profiles_bad.ini",
 }
 
 func TestListProfiles(t *testing.T) {
-	//_, filename, _, _ := runtime.Caller(0)
-	//dir, err := filepath.Abs(filepath.Dir(filename))
-	//if err != nil {
-	//t.Error(err)
-	//}
-	//t.Error(dir)
 	t.Run("OK", func(t *testing.T) {
 		pm := &FFProfileManager{
 			pathGetter: OkProfile,

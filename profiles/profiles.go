@@ -29,11 +29,11 @@ type PathGetter interface {
 	Get() string
 }
 
-type ProfileGetter struct {
+type INIProfileLoader struct {
 	BasePath     string
 	ProfilesFile string
 }
 
-func (pg *ProfileGetter) Get() string {
+func (pg *INIProfileLoader) Get() string {
 	return filepath.Join(pg.BasePath, pg.ProfilesFile)
 }

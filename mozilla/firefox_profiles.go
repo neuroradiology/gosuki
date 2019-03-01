@@ -15,7 +15,7 @@ import (
 )
 
 type ProfileManager = profiles.ProfileManager
-type ProfileGetter = profiles.ProfileGetter
+type INIProfileLoader = profiles.INIProfileLoader
 type PathGetter = profiles.PathGetter
 
 const (
@@ -25,7 +25,7 @@ const (
 var (
 	ReIniProfiles = regexp.MustCompile(`(?i)profile`)
 
-	firefoxProfile = &ProfileGetter{
+	firefoxProfile = &INIProfileLoader{
 		//BasePath to be set at runtime in init
 		ProfilesFile: ProfilesFile,
 	}
