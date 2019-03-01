@@ -91,9 +91,6 @@ func NewChromeBrowser() IBrowser {
 	browser.NodeTree = &tree.Node{Name: "root", Parent: nil, Type: "root"}
 	browser.useFileWatcher = true
 
-	// Across jobs buffer
-	browser.InitBuffer()
-
 	// Create watch objects, we will watch the basedir for create events
 	watchedEvents := []fsnotify.Op{fsnotify.Create}
 	w := &Watch{
@@ -118,11 +115,22 @@ func (bw *ChromeBrowser) Watch() bool {
 	return false
 }
 
-func (bw *ChromeBrowser) Load() {
+func (bw *ChromeBrowser) Init() error {
+	log.Debug("chrome init")
+	return bw.BaseBrowser.Init()
+}
+
+func (bw *ChromeBrowser) Load() error {
 
 	// BaseBrowser load method
-	bw.BaseBrowser.Load()
+	err := bw.BaseBrowser.Load()
+	if err != nil {
+		return err
+	}
+
 	bw.Run()
+
+	return nil
 }
 
 func (bw *ChromeBrowser) Run() {

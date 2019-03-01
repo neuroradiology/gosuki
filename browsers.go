@@ -13,6 +13,7 @@ import (
 	"gomark/database"
 	"gomark/index"
 	"gomark/parsing"
+	"gomark/profiles"
 	"gomark/tree"
 	"gomark/watch"
 	"io"
@@ -48,11 +49,10 @@ type BrowserPaths struct {
 
 type IBrowser interface {
 	IWatchable
-	InitBuffer() error // init buffer db, TODO: defer closings and shutdown
-	InitIndex()        // Creates in memory Index (RB-Tree)
+	Init() error // browser initializiation goes here
 	RegisterHooks(...parsing.Hook)
-	Load()     // Loads bookmarks to db without watching
-	Shutdown() // Graceful shutdown, it should call the BaseBrowser.Close()
+	Load() error // Loads bookmarks to db without watching
+	Shutdown()   // Graceful shutdown, it should call the BaseBrowser.Close()
 }
 
 // Base browser class serves as reference for implmented browser types
@@ -93,6 +93,12 @@ type BaseBrowser struct {
 	parseHooks     []parsing.Hook
 
 	io.Closer // Close database connections
+
+	baseInit   bool
+	bufferInit bool
+
+	//TODO: profile manager here
+	ProfileManager profiles.ProfileManager
 }
 
 func (bw *BaseBrowser) GetWatcher() *Watcher {
@@ -103,22 +109,26 @@ func (bw *BaseBrowser) GetWatcher() *Watcher {
 	}
 	return nil
 }
-func (bw *BaseBrowser) Load() {
-	log.Debug("BaseBrowser Load()")
+func (bw *BaseBrowser) Load() error {
+	log.Debug("base loader")
 
-	bw.InitIndex()
+	if !bw.baseInit {
+		return fmt.Errorf("base init on <%s> missing, call Init() on BaseBrowser !", bw.name)
+	}
 
 	// Check if cache is initialized
 	if CacheDB == nil || CacheDB.Handle == nil {
-		log.Criticalf("<%s> Loading bookmarks while cache not yet initialized !", bw.name)
+		return fmt.Errorf("<%s> Loading bookmarks while cache not yet initialized !", bw.name)
 	}
 
 	// In case we use other types of watchers/events
 	if bw.useFileWatcher && bw.watcher == nil {
-		log.Warningf("<%s> watcher not initialized, use SetupFileWatcher() when creating the browser !", bw.name)
+		return fmt.Errorf("<%s> watcher not initialized, use SetupFileWatcher() when creating the browser !", bw.name)
 	}
 
 	log.Debugf("<%s> preloading bookmarks", bw.name)
+
+	return nil
 }
 
 func (bw *BaseBrowser) GetBookmarksPath() string {
@@ -189,23 +199,40 @@ func (bw *BaseBrowser) Close() error {
 		return err
 	}
 
-	err = bw.BufferDB.Close()
-	if err != nil {
-		return err
+	if bw.bufferInit {
+		err = bw.BufferDB.Close()
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil
 }
 
-func (bw *BaseBrowser) Shutdown() {
-	err := bw.Close()
+func (b *BaseBrowser) Shutdown() {
+	err := b.Close()
 	if err != nil {
 		log.Critical(err)
 	}
 }
 
-func (b *BaseBrowser) InitIndex() {
+func (b *BaseBrowser) Init() error {
+	log.Debug("base init")
+
+	// Init browser buffer
+	err := b.initBuffer()
+	if err != nil {
+		return err
+	}
+	b.bufferInit = true
+
+	// Creates in memory Index (RB-Tree)
 	b.URLIndex = index.NewIndex()
+
+	b.baseInit = true
+
+	return nil
 }
 
 func (b *BaseBrowser) RebuildIndex() {
@@ -222,7 +249,8 @@ func (b *BaseBrowser) RebuildNodeTree() {
 	}
 }
 
-func (b *BaseBrowser) InitBuffer() error {
+// init buffer db, TODO: defer closings and shutdown
+func (b *BaseBrowser) initBuffer() error {
 	var err error
 
 	bufferName := fmt.Sprintf("buffer_%s", b.name)

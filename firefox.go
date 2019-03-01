@@ -5,6 +5,7 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"gomark/database"
 	"gomark/mozilla"
 	"gomark/parsing"
@@ -121,7 +122,6 @@ func FFPlacesUpdateHook(op int, db string, table string, rowid int64) {
 // In case of critical errors degrade the browser to only log errors and disable
 // all directives
 func NewFFBrowser() IBrowser {
-	var err error
 
 	browser := new(FFBrowser)
 	browser.name = "firefox"
@@ -132,76 +132,6 @@ func NewFFBrowser() IBrowser {
 	browser.Stats = &parsing.Stats{}
 	browser.NodeTree = &tree.Node{Name: "root", Parent: nil, Type: "root"}
 	browser.tagMap = make(map[sqlid]*tree.Node)
-
-	// Initialize `places.sqlite`
-	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
-
-	// Check if BookmarkPath exists
-	exists, err := utils.CheckFileExists(bookmarkPath)
-	if err != nil {
-		log.Critical(err)
-		log.Critical(ErrInitFirefox)
-		return nil
-	}
-	if !exists {
-		log.Criticalf("Bookmark path <%s> does not exist", bookmarkPath)
-		log.Critical(ErrInitFirefox)
-		return nil
-	}
-
-	opts := mozilla.Config.PlacesDSN
-
-	browser.places, err = database.New("places",
-		bookmarkPath,
-		database.DBTypeFileDSN, opts).Init()
-	if err != nil {
-
-		//Check Lock Error
-		if err == database.ErrVfsLocked {
-			// Try to unlock db
-			e := mozilla.UnlockPlaces()
-			if e != nil {
-				log.Panic(e)
-			}
-		} else {
-			log.Panic(err)
-		}
-	}
-
-	// Buffer that lives accross Run() jobs
-	browser.InitBuffer()
-
-	// Setup watcher
-
-	expandedBaseDir, err := filepath.EvalSymlinks(browser.baseDir)
-
-	if err != nil {
-		log.Critical(err)
-	}
-
-	w := &Watch{
-		Path:       expandedBaseDir,
-		EventTypes: []fsnotify.Op{fsnotify.Write},
-		EventNames: []string{filepath.Join(expandedBaseDir, "places.sqlite-wal")},
-		ResetWatch: false,
-	}
-
-	browser.SetupFileWatcher(w)
-
-	/*
-	 *Run reducer to avoid duplicate running of jobs
-	 *when a batch of events is received
-	 */
-
-	browser.eventsChan = make(chan fsnotify.Event, EventsChanLen)
-
-	go utils.ReduceEvents(MozMinJobInterval, browser.eventsChan, browser)
-
-	//
-	//
-	//
-	//
-	//
 
 	return browser
 }
@@ -229,8 +159,80 @@ func (bw *FFBrowser) Watch() bool {
 	return false
 }
 
-func (bw *FFBrowser) Load() {
-	bw.BaseBrowser.Load()
+func (browser *FFBrowser) Init() error {
+	log.Debug("ff init")
+
+	// Initialize `places.sqlite`
+	bookmarkPath := path.Join(browser.baseDir, browser.bkFile)
+
+	// Check if BookmarkPath exists
+	exists, err := utils.CheckFileExists(bookmarkPath)
+	if err != nil {
+		log.Critical(err)
+		return ErrInitFirefox
+	}
+
+	if !exists {
+		return fmt.Errorf("Bookmark path <%s> does not exist", bookmarkPath)
+	}
+
+	opts := mozilla.Config.PlacesDSN
+
+	browser.places, err = database.New("places",
+		bookmarkPath,
+		database.DBTypeFileDSN, opts).Init()
+	if err != nil {
+
+		//Check Lock Error
+		if err == database.ErrVfsLocked {
+			// Try to unlock db
+			e := mozilla.UnlockPlaces()
+			if e != nil {
+				return e
+			}
+		} else {
+			return err
+
+		}
+	}
+
+	// Setup watcher
+
+	expandedBaseDir, err := filepath.EvalSymlinks(browser.baseDir)
+
+	if err != nil {
+		return err
+	}
+
+	w := &Watch{
+		Path:       expandedBaseDir,
+		EventTypes: []fsnotify.Op{fsnotify.Write},
+		EventNames: []string{filepath.Join(expandedBaseDir, "places.sqlite-wal")},
+		ResetWatch: false,
+	}
+
+	browser.SetupFileWatcher(w)
+
+	/*
+	 *Run reducer to avoid duplicate running of jobs
+	 *when a batch of events is received
+	 */
+
+	browser.eventsChan = make(chan fsnotify.Event, EventsChanLen)
+
+	go utils.ReduceEvents(MozMinJobInterval, browser.eventsChan, browser)
+
+	// Base browser init
+	err = browser.BaseBrowser.Init()
+
+	return err
+}
+
+func (bw *FFBrowser) Load() error {
+	err := bw.BaseBrowser.Load()
+	if err != nil {
+		return err
+	}
 
 	// Parse bookmarks to a flat tree (for compatibility with tree system)
 	start := time.Now()
@@ -266,6 +268,8 @@ func (bw *FFBrowser) Load() {
 		bw.BufferDB.SyncTo(CacheDB)
 	}
 	go CacheDB.SyncToDisk(database.GetDBFullPath())
+
+	return err
 }
 
 func getFFBookmarks(bw *FFBrowser) {

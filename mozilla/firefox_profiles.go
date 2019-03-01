@@ -7,6 +7,7 @@ import (
 	"gomark/config"
 	"gomark/profiles"
 	"gomark/utils"
+	"os"
 	"path/filepath"
 	"regexp"
 
@@ -22,7 +23,6 @@ const (
 )
 
 var (
-	ConfigFolder  = ".mozilla/firefox"
 	ReIniProfiles = regexp.MustCompile(`(?i)profile`)
 
 	firefoxProfile = &ProfileGetter{
@@ -140,13 +140,13 @@ func (pm *FFProfileManager) ListProfiles() ([]string, error) {
 }
 
 func initFirefoxConfig() {
-	log.Debug("Initializing firefox config")
-	ConfigFolder = filepath.Join(utils.GetHomeDir(), ConfigFolder)
+	log.Debug("initializing firefox config")
+	ConfigFolder = filepath.Join(os.ExpandEnv(ConfigFolder))
 
 	// Check if base folder exists
 	configFolderExists, err := utils.CheckDirExists(ConfigFolder)
 	if !configFolderExists {
-		log.Criticalf("The base firefox folder <%s> does not exist",
+		log.Criticalf("the base firefox folder <%s> does not exist",
 			ConfigFolder)
 	}
 

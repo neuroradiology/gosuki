@@ -9,5 +9,6 @@ const (
 )
 
 var (
-	log = logging.GetLogger("FF")
+	log          = logging.GetLogger("FF")
+	ConfigFolder = "$HOME/.mozilla/firefox"
 )
