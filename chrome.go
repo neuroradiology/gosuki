@@ -37,8 +37,8 @@ type ChromeBrowser struct {
 	BaseBrowser //embedding
 }
 
-type ParseChildFunc func([]byte, jsonparser.ValueType, int, error)
-type RecursiveParseFunc func([]byte, []byte, jsonparser.ValueType, int) error
+type ParseChildJsonFunc func([]byte, jsonparser.ValueType, int, error)
+type RecursiveParseJsonFunc func([]byte, []byte, jsonparser.ValueType, int) error
 
 type RawNode struct {
 	name         []byte
@@ -149,8 +149,8 @@ func (bw *ChromeBrowser) Run() {
 		log.Critical(err)
 	}
 
-	var parseChildren ParseChildFunc
-	var jsonParseRecursive RecursiveParseFunc
+	var parseChildren ParseChildJsonFunc
+	var jsonParseRecursive RecursiveParseJsonFunc
 
 	parseChildren = func(childVal []byte, dataType jsonparser.ValueType, offset int, err error) {
 		if err != nil {
