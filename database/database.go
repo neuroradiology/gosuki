@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"gomark/logging"
-	"gomark/tree"
+	"git.sp4ke.com/sp4ke/gomark/logging"
+	"git.sp4ke.com/sp4ke/gomark/tree"
 	"net/url"
 	"strings"
 

@@ -3,8 +3,8 @@ package cmd
 
 import (
 	"fmt"
-	"gomark/logging"
-	"gomark/mozilla"
+	"git.sp4ke.com/sp4ke/gomark/logging"
+	"git.sp4ke.com/sp4ke/gomark/mozilla"
 	"path/filepath"
 
 	"github.com/urfave/cli/v2"
