@@ -1,7 +1,7 @@
 package config
 
 import (
-	"gomark/logging"
+	"git.sp4ke.com/sp4ke/gomark/logging"
 	"os"
 
 	"github.com/BurntSushi/toml"
