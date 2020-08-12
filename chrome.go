@@ -1,16 +1,17 @@
 package main
 
 import (
-	"gomark/browsers"
-	"gomark/chrome"
-	"gomark/database"
-	"gomark/parsing"
-	"gomark/tree"
-	"gomark/utils"
-	"gomark/watch"
 	"io/ioutil"
 	"path"
 	"time"
+
+	"git.sp4ke.com/sp4ke/gomark/browsers"
+	"git.sp4ke.com/sp4ke/gomark/chrome"
+	"git.sp4ke.com/sp4ke/gomark/database"
+	"git.sp4ke.com/sp4ke/gomark/parsing"
+	"git.sp4ke.com/sp4ke/gomark/tree"
+	"git.sp4ke.com/sp4ke/gomark/utils"
+	"git.sp4ke.com/sp4ke/gomark/watch"
 
 	"github.com/OneOfOne/xxhash"
 	"github.com/buger/jsonparser"

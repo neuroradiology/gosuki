@@ -2,9 +2,10 @@ package tree
 
 import (
 	"fmt"
-	"gomark/bookmarks"
-	"gomark/index"
-	"gomark/logging"
+
+	"git.sp4ke.com/sp4ke/gomark/bookmarks"
+	"git.sp4ke.com/sp4ke/gomark/index"
+	"git.sp4ke.com/sp4ke/gomark/logging"
 
 	"github.com/xlab/treeprint"
 )

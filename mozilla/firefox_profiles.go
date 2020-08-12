@@ -3,12 +3,13 @@ package mozilla
 import (
 	"errors"
 	"fmt"
-	"gomark/config"
-	"gomark/profiles"
-	"gomark/utils"
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"git.sp4ke.com/sp4ke/gomark/config"
+	"git.sp4ke.com/sp4ke/gomark/profiles"
+	"git.sp4ke.com/sp4ke/gomark/utils"
 
 	ini "gopkg.in/ini.v1"
 )

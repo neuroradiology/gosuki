@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"gomark/config"
-	"gomark/logging"
-	"gomark/utils"
+	"git.sp4ke.com/sp4ke/gomark/config"
+	"git.sp4ke.com/sp4ke/gomark/logging"
+	"git.sp4ke.com/sp4ke/gomark/utils"
 
-	cli "gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var log = logging.GetLogger("CMD")

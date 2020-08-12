@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"gomark/logging"
-	"gomark/watch"
 	"time"
+
+	"git.sp4ke.com/sp4ke/gomark/logging"
+	"git.sp4ke.com/sp4ke/gomark/watch"
 
 	"github.com/fsnotify/fsnotify"
 )

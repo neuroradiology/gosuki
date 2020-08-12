@@ -1,9 +1,10 @@
 package main
 
 import (
-	"gomark/database"
-	"gomark/utils"
 	"path/filepath"
+
+	"git.sp4ke.com/sp4ke/gomark/database"
+	"git.sp4ke.com/sp4ke/gomark/utils"
 )
 
 type DB = database.DB

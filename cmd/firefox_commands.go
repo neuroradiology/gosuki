@@ -7,7 +7,7 @@ import (
 	"gomark/mozilla"
 	"path/filepath"
 
-	cli "gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var fflog = logging.GetLogger("FF")
