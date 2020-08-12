@@ -6,12 +6,14 @@
 package main
 
 import (
-	"gomark/cmd"
-	"gomark/config"
 	"os"
 
+	"git.sp4ke.com/sp4ke/gomark/config"
+
+	"git.sp4ke.com/sp4ke/gomark/cmd"
+
 	"github.com/urfave/cli/altsrc"
-	cli "gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -19,12 +21,12 @@ func main() {
 	app.Name = "gomark"
 	app.Version = "1.0"
 
-	flags := []cli.Flag{
-		altsrc.NewStringFlag(cli.StringFlag{
+	flags := []*cli.Flag{
+		&altsrc.NewStringFlag(cli.StringFlag{
 			Name: "firefox.DefaultProfile",
 		}),
 
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "config-file",
 			Value: config.ConfigFile,
 			Usage: "TOML config `FILE` path",

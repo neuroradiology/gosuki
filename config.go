@@ -1,8 +1,8 @@
 package main
 
 import (
-	"gomark/config"
-	"gomark/utils"
+	"git.sp4ke.com/sp4ke/gomark/config"
+	"git.sp4ke.com/sp4ke/gomark/utils"
 )
 
 func InitDefaultConfig() {

@@ -3,8 +3,9 @@ package mozilla
 import (
 	"errors"
 	"fmt"
-	"gomark/utils"
 	"path"
+
+	"git.sp4ke.com/sp4ke/gomark/utils"
 )
 
 const (

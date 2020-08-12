@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gomark/logging"
+	"git.sp4ke.com/sp4ke/gomark/logging"
 )
 
 var (

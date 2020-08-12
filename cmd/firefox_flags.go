@@ -1,12 +1,13 @@
 package cmd
 
 import (
-	"gomark/config"
-	"gomark/mozilla"
 	"strings"
 
+	"git.sp4ke.com/sp4ke/gomark/config"
+	"git.sp4ke.com/sp4ke/gomark/mozilla"
+
 	"github.com/gobuffalo/flect"
-	cli "gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 )
 
 var FirefoxGlobalFlags = []cli.Flag{
-	cli.StringFlag{
+	&cli.StringFlag{
 		Name:  FirefoxDefaultProfileFlag,
 		Usage: "Set the default firefox `PROFILE` to use",
 	},

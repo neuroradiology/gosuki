@@ -1,8 +1,8 @@
 package mozilla
 
 import (
-	"gomark/database"
-	"gomark/logging"
+	"git.sp4ke.com/sp4ke/gomark/database"
+	"git.sp4ke.com/sp4ke/gomark/logging"
 )
 
 const (

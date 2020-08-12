@@ -1,12 +1,13 @@
 package main
 
 import (
-	"gomark/bookmarks"
-	"gomark/database"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+
+	"git.sp4ke.com/sp4ke/gomark/bookmarks"
+	"git.sp4ke.com/sp4ke/gomark/database"
 
 	"git.sp4ke.com/sp4ke/gum"
 	"github.com/gin-gonic/gin"
