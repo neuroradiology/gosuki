@@ -22,7 +22,6 @@ require (
 	github.com/shirou/gopsutil v2.20.7+incompatible
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/sp4ke/hashmap v0.0.0-20171130100710-1ac30a6923c3
-	github.com/urfave/cli v1.22.4
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/xlab/treeprint v1.0.0
 	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d
