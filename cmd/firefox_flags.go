@@ -5,6 +5,7 @@ import (
 
 	"git.sp4ke.com/sp4ke/gomark/config"
 	"git.sp4ke.com/sp4ke/gomark/mozilla"
+	"git.sp4ke.com/sp4ke/gomark/utils"
 
 	"github.com/gobuffalo/flect"
 	"github.com/urfave/cli/v2"
@@ -22,14 +23,18 @@ var FirefoxGlobalFlags = []cli.Flag{
 }
 
 func GlobalFirefoxFlagsManager(c *cli.Context) error {
-	flags := c.GlobalFlagNames()
-	for _, f := range flags {
+	for _, f := range c.App.Flags {
 
-		if !c.GlobalIsSet(f) {
+		if utils.Ins(f.Names(), "help") ||
+			utils.Ins(f.Names(), "version") {
 			continue
 		}
 
-		sp := strings.Split(f, "-")
+		if !f.IsSet() {
+			continue
+		}
+
+		sp := strings.Split(f.Names()[0], "-")
 
 		if len(sp) < 2 {
 			continue
@@ -44,13 +49,13 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 
 		// Find the corresponding flag
 		for _, ff := range FirefoxGlobalFlags {
-			if ff.GetName() == f {
+			if ff.String() == f.String() {
 
 				// Type switch on the flag type
 				switch ff.(type) {
 
-				case cli.StringFlag:
-					destVal = c.GlobalString(f)
+				case *cli.StringFlag:
+					destVal = f.Names()[0]
 
 				}
 

@@ -10,14 +10,14 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var startServerCmd = cli.Command{
+var startServerCmd = &cli.Command{
 	Name:    "server",
 	Aliases: []string{"s"},
 	Usage:   "run browser watchers",
 	Action:  startServer,
 }
 
-func startServer(c *cli.Context) {
+func startServer(c *cli.Context) error {
 	manager := gum.NewManager()
 	manager.ShutdownOn(os.Interrupt)
 
@@ -63,4 +63,6 @@ func startServer(c *cli.Context) {
 	}
 
 	<-manager.Quit
+
+	return nil
 }

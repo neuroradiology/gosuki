@@ -12,8 +12,8 @@ import (
 
 	"git.sp4ke.com/sp4ke/gomark/cmd"
 
-	"github.com/urfave/cli/altsrc"
 	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2/altsrc"
 )
 
 func main() {
@@ -21,8 +21,8 @@ func main() {
 	app.Name = "gomark"
 	app.Version = "1.0"
 
-	flags := []*cli.Flag{
-		&altsrc.NewStringFlag(cli.StringFlag{
+	flags := []cli.Flag{
+		altsrc.NewStringFlag(&cli.StringFlag{
 			Name: "firefox.DefaultProfile",
 		}),
 
@@ -39,7 +39,6 @@ func main() {
 		if err != nil {
 			return err
 		}
-		//log.Warning(c.GlobalString("firefox.DefaultProfile"))
 
 		// Execute config hooks
 		config.RunConfHooks()
@@ -52,7 +51,7 @@ func main() {
 		app.Flags = append(app.Flags, f)
 	}
 
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		startServerCmd,
 		cmd.FirefoxCmds,
 		cmd.ConfigCmds,
