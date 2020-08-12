@@ -11,7 +11,7 @@ import (
 	"git.sp4ke.com/sp4ke/gomark/profiles"
 	"git.sp4ke.com/sp4ke/gomark/utils"
 
-	ini "gopkg.in/ini.v1"
+	"github.com/go-ini/ini"
 )
 
 type ProfileManager = profiles.ProfileManager

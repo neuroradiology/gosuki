@@ -10,25 +10,27 @@ import (
 
 var log = logging.GetLogger("CMD")
 
-var cfgPrintCmd = cli.Command{
+var cfgPrintCmd = &cli.Command{
 	Name:    "print",
 	Aliases: []string{"p"},
 	Usage:   "print current config",
 	Action:  printConfig,
 }
 
-var ConfigCmds = cli.Command{
+var ConfigCmds = &cli.Command{
 	Name:  "config",
 	Usage: "get/set config opetions",
-	Subcommands: []cli.Command{
+	Subcommands: []*cli.Command{
 		cfgPrintCmd,
 	},
 }
 
-func printConfig(c *cli.Context) {
+func printConfig(c *cli.Context) error {
 	err := utils.PrettyPrint(config.GetAll())
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 
 }
