@@ -1,8 +1,9 @@
 package main
 
 import (
-	"gomark/parsing"
 	"os"
+
+	"git.sp4ke.com/sp4ke/gomark/parsing"
 
 	"git.sp4ke.com/sp4ke/gum"
 
