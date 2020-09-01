@@ -36,10 +36,10 @@ func startServer(c *cli.Context) error {
 		browsers = append(browsers, ff)
 	}
 
-	cr := NewChromeBrowser()
-	if cr != nil {
-		browsers = append(browsers, cr)
-	}
+	//cr := NewChromeBrowser()
+	//if cr != nil {
+	//browsers = append(browsers, cr)
+	//}
 
 	for _, b := range browsers {
 		defer b.Shutdown()
