@@ -1,3 +1,4 @@
+//TODO: vfs for firefox should be removed in favor of copy/parse method
 package mozilla
 
 import (

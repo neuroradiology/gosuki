@@ -187,18 +187,20 @@ func (browser *FFBrowser) Init() error {
 		bookmarkPath,
 		database.DBTypeFileDSN, opts).Init()
 	if err != nil {
+		//fflog.Error(err)
+		return err
 
 		//Check Lock Error
-		if err == database.ErrVfsLocked {
-			// Try to unlock db
-			e := mozilla.UnlockPlaces()
-			if e != nil {
-				return e
-			}
-		} else {
-			return err
+		//if err == database.ErrVfsLocked {
+		//// Try to unlock db
+		//e := mozilla.UnlockPlaces()
+		//if e != nil {
+		//return e
+		//}
+		//} else {
+		//return err
 
-		}
+		//}
 	}
 
 	// Setup watcher

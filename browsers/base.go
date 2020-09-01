@@ -223,6 +223,8 @@ func (b *BaseBrowser) Shutdown() {
 	if err != nil {
 		log.Critical(err)
 	}
+
+	log.Debugf("<%s> shutdown complete ", b.Name)
 }
 
 func (b *BaseBrowser) Init() error {
