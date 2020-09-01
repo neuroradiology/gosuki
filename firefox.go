@@ -246,7 +246,7 @@ func (bw *FFBrowser) Load() error {
 	bw.lastRunTime = time.Now().UTC()
 
 	// Finished parsing
-	//go PrintTree(bw.NodeTree) // debugging
+	//go tree.PrintTree(bw.NodeTree) // debugging
 	fflog.Debugf("parsed %d bookmarks and %d nodes in %s",
 		bw.Stats.CurrentUrlCount,
 		bw.Stats.CurrentNodeCount,
@@ -283,7 +283,9 @@ func getFFBookmarks(bw *FFBrowser) {
 	//
 
 	rows, err := bw.places.Handle.Query(QGetBookmarks, ffBkTags)
-	//log.Debugf("%#v", err)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Locked database is critical
 	if e, ok := err.(sqlite3.Error); ok {
