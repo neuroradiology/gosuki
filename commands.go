@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"git.sp4ke.com/sp4ke/gomark/parsing"
+	"git.sp4ke.com/sp4ke/gomark/utils"
 
 	"git.sp4ke.com/sp4ke/gum"
 
@@ -18,6 +19,7 @@ var startServerCmd = &cli.Command{
 }
 
 func startServer(c *cli.Context) error {
+	defer utils.CleanFiles()
 	manager := gum.NewManager()
 	manager.ShutdownOn(os.Interrupt)
 

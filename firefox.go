@@ -158,16 +158,54 @@ func (bw *FFBrowser) Watch() bool {
 	if !bw.IsWatching {
 		go watch.WatcherThread(bw)
 		bw.IsWatching = true
-		fflog.Infof("Watching %s", bw.GetBookmarksPath())
+		for _, v := range bw.WatchedPaths {
+			fflog.Infof("Watching %s", v)
+		}
 		return true
 	}
 
 	return false
 }
 
+func (browser *FFBrowser) copyPlacesToTmp() error {
+
+	err := utils.CopyFilesToTmpFolder(path.Join(browser.BaseDir, browser.BkFile+"*"))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (browser *FFBrowser) getPathToPlacesCopy() string {
+	return path.Join(utils.TMPDIR, browser.BkFile)
+}
+
+func (browser *FFBrowser) InitPlacesCopy() error {
+
+	// Copy places.sqlite to tmp dir
+	err := browser.copyPlacesToTmp()
+	if err != nil {
+		return fmt.Errorf("Could not copy places.sqlite to tmp folder: %s",
+			err)
+	}
+
+	opts := mozilla.Config.PlacesDSN
+
+	browser.places, err = database.New("places",
+		// using the copied places file instead of the original to avoid
+		// sqlite vfs lock errors
+		browser.getPathToPlacesCopy(),
+		database.DBTypeFileDSN, opts).Init()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (browser *FFBrowser) Init() error {
 
-	// Initialize `places.sqlite`
 	bookmarkPath := path.Join(browser.BaseDir, browser.BkFile)
 
 	// Check if BookmarkPath exists
@@ -181,40 +219,21 @@ func (browser *FFBrowser) Init() error {
 		return fmt.Errorf("Bookmark path <%s> does not exist", bookmarkPath)
 	}
 
-	opts := mozilla.Config.PlacesDSN
-
-	browser.places, err = database.New("places",
-		bookmarkPath,
-		database.DBTypeFileDSN, opts).Init()
-	if err != nil {
-		//fflog.Error(err)
-		return err
-
-		//Check Lock Error
-		//if err == database.ErrVfsLocked {
-		//// Try to unlock db
-		//e := mozilla.UnlockPlaces()
-		//if e != nil {
-		//return e
-		//}
-		//} else {
-		//return err
-
-		//}
-	}
+	err = browser.InitPlacesCopy()
 
 	// Setup watcher
-
 	expandedBaseDir, err := filepath.EvalSymlinks(browser.BaseDir)
 
 	if err != nil {
 		return err
 	}
 
+	browser.WatchedPaths = []string{filepath.Join(expandedBaseDir, "places.sqlite-wal")}
+
 	w := &watch.Watch{
 		Path:       expandedBaseDir,
 		EventTypes: []fsnotify.Op{fsnotify.Write},
-		EventNames: []string{filepath.Join(expandedBaseDir, "places.sqlite-wal")},
+		EventNames: browser.WatchedPaths,
 		ResetWatch: false,
 	}
 
@@ -275,6 +294,9 @@ func (bw *FFBrowser) Load() error {
 		bw.BufferDB.SyncTo(CacheDB)
 	}
 	go CacheDB.SyncToDisk(database.GetDBFullPath())
+
+	// Close the copy places.sqlite
+	err = bw.places.Close()
 
 	return err
 }
@@ -388,6 +410,8 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 
 	if bk.btype == BkTypeURL {
 		var place FFPlace
+		//TODO: structscan not wokring ? the bookmark change is effectively
+		//detected I could test it by manually looking up bk.fk that changed
 		bw.places.Handle.QueryRowx(QGetBookmarkPlace, bk.fk).StructScan(&place)
 		fflog.Debugf("Changed URL: %s", place.URL)
 
@@ -419,6 +443,11 @@ func (bw *FFBrowser) Run() {
 
 	//TODO: Watching is broken. Try to open a new connection on each
 	//  watch event
+	//
+	err := bw.InitPlacesCopy()
+	if err != nil {
+		fflog.Error(err)
+	}
 
 	startRun := time.Now()
 	//fflog.Debugf("Checking changes since %s",
@@ -456,8 +485,8 @@ func (bw *FFBrowser) Run() {
 		changedURLS := make([]string, 0)
 		bw.lastRunTime = time.Now().UTC()
 
-		//fflog.Debugf("CHANGE ! Time: %s",
-		//bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+		fflog.Debugf("CHANGE ! Time: %s",
+			bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
 		bookmarks := make(map[sqlid]*FFBookmark)
 		places := make(map[sqlid]*FFPlace)
@@ -538,4 +567,11 @@ func (bw *FFBrowser) Run() {
 
 	bw.Stats.LastWatchRunTime = time.Since(startRun)
 	//fflog.Debugf("execution time %s", time.Since(startRun))
+	//
+
+	err = bw.places.Close()
+	if err != nil {
+		fflog.Error(err)
+	}
+
 }

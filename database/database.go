@@ -1,4 +1,5 @@
 //TODO: handle `modified` time
+// sqlite database management
 package database
 
 import (
