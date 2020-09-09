@@ -78,7 +78,7 @@ func WatcherThread(w Watchable) {
 								w.Run()
 							}
 
-							//log.Warning("event: %v | eventName: %v", event.Op, event.Name)
+							//log.Warningf("event: %v | eventName: %v", event.Op, event.Name)
 
 							if watched.ResetWatch {
 								log.Debugf("resetting watchers")

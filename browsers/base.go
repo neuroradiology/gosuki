@@ -78,6 +78,8 @@ type BaseBrowser struct {
 	BaseDir    string
 	BkFile     string
 
+	WatchedPaths []string
+
 	// In memory sqlite db (named `memcache`).
 	// Used to keep a browser's state of bookmarks across jobs.
 	BufferDB *database.DB

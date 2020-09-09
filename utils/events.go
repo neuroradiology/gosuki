@@ -29,6 +29,7 @@ func ReduceEvents(interval time.Duration,
 
 		case <-timer.C:
 			if len(events) > 0 {
+				log.Debug("<reduce>: running run event")
 				w.Run()
 
 				// Empty events queue
