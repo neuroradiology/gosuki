@@ -19,6 +19,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
+	github.com/princjef/gomarkdoc v0.1.1 // indirect
 	github.com/shirou/gopsutil v2.20.7+incompatible
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/sp4ke/hashmap v0.0.0-20171130100710-1ac30a6923c3

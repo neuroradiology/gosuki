@@ -1,9 +1,11 @@
 .PHONY: all run deps docs build test
 
 TARGET=gomark
+CGO_CFLAGS="-g -O2 -Wno-return-local-addr"
 
 
-all: test build
+#all: test build
+all: build
 
 run: 
 	@go run *.go
@@ -12,11 +14,11 @@ deps:
 	go get
 
 docs:
-	@godoc2md gomark > API.md
+	@gomarkdoc ./... > API.md
 
 build:
 	@echo building ...
-	@go build -o $(TARGET) *.go
+	@CGO_CFLAGS=${CGO_CFLAGS} go build -o $(TARGET) *.go
 
 test:
 	@go test . ./...
