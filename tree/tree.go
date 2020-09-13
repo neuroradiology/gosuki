@@ -44,7 +44,7 @@ func (node *Node) GetRoot() *Node {
 func Insert(nodeList []*Node, node *Node) []*Node {
 	for _, n := range nodeList {
 		if node == n {
-			log.Error("Node already exists")
+			log.Errorf("<%s> Node already exists", node.URL)
 			return nodeList
 		} else {
 			nodeList = append(nodeList, node)

@@ -94,9 +94,9 @@ type AutoIncr struct {
 }
 
 type FFPlace struct {
-	URL         string
-	Description sql.NullString
-	Title       sql.NullString
+	URL         string         `db:"url"`
+	Description sql.NullString `db:"description"`
+	Title       sql.NullString `db:"title"`
 	AutoIncr
 }
 
@@ -410,10 +410,17 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 
 	if bk.btype == BkTypeURL {
 		var place FFPlace
-		//TODO: structscan not wokring ? the bookmark change is effectively
-		//detected I could test it by manually looking up bk.fk that changed
-		bw.places.Handle.QueryRowx(QGetBookmarkPlace, bk.fk).StructScan(&place)
+
+		// Use unsafe db to ignore non existant columns in
+		// dest field
+		udb := bw.places.Handle.Unsafe()
+		err := udb.QueryRowx(QGetBookmarkPlace, bk.fk).StructScan(&place)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		fflog.Debugf("Changed URL: %s", place.URL)
+		fflog.Debugf("%v", place)
 
 		// put url in the places map
 		places[place.ID] = &place
@@ -441,9 +448,6 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 
 func (bw *FFBrowser) Run() {
 
-	//TODO: Watching is broken. Try to open a new connection on each
-	//  watch event
-	//
 	err := bw.InitPlacesCopy()
 	if err != nil {
 		fflog.Error(err)
@@ -525,7 +529,6 @@ func (bw *FFBrowser) Run() {
 						tagNode.Parent = bw.NodeTree
 						bw.NodeTree.Children = append(bw.NodeTree.Children,
 							tagNode)
-						fflog.Debugf("New tag node %s", tagNode.Name)
 						bw.tagMap[bkId] = tagNode
 					}
 				}
@@ -543,7 +546,7 @@ func (bw *FFBrowser) Run() {
 					// The tag node should have already been created
 					tagNode, tagNodeExists := bw.tagMap[bk.parent]
 					if tagNodeExists && urlNode != nil {
-						//fflog.Debugf("URL has tag %s", tagNode.Name)
+						fflog.Debugf("URL has tag %s", tagNode.Name)
 
 						urlNode.Tags = utils.Extends(urlNode.Tags, tagNode.Name)
 
