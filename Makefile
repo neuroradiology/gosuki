@@ -14,7 +14,7 @@ deps:
 	go get
 
 docs:
-	@gomarkdoc ./... > API.md
+	@gomarkdoc -u ./... > API.md
 
 build:
 	@echo building ...
