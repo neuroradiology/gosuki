@@ -45,6 +45,7 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 		}
 
 		optionName := flect.Pascalize(strings.Join(sp[1:], " "))
+		fflog.Debugf("Option name %s", optionName)
 		var destVal interface{}
 
 		// Find the corresponding flag
