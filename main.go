@@ -13,7 +13,6 @@ import (
 	"git.sp4ke.com/sp4ke/gomark/cmd"
 
 	"github.com/urfave/cli/v2"
-	"github.com/urfave/cli/v2/altsrc"
 )
 
 func main() {
@@ -22,9 +21,6 @@ func main() {
 	app.Version = "1.0"
 
 	flags := []cli.Flag{
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name: "firefox.DefaultProfile",
-		}),
 
 		&cli.StringFlag{
 			Name:  "config-file",
