@@ -22,6 +22,7 @@ var FirefoxGlobalFlags = []cli.Flag{
 	},
 }
 
+// Handle global firefox flags
 func GlobalFirefoxFlagsManager(c *cli.Context) error {
 	for _, f := range c.App.Flags {
 
@@ -30,8 +31,7 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 			continue
 		}
 
-		//TODO: is set is not detected here !
-		if !f.IsSet() {
+		if !c.IsSet(f.Names()[0]) {
 			continue
 		}
 
@@ -46,6 +46,7 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 		}
 
 		optionName := flect.Pascalize(strings.Join(sp[1:], " "))
+		log.Debug(optionName)
 		var destVal interface{}
 
 		// Find the corresponding flag
@@ -56,7 +57,7 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 				switch ff.(type) {
 
 				case *cli.StringFlag:
-					destVal = f.Names()[0]
+					destVal = c.String(f.Names()[0])
 
 				}
 
