@@ -22,7 +22,8 @@ var FirefoxGlobalFlags = []cli.Flag{
 	},
 }
 
-// Handle global firefox flags
+// Firefox global flags must start with --firefox-<flag name here>
+//
 func GlobalFirefoxFlagsManager(c *cli.Context) error {
 	for _, f := range c.App.Flags {
 

@@ -52,7 +52,7 @@ func RegisterGlobalOption(key string, val interface{}) {
 }
 
 func RegisterModuleOpt(module string, opt string, val interface{}) error {
-	log.Debugf("setting option %s: %s = %s", module, opt, val)
+	log.Debugf("Setting module option %s: %s = %s", module, opt, val)
 	dest := configs[module]
 	return dest.Set(opt, val)
 }
