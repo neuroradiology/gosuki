@@ -30,6 +30,7 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 			continue
 		}
 
+		//TODO: is set is not detected here !
 		if !f.IsSet() {
 			continue
 		}

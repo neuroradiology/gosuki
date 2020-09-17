@@ -31,7 +31,7 @@ type FirefoxConfig struct {
 }
 
 func (fc *FirefoxConfig) Set(opt string, v interface{}) error {
-	//log.Debugf("setting option %s = %v", opt, v)
+	log.Debugf("setting option %s = %v", opt, v)
 	s := structs.New(fc)
 	f, ok := s.FieldOk(opt)
 	if !ok {
