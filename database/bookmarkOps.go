@@ -7,7 +7,7 @@ import (
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
-const TagJoinSep = "|"
+const TagJoinSep = ","
 
 type Bookmark = bookmarks.Bookmark
 
@@ -74,7 +74,7 @@ func (db *DB) InsertOrUpdateBookmark(bk *Bookmark) {
 	// ErrConstraint means the bookmark (url) already exists in table,
 	// we need to update it instead.
 	if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
-		//log.Debugf("Updating bookmark %s", bk.URL)
+		log.Debugf("Updating bookmark %s", bk.URL)
 
 		// First get existing tags for this bookmark if any ?
 		res := tx.Stmt(getTags).QueryRow(
