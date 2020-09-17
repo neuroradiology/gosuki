@@ -60,7 +60,6 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 					destVal = c.String(f.Names()[0])
 
 				}
-
 			}
 		}
 
