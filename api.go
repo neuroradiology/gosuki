@@ -45,7 +45,8 @@ func getBookmarks(c *gin.Context) {
 }
 
 type API struct {
-	router *gin.Engine
+	engine *gin.Engine
+	router *gin.RouterGroup
 }
 
 func (api *API) Shutdown() {}
@@ -54,8 +55,9 @@ func (api *API) Run(m gum.UnitManager) {
 	api.router.GET("/urls", getBookmarks)
 
 	// Run router
+	// TODO: config params for api
 	go func() {
-		err := api.router.Run(":4444")
+		err := api.engine.Run(":4444")
 		if err != nil {
 			panic(err)
 		}
@@ -73,9 +75,11 @@ func NewApi() *API {
 	apiLogFile, _ := os.Create(".api.log")
 	gin.DefaultWriter = io.MultiWriter(apiLogFile, os.Stdout)
 
-	api := &API{
-		router: gin.Default(),
+	api := gin.Default()
+
+	return &API{
+		engine: api,
+		router: api.Group("/api"),
 	}
 
-	return api
 }
