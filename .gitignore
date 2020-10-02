@@ -1,3 +1,8 @@
 .python-version
 gomarks.db
 gomark
+node_modules
+.cache
+dist
+*.log
+_master
