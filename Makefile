@@ -16,7 +16,7 @@ all: build
 run: build
 	@./$(TARGET)
 
-dev:
+dev: build
 	@$(YARN) --cwd ./web develop &
 	@caddy start
 	@./$(TARGET) server
