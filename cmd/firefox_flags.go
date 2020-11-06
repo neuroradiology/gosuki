@@ -3,9 +3,9 @@ package cmd
 import (
 	"strings"
 
-	"git.sp4ke.com/sp4ke/gomark/config"
-	"git.sp4ke.com/sp4ke/gomark/mozilla"
-	"git.sp4ke.com/sp4ke/gomark/utils"
+	"git.sp4ke.xyz/sp4ke/gomark/config"
+	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
+	"git.sp4ke.xyz/sp4ke/gomark/utils"
 
 	"github.com/gobuffalo/flect"
 	"github.com/urfave/cli/v2"

@@ -1,7 +1,7 @@
 package database
 
 import (
-	"git.sp4ke.com/sp4ke/gomark/bookmarks"
+	"git.sp4ke.xyz/sp4ke/gomark/bookmarks"
 	"strings"
 
 	sqlite3 "github.com/mattn/go-sqlite3"

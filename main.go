@@ -8,9 +8,9 @@ package main
 import (
 	"os"
 
-	"git.sp4ke.com/sp4ke/gomark/config"
+	"git.sp4ke.xyz/sp4ke/gomark/config"
 
-	"git.sp4ke.com/sp4ke/gomark/cmd"
+	"git.sp4ke.xyz/sp4ke/gomark/cmd"
 
 	"github.com/urfave/cli/v2"
 )

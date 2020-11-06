@@ -3,8 +3,8 @@ package mozilla
 import (
 	"fmt"
 
-	"git.sp4ke.com/sp4ke/gomark/config"
-	"git.sp4ke.com/sp4ke/gomark/database"
+	"git.sp4ke.xyz/sp4ke/gomark/config"
+	"git.sp4ke.xyz/sp4ke/gomark/database"
 
 	"github.com/fatih/structs"
 	"github.com/mitchellh/mapstructure"

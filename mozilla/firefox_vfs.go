@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"path"
 
-	"git.sp4ke.com/sp4ke/gomark/utils"
+	"git.sp4ke.xyz/sp4ke/gomark/utils"
 )
 
 const (

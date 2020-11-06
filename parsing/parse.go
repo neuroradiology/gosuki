@@ -1,8 +1,8 @@
 package parsing
 
 import (
-	"git.sp4ke.com/sp4ke/gomark/logging"
-	"git.sp4ke.com/sp4ke/gomark/tree"
+	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.sp4ke.xyz/sp4ke/gomark/tree"
 	"regexp"
 	"time"
 )
