@@ -15,12 +15,12 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"git.sp4ke.com/sp4ke/gomark/database"
-	"git.sp4ke.com/sp4ke/gomark/index"
-	"git.sp4ke.com/sp4ke/gomark/logging"
-	"git.sp4ke.com/sp4ke/gomark/parsing"
-	"git.sp4ke.com/sp4ke/gomark/tree"
-	"git.sp4ke.com/sp4ke/gomark/watch"
+	"git.sp4ke.xyz/sp4ke/gomark/database"
+	"git.sp4ke.xyz/sp4ke/gomark/index"
+	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.sp4ke.xyz/sp4ke/gomark/parsing"
+	"git.sp4ke.xyz/sp4ke/gomark/tree"
+	"git.sp4ke.xyz/sp4ke/gomark/watch"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/sp4ke/hashmap"

@@ -1,7 +1,7 @@
 package watch
 
 import (
-	"git.sp4ke.com/sp4ke/gomark/logging"
+	"git.sp4ke.xyz/sp4ke/gomark/logging"
 
 	"github.com/fsnotify/fsnotify"
 )

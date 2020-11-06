@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"git.sp4ke.com/sp4ke/gomark/logging"
-	"git.sp4ke.com/sp4ke/gomark/mozilla"
+	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
 
 	"github.com/urfave/cli/v2"
 )

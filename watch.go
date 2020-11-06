@@ -1,7 +1,7 @@
 package main
 
 import (
-	"git.sp4ke.com/sp4ke/gomark/parsing"
+	"git.sp4ke.xyz/sp4ke/gomark/parsing"
 )
 
 func watchLoop() {
