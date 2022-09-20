@@ -1,5 +1,5 @@
-//TODO: unit test critical error should shutdown the browser
-//TODO: shutdown procedure (also close reducer)
+// TODO: unit test critical error should shutdown the browser
+// TODO: shutdown procedure (also close reducer)
 package main
 
 import (
