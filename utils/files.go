@@ -28,6 +28,12 @@ func copyFileToDst(src string, dst string) error {
 		return err
 	}
 
+  err = dstFile.Sync()
+  if err != nil {
+    return err
+  }
+  
+
 	return nil
 
 }
