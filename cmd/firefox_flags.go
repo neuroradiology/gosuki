@@ -46,6 +46,7 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 			continue
 		}
 
+    //TODO: document this feature 
 		optionName := flect.Pascalize(strings.Join(sp[1:], " "))
 		var destVal interface{}
 
@@ -58,7 +59,6 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 
 				case *cli.StringFlag:
 					destVal = c.String(f.Names()[0])
-
 				}
 			}
 		}
