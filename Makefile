@@ -1,7 +1,7 @@
 .PHONY: all run deps docs build test
 
 TARGET=gomark
-CGO_CFLAGS="-g -O2 -Wno-return-local-addr"
+# CGO_CFLAGS="-g -O2 -Wno-return-local-addr"
 SRC := *.go
 NVM_VERSIONS := $(HOME)/.config/nvm/versions/node
 NVM_VERSION := $(shell cat ./web/.nvmrc)
@@ -15,6 +15,9 @@ all: build
 
 run: build
 	@./$(TARGET)
+
+debug:
+	@dlv debug . -- server
 
 dev: build
 	@$(YARN) --cwd ./web develop &
@@ -38,7 +41,8 @@ docs:
 
 build:
 	@echo building ...
-	@CGO_CFLAGS=${CGO_CFLAGS} go build -o $(TARGET) *.go
+	# @CGO_CFLAGS=${CGO_CFLAGS} go build -o $(TARGET) *.go
+	go build -o $(TARGET) *.go
 
 test:
 	@go test . ./...
