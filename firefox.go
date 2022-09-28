@@ -30,9 +30,9 @@ const (
 	WHERE id = ?
 	`
 	QBookmarksChanged = `
-	SELECT id,type,IFNULL(fk, -1),parent,IFNULL(title, '') from moz_bookmarks
+	SELECT id,type,IFNULL(fk, -1) AS fk,parent,IFNULL(title, '') AS title from moz_bookmarks
 	WHERE(lastModified > :last_runtime_utc
-		AND lastModified < strftime('%s', 'now') * 1000 * 1000
+		AND lastModified < strftime('%s', 'now')*1000*1000
 		AND NOT id IN (:not_root_tags)
 		)
 	`
@@ -69,16 +69,14 @@ const (
 	`
 )
 
-var (
-	ErrInitFirefox = errors.New("Could not start Firefox watcher")
-)
+var ErrInitFirefox = errors.New("Could not start Firefox watcher")
 
 const (
-	MozMinJobInterval = 500 * time.Millisecond
+	MozMinJobInterval = 1500 * time.Millisecond
 )
 
 type FFBrowser struct {
-	BaseBrowser  //embedding
+	BaseBrowser  // embedding
 	places       *database.DB
 	URLIndexList []string // All elements stored in URLIndex
 	tagMap       map[sqlid]*tree.Node
@@ -91,7 +89,7 @@ const (
 	BkTypeTagFolder
 )
 
-type sqlid uint64
+type sqlid int64
 
 const (
 	_ = iota
@@ -123,7 +121,7 @@ type FFPlace struct {
 //}
 
 type FFBookmark struct {
-	btype  int `db:type`
+	btype  sqlid
 	parent sqlid
 	fk     sqlid
 	title  string
@@ -134,11 +132,10 @@ func FFPlacesUpdateHook(op int, db string, table string, rowid int64) {
 	fflog.Debug(op)
 }
 
-//TODO: Test browser creation errors
+// TODO: Test browser creation errors
 // In case of critical errors degrade the browser to only log errors and disable
 // all directives
 func NewFFBrowser() IBrowser {
-
 	browser := new(FFBrowser)
 	browser.Name = "firefox"
 	browser.Type = browsers.TFirefox
@@ -168,7 +165,6 @@ func (bw *FFBrowser) Shutdown() {
 }
 
 func (bw *FFBrowser) Watch() bool {
-
 	if !bw.IsWatching {
 		go watch.WatcherThread(bw)
 		bw.IsWatching = true
@@ -182,7 +178,6 @@ func (bw *FFBrowser) Watch() bool {
 }
 
 func (browser *FFBrowser) copyPlacesToTmp() error {
-
 	err := utils.CopyFilesToTmpFolder(path.Join(browser.BaseDir, browser.BkFile+"*"))
 	if err != nil {
 		return err
@@ -196,7 +191,6 @@ func (browser *FFBrowser) getPathToPlacesCopy() string {
 }
 
 func (browser *FFBrowser) InitPlacesCopy() error {
-
 	// Copy places.sqlite to tmp dir
 	err := browser.copyPlacesToTmp()
 	if err != nil {
@@ -211,6 +205,7 @@ func (browser *FFBrowser) InitPlacesCopy() error {
 		// sqlite vfs lock errors
 		browser.getPathToPlacesCopy(),
 		database.DBTypeFileDSN, opts).Init()
+
 	if err != nil {
 		return err
 	}
@@ -219,7 +214,6 @@ func (browser *FFBrowser) InitPlacesCopy() error {
 }
 
 func (browser *FFBrowser) Init() error {
-
 	bookmarkPath := path.Join(browser.BaseDir, browser.BkFile)
 
 	// Check if BookmarkPath exists
@@ -234,10 +228,12 @@ func (browser *FFBrowser) Init() error {
 	}
 
 	err = browser.InitPlacesCopy()
+	if err != nil {
+		return err
+	}
 
 	// Setup watcher
 	expandedBaseDir, err := filepath.EvalSymlinks(browser.BaseDir)
-
 	if err != nil {
 		return err
 	}
@@ -280,8 +276,6 @@ func (bw *FFBrowser) Load() error {
 	bw.Stats.LastFullTreeParseTime = time.Since(start)
 	bw.lastRunTime = time.Now().UTC()
 
-	// Finished parsing
-	//go tree.PrintTree(bw.NodeTree) // debugging
 	fflog.Debugf("parsed %d bookmarks and %d nodes in %s",
 		bw.Stats.CurrentUrlCount,
 		bw.Stats.CurrentNodeCount,
@@ -316,7 +310,6 @@ func (bw *FFBrowser) Load() error {
 }
 
 func getFFBookmarks(bw *FFBrowser) {
-
 	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
 	//
 
@@ -352,7 +345,7 @@ func getFFBookmarks(bw *FFBrowser) {
 		var url, title, tagTitle, desc string
 		var tagId sqlid
 		err = rows.Scan(&url, &title, &desc, &tagId, &tagTitle)
-		//fflog.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
+		// fflog.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
 		if err != nil {
 			fflog.Error(err)
 		}
@@ -400,17 +393,21 @@ func getFFBookmarks(bw *FFBrowser) {
 
 		bw.Stats.CurrentUrlCount++
 	}
-
 }
 
 func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 	bookmarks map[sqlid]*FFBookmark,
-	places map[sqlid]*FFPlace) {
-
+	places map[sqlid]*FFPlace,
+) {
 	bk := new(FFBookmark)
 
 	// Get the URL that changed
-	rows.Scan(&bk.id, &bk.btype, &bk.fk, &bk.parent, &bk.title)
+	err := rows.Scan(&bk.id, &bk.btype, &bk.fk, &bk.parent, &bk.title)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// database.DebugPrintRow(rows)
 
 	// We found URL change, urls are specified by
 	// type == 1
@@ -419,8 +416,8 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 	//
 	// Each tag on a url generates 2 or 3 entries in moz_bookmarks
 	// 1. If not existing, a (type==2) entry for the tag itself
-	// 2. A (type==1) entry for the bookmakred url with (fk -> moz_places.url)
-	// 3. A (type==1) (fk-> moz_places.url) (parent == idOf(tag))
+	// 2. A (type==1) entry for the bookmakred url with (fk -> moz_places.id)
+	// 3. A (type==1) (fk-> moz_places.id) (parent == idOf(tag))
 
 	if bk.btype == BkTypeURL {
 		var place FFPlace
@@ -458,18 +455,20 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 	for rows.Next() {
 		bw.fetchUrlChanges(rows, bookmarks, places)
 	}
+	fflog.Debugf("fetching changes done !")
 }
 
 func (bw *FFBrowser) Run() {
+	startRun := time.Now()
 
 	err := bw.InitPlacesCopy()
 	if err != nil {
 		fflog.Error(err)
 	}
 
-	startRun := time.Now()
-	//fflog.Debugf("Checking changes since %s",
-	//bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+	fflog.Debugf("Checking changes since <%d> %s",
+		bw.lastRunTime.UTC().UnixNano()/1000,
+		bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
 	queryArgs := map[string]interface{}{
 		"not_root_tags":    []int{ffBkRoot, ffBkTags},
@@ -490,20 +489,24 @@ func (bw *FFBrowser) Run() {
 	}
 
 	query = bw.places.Handle.Rebind(query)
-	rows, err := bw.places.Handle.Query(query, args...)
-	defer rows.Close()
+	utils.PrettyPrint(query)
 
+	rows, err := bw.places.Handle.Query(query, args...)
 	if err != nil {
 		fflog.Error(err)
 	}
 
 	// Found new results in places db since last time we had changes
-	//database.DebugPrintRows(rows)
-	if rows.Next() {
+	// database.DebugPrintRows(rows) // WARN: This will disable reading rows
+	for rows.Next() {
+		// next := rows.Next()
+		// fflog.Debug("next rows is: ", next)
+		// if !next {
+		//   break
+		// }
 		changedURLS := make([]string, 0)
-		bw.lastRunTime = time.Now().UTC()
 
-		fflog.Debugf("CHANGE ! Time: %s",
+		fflog.Debugf("Found changes since: %s",
 			bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
 		bookmarks := make(map[sqlid]*FFBookmark)
@@ -512,6 +515,7 @@ func (bw *FFBrowser) Run() {
 		// Fetch all changes into bookmarks and places maps
 		bw.fetchUrlChanges(rows, bookmarks, places)
 
+		// utils.PrettyPrint(places)
 		// For each url
 		for urlId, place := range places {
 			var urlNode *tree.Node
@@ -579,16 +583,22 @@ func (bw *FFBrowser) Run() {
 		CacheDB.SyncToDisk(database.GetDBFullPath())
 
 	}
+	err = rows.Close()
+	if err != nil {
+		fflog.Error(err)
+	}
 
-	//TODO: change logger for more granular debugging
+	// TODO: change logger for more granular debugging
 
 	bw.Stats.LastWatchRunTime = time.Since(startRun)
-	//fflog.Debugf("execution time %s", time.Since(startRun))
-	//
+	// fflog.Debugf("execution time %s", time.Since(startRun))
+
+	go tree.PrintTree(bw.NodeTree) // debugging
 
 	err = bw.places.Close()
 	if err != nil {
 		fflog.Error(err)
 	}
 
+	bw.lastRunTime = time.Now().UTC()
 }
