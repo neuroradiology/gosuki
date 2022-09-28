@@ -29,11 +29,7 @@ type Node struct {
 func (node *Node) GetRoot() *Node {
 	nodePtr := node
 
-	for {
-		if nodePtr.Name == "root" {
-			break
-		}
-
+	for nodePtr.Name != "root" {
 		nodePtr = nodePtr.Parent
 	}
 
