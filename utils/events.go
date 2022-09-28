@@ -24,6 +24,7 @@ func ReduceEvents(interval time.Duration,
 	for {
 		select {
 		case <-input:
+			// log.Debug("[reducuer] received event, resetting watch interval !")
 			timer.Reset(interval)
 			events = append(events, true)
 
