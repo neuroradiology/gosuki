@@ -10,7 +10,7 @@ import (
 	"github.com/xlab/treeprint"
 )
 
-var log = logging.GetLogger("")
+var log = logging.GetLogger("TREE")
 
 type Bookmark = bookmarks.Bookmark
 
@@ -37,16 +37,24 @@ func (node *Node) GetRoot() *Node {
 }
 
 // Insert *Node in nodeList if it does not already exists
-func Insert(nodeList []*Node, node *Node) []*Node {
-	for _, n := range nodeList {
-		if node == n {
-			log.Errorf("<%s> Node already exists", node.URL)
-			return nodeList
-		} else {
-			nodeList = append(nodeList, node)
+func AddChild(parent *Node, child *Node) {
+	log.Debugf("adding child %s <%s>", child.Type, child.Name)
+
+	if len(parent.Children) == 0 {
+		parent.Children = []*Node{child}
+		child.Parent = parent
+		return
+	}
+
+	for _, n := range parent.Children {
+		if child == n {
+			log.Errorf("<%s> Node already exists", child)
+			return
 		}
 	}
-	return nodeList
+
+	parent.Children = append(parent.Children, child)
+	child.Parent = parent
 }
 
 // Returns all parent tags for URL nodes
