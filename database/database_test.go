@@ -150,10 +150,6 @@ func TestInitLocked(t *testing.T) {
 
 }
 
-func TestGomarkDBCeate(t *testing.T) {
-	t.Error("if gomark.db does not exist create it")
-}
-
 func TestSyncFromGomarkDB(t *testing.T) {
 	t.Error("sync from gomark db")
 }

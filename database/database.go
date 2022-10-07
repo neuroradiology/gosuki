@@ -58,7 +58,7 @@ const (
 	DBForeign
 )
 
-//  Database schemas used for the creation of new databases
+// Database schemas used for the creation of new databases
 const (
 	// metadata: name or title of resource
 	// modified: time.Now().Unix()
@@ -219,7 +219,7 @@ func New(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB {
 
 }
 
-//TODO: Should check if DB is locked
+// TODO: Should check if DB is locked
 // We should export Open() in its own method and wrap
 // with interface so we can mock it and test the lock status in Init()
 // Initialize a sqlite database with Gomark Schema if not already done

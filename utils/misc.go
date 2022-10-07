@@ -15,7 +15,7 @@ func Extends(list []string, in string) []string {
 }
 
 // Return true if elm in list
-func Ins(list []string, elm string) bool {
+func Inlist(list []string, elm string) bool {
 	for _, v := range list {
 		if elm == v {
 			return true
