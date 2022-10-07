@@ -23,12 +23,11 @@ var FirefoxGlobalFlags = []cli.Flag{
 }
 
 // Firefox global flags must start with --firefox-<flag name here>
-//
 func GlobalFirefoxFlagsManager(c *cli.Context) error {
 	for _, f := range c.App.Flags {
 
-		if utils.Ins(f.Names(), "help") ||
-			utils.Ins(f.Names(), "version") {
+		if utils.Inlist(f.Names(), "help") ||
+			utils.Inlist(f.Names(), "version") {
 			continue
 		}
 
@@ -46,7 +45,7 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 			continue
 		}
 
-    //TODO: document this feature 
+		//TODO: document this feature
 		optionName := flect.Pascalize(strings.Join(sp[1:], " "))
 		var destVal interface{}
 
