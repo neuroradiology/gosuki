@@ -1,6 +1,8 @@
 // TODO: unit test critical error should shutdown the browser
 // TODO: shutdown procedure (also close reducer)
-package main
+// TODO: migrate own commands to here
+// TODO: handle flag management from this package
+package firefox
 
 import (
 	"database/sql"
@@ -12,6 +14,7 @@ import (
 
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/database"
+	"git.sp4ke.xyz/sp4ke/gomark/logging"
 	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
 	"git.sp4ke.xyz/sp4ke/gomark/parsing"
 	"git.sp4ke.xyz/sp4ke/gomark/tree"
@@ -23,6 +26,7 @@ import (
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
+// sql queries
 const (
 	QGetBookmarkPlace = `
 	SELECT *
@@ -31,15 +35,16 @@ const (
 	`
 	//TEST:
 	QBookmarksChanged = `
-	SELECT id,type,IFNULL(fk, -1) AS fk,parent,IFNULL(title, '') AS title from moz_bookmarks
-	WHERE(lastModified > :last_runtime_utc
-		AND lastModified < strftime('%s', 'now')*1000*1000
-		AND NOT id IN (:not_root_tags)
-		)
+    SELECT id,type,IFNULL(fk, -1) AS fk,parent,IFNULL(title, '') AS title from moz_bookmarks
+    WHERE(lastModified > :last_runtime_utc
+        AND lastModified < strftime('%s', 'now')*1000*1000
+        AND NOT id IN (:not_root_tags)
+    )
 	`
 
 	//TEST:
-	QGetBookmarks = `WITH bookmarks AS
+	QGetBookmarks = `
+    WITH bookmarks AS
 	(SELECT moz_places.url AS url,
 			moz_places.description as desc,
 			moz_places.title as urlTitle,
@@ -54,12 +59,13 @@ const (
 
 	FROM bookmarks LEFT OUTER JOIN moz_bookmarks
 	ON tagId = moz_bookmarks.id
-	ORDER BY url`
+	ORDER BY url
+    `
 
 	//TEST:
 	//TODO:
 	QGetBookmarkFolders = `
-		SELECT 
+		SELECT
 		moz_places.id as placesId,
 		moz_places.url as url,	
 			moz_places.description as description,
@@ -72,16 +78,27 @@ const (
 	`
 )
 
-var ErrInitFirefox = errors.New("Could not start Firefox watcher")
+var (
+	firefoxBrowserModule = browsers.BrowserMod{
+		Name:    BrowserName,
+		Browser: NewFFBrowser(),
+	}
+
+	ErrInitFirefox = errors.New("could not start Firefox watcher")
+
+	log = logging.GetLogger("FF")
+)
+
+type BrowserMod = browsers.BrowserMod
 
 const (
 	MozMinJobInterval = 1500 * time.Millisecond
 )
 
 type FFBrowser struct {
-	BaseBrowser  // embedding
-	places       *database.DB
-	URLIndexList []string // All elements stored in URLIndex
+	browsers.BaseBrowser // embedding
+	places               *database.DB
+	URLIndexList         []string // All elements stored in URLIndex
 
 	// Map from places tag IDs to the parse node tree
 	tagMap      map[sqlid]*tree.Node
@@ -136,19 +153,22 @@ type FFBookmark struct {
 }
 
 func FFPlacesUpdateHook(op int, db string, table string, rowid int64) {
-	fflog.Debug(op)
+	log.Debug(op)
 }
 
 // TEST: Test browser creation errors
 // In case of critical errors degrade the browser to only log errors and disable
 // all directives
-func NewFFBrowser() IBrowser {
+func NewFFBrowser() *FFBrowser {
 	browser := &FFBrowser{
 		BaseBrowser: browsers.BaseBrowser{
-			Name:           "firefox",
-			Type:           browsers.TFirefox,
-			BkFile:         mozilla.BookmarkFile,
-			BaseDir:        mozilla.GetBookmarkDir(),
+			Name:   BrowserName,
+			Type:   browsers.TFirefox,
+			BkFile: mozilla.BookmarkFile,
+			//FIX: basedir is set here before config has time to set the right path
+			//NOTE: maybe use reflect and instanciate the module in core package
+			//              &bookmarkDir ??
+			BaseDir:        getBookmarkDir(),
 			NodeTree:       &tree.Node{Name: "root", Parent: nil, Type: "root"},
 			Stats:          &parsing.Stats{},
 			UseFileWatcher: true,
@@ -160,13 +180,13 @@ func NewFFBrowser() IBrowser {
 }
 
 func (bw *FFBrowser) Shutdown() {
-	fflog.Debugf("shutting down ... ")
+	log.Debugf("shutting down ... ")
 
 	if bw.places != nil {
 
 		err := bw.places.Close()
 		if err != nil {
-			fflog.Critical(err)
+			log.Critical(err)
 		}
 
 	}
@@ -179,7 +199,7 @@ func (bw *FFBrowser) Watch() bool {
 		go watch.WatcherThread(bw)
 		bw.IsWatching = true
 		for _, v := range bw.WatchedPaths {
-			fflog.Infof("Watching %s", v)
+			log.Infof("Watching %s", v)
 		}
 		return true
 	}
@@ -215,7 +235,7 @@ func (browser *FFBrowser) addUrlNode(url, title, desc string) (bool, *tree.Node)
 			Desc: desc,
 		}
 
-		fflog.Debugf("inserting url %s in url index", url)
+		log.Debugf("inserting url %s in url index", url)
 		browser.URLIndex.Insert(url, urlNode)
 		browser.URLIndexList = append(browser.URLIndexList, url)
 
@@ -258,7 +278,7 @@ func (browser *FFBrowser) InitPlacesCopy() error {
 			err)
 	}
 
-	opts := mozilla.Config.PlacesDSN
+	opts := Config.PlacesDSN
 
 	browser.places, err = database.New("places",
 		// using the copied places file instead of the original to avoid
@@ -275,6 +295,7 @@ func (browser *FFBrowser) InitPlacesCopy() error {
 
 func (browser *FFBrowser) Init() error {
 	bookmarkPath := path.Join(browser.BaseDir, browser.BkFile)
+	log.Debugf("bookmark path is: %s", bookmarkPath)
 
 	// Check if BookmarkPath exists
 	exists, err := utils.CheckFileExists(bookmarkPath)
@@ -325,6 +346,8 @@ func (browser *FFBrowser) Init() error {
 }
 
 func (bw *FFBrowser) Load() error {
+	// TODO: don't use super methods
+	// TODO: find way to do this with interfaces
 	err := bw.BaseBrowser.Load()
 	if err != nil {
 		return err
@@ -336,7 +359,7 @@ func (bw *FFBrowser) Load() error {
 	bw.Stats.LastFullTreeParseTime = time.Since(start)
 	bw.lastRunTime = time.Now().UTC()
 
-	fflog.Debugf("parsed %d bookmarks and %d nodes in %s",
+	log.Debugf("parsed %d bookmarks and %d nodes in %s",
 		bw.Stats.CurrentUrlCount,
 		bw.Stats.CurrentNodeCount,
 		bw.Stats.LastFullTreeParseTime)
@@ -349,21 +372,22 @@ func (bw *FFBrowser) Load() error {
 	database.SyncURLIndexToBuffer(bw.URLIndexList, bw.URLIndex, bw.BufferDB)
 
 	// Handle empty cache
-	if empty, err := CacheDB.IsEmpty(); empty {
+	if empty, err := database.Cache.DB.IsEmpty(); empty {
 		if err != nil {
-			fflog.Error(err)
+			log.Error(err)
 		}
-		fflog.Info("cache empty: loading buffer to Cachedb")
+		log.Info("cache empty: loading buffer to Cachedb")
 
-		bw.BufferDB.CopyTo(CacheDB)
+		bw.BufferDB.CopyTo(database.Cache.DB)
 
-		fflog.Debugf("syncing <%s> to disk", CacheDB.Name)
+		log.Debugf("syncing <%s> to disk", database.Cache.DB.Name)
 	} else {
-		bw.BufferDB.SyncTo(CacheDB)
+		bw.BufferDB.SyncTo(database.Cache.DB)
 	}
-	go CacheDB.SyncToDisk(database.GetDBFullPath())
 
-	go tree.PrintTree(bw.NodeTree)
+	database.Cache.DB.SyncToDisk(database.GetDBFullPath())
+
+	tree.PrintTree(bw.NodeTree)
 
 	// Close the copy places.sqlite
 	err = bw.places.Close()
@@ -375,7 +399,7 @@ func (bw *FFBrowser) Load() error {
 // this method is used the first time gomark is started or to extract bookmarks
 // using a command
 func GetFFBookmarks(bw *FFBrowser) {
-	fflog.Debugf("root tree children len is %d", len(bw.NodeTree.Children))
+	log.Debugf("root tree children len is %d", len(bw.NodeTree.Children))
 	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
 	//
 
@@ -387,13 +411,13 @@ func GetFFBookmarks(bw *FFBrowser) {
 	// Locked database is critical
 	if e, ok := err.(sqlite3.Error); ok {
 		if e.Code == sqlite3.ErrBusy {
-			fflog.Critical(err)
+			log.Critical(err)
 			bw.Shutdown()
 			return
 		}
 	}
 	if err != nil {
-		fflog.Errorf("%s: %s", bw.places.Name, err)
+		log.Errorf("%s: %s", bw.places.Name, err)
 		return
 	}
 
@@ -412,9 +436,9 @@ func GetFFBookmarks(bw *FFBrowser) {
 		var tagId sqlid
 
 		err = rows.Scan(&url, &title, &desc, &tagId, &tagTitle)
-		// fflog.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
+		// log.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
 		if err != nil {
-			fflog.Error(err)
+			log.Error(err)
 		}
 
 		/*
@@ -423,13 +447,13 @@ func GetFFBookmarks(bw *FFBrowser) {
 		 */
 		ok, tagNode := bw.addTagNode(tagId, tagTitle)
 		if !ok {
-			fflog.Infof("tag <%s> already in tag map", tagNode.Name)
+			log.Infof("tag <%s> already in tag map", tagNode.Name)
 		}
 
 		// Add the url to the tag
 		ok, urlNode := bw.addUrlNode(url, title, desc)
 		if !ok {
-			fflog.Infof("url <%s> already in url index", url)
+			log.Infof("url <%s> already in url index", url)
 		}
 
 		// Add tag name to urlnode tags
@@ -441,7 +465,7 @@ func GetFFBookmarks(bw *FFBrowser) {
 		bw.Stats.CurrentUrlCount++
 	}
 
-	fflog.Debugf("root tree children len is %d", len(bw.NodeTree.Children))
+	log.Debugf("root tree children len is %d", len(bw.NodeTree.Children))
 }
 
 // fetchUrlChanges method  
@@ -483,8 +507,8 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 			log.Fatal(err)
 		}
 
-		fflog.Debugf("Changed URL: %s", place.URL)
-		fflog.Debugf("%v", place)
+		log.Debugf("Changed URL: %s", place.URL)
+		log.Debugf("%v", place)
 
 		// put url in the places map
 		places[place.ID] = &place
@@ -492,6 +516,7 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 
 	// This is the tag link
 	if bk.btype == BkTypeURL &&
+		// ignore original tags/folder from mozilla
 		bk.parent > ffBkMobile {
 
 		bookmarks[bk.id] = bk
@@ -508,7 +533,7 @@ func (bw *FFBrowser) fetchUrlChanges(rows *sql.Rows,
 	for rows.Next() {
 		bw.fetchUrlChanges(rows, bookmarks, places)
 	}
-	fflog.Debugf("fetching changes done !")
+	log.Debugf("fetching changes done !")
 }
 
 func (bw *FFBrowser) Run() {
@@ -516,10 +541,10 @@ func (bw *FFBrowser) Run() {
 
 	err := bw.InitPlacesCopy()
 	if err != nil {
-		fflog.Error(err)
+		log.Error(err)
 	}
 
-	fflog.Debugf("Checking changes since <%d> %s",
+	log.Debugf("Checking changes since <%d> %s",
 		bw.lastRunTime.UTC().UnixNano()/1000,
 		bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
@@ -533,12 +558,12 @@ func (bw *FFBrowser) Run() {
 		queryArgs,
 	)
 	if err != nil {
-		fflog.Error(err)
+		log.Error(err)
 	}
 
 	query, args, err = sqlx.In(query, args...)
 	if err != nil {
-		fflog.Error(err)
+		log.Error(err)
 	}
 
 	query = bw.places.Handle.Rebind(query)
@@ -546,7 +571,7 @@ func (bw *FFBrowser) Run() {
 
 	rows, err := bw.places.Handle.Query(query, args...)
 	if err != nil {
-		fflog.Error(err)
+		log.Error(err)
 	}
 
 	// Found new results in places db since last time we had changes
@@ -555,13 +580,13 @@ func (bw *FFBrowser) Run() {
 	// NOTE: this looks like a lot of code reuse in fetchUrlChanges()
 	for rows.Next() {
 		// next := rows.Next()
-		// fflog.Debug("next rows is: ", next)
+		// log.Debug("next rows is: ", next)
 		// if !next {
 		//   break
 		// }
 		changedURLS := make([]string, 0)
 
-		fflog.Debugf("Found changes since: %s",
+		log.Debugf("Found changes since: %s",
 			bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
 		// extract bookmarks to this map
@@ -581,7 +606,7 @@ func (bw *FFBrowser) Run() {
 
 			ok, urlNode := bw.addUrlNode(place.URL, place.Title.String, place.Description.String)
 			if !ok {
-				fflog.Infof("url <%s> already in url index", place.URL)
+				log.Infof("url <%s> already in url index", place.URL)
 			}
 
 			// First get any new bookmarks
@@ -595,10 +620,10 @@ func (bw *FFBrowser) Run() {
 					// whre changed ?
 					bkId != ffBkTags {
 
-					fflog.Debugf("adding tag node %s", bk.title)
+					log.Debugf("adding tag node %s", bk.title)
 					ok, tagNode := bw.addTagNode(bkId, bk.title)
 					if !ok {
-						fflog.Infof("tag <%s> already in tag map", tagNode.Name)
+						log.Infof("tag <%s> already in tag map", tagNode.Name)
 					}
 				}
 			}
@@ -608,7 +633,7 @@ func (bw *FFBrowser) Run() {
 
 				// This effectively applies the tag to the URL
 				// The tag link should have a parent over 6 and fk->urlId
-				fflog.Debugf("Bookmark parent %d", bk.parent)
+				log.Debugf("Bookmark parent %d", bk.parent)
 				if bk.fk == urlId &&
 					bk.parent > ffBkMobile {
 
@@ -616,7 +641,7 @@ func (bw *FFBrowser) Run() {
 					tagNode, tagNodeExists := bw.tagMap[bk.parent]
 
 					if tagNodeExists && urlNode != nil {
-						fflog.Debugf("URL has tag %s", tagNode.Name)
+						log.Debugf("URL has tag %s", tagNode.Name)
 
 						urlNode.Tags = utils.Extends(urlNode.Tags, tagNode.Name)
 
@@ -633,26 +658,38 @@ func (bw *FFBrowser) Run() {
 		}
 
 		database.SyncURLIndexToBuffer(changedURLS, bw.URLIndex, bw.BufferDB)
-		bw.BufferDB.SyncTo(CacheDB)
-		CacheDB.SyncToDisk(database.GetDBFullPath())
+		bw.BufferDB.SyncTo(database.Cache.DB)
+		database.Cache.DB.SyncToDisk(database.GetDBFullPath())
 
 	}
 	err = rows.Close()
 	if err != nil {
-		fflog.Error(err)
+		log.Error(err)
 	}
 
 	// TODO: change logger for more granular debugging
 
 	bw.Stats.LastWatchRunTime = time.Since(startRun)
-	// fflog.Debugf("execution time %s", time.Since(startRun))
+	// log.Debugf("execution time %s", time.Since(startRun))
 
-	// go tree.PrintTree(bw.NodeTree) // debugging
+	// tree.PrintTree(bw.NodeTree) // debugging
 
 	err = bw.places.Close()
 	if err != nil {
-		fflog.Error(err)
+		log.Error(err)
 	}
 
 	bw.lastRunTime = time.Now().UTC()
+}
+
+// FIX: depends on config which should be initialized before this init
+func init() {
+	browsers.Register(firefoxBrowserModule)
+
+	//HACK: cmd.RegisterModCommand(BrowserName, &cli.Command{
+	//HACK: 	Name: "test",
+	//HACK: })
+	//HACK: cmd.RegisterModCommand(BrowserName, &cli.Command{
+	//HACK: 	Name: "test2",
+	//HACK: })
 }

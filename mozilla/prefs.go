@@ -65,18 +65,16 @@ func GetPrefBool(path string, name string) (bool, error) {
 		return false, err
 	}
 
-	if val == "" {
+	switch val {
+	case "":
 		return false, ErrPrefNotFound
-	}
-
-	if val == "true" {
+	case "true":
 		return true, nil
-	} else if val == "false" {
+	case "false":
 		return false, nil
+	default:
+		return false, ErrPrefNotBool
 	}
-
-	return false, ErrPrefNotBool
-
 }
 
 // Set a preference in the preference file under `path`

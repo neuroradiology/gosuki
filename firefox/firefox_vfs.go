@@ -1,11 +1,12 @@
-//TODO: vfs for firefox should be removed in favor of copy/parse method
-package mozilla
+// TODO: vfs for firefox should be removed in favor of copy/parse method
+package firefox
 
 import (
 	"errors"
 	"fmt"
 	"path"
 
+	moz "git.sp4ke.xyz/sp4ke/gomark/mozilla"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
 )
 
@@ -30,19 +31,19 @@ var (
 )
 
 func CheckVFSLock() error {
-	log.Debugf("Checking VFS for <%s>", GetBookmarkDir())
+	log.Debugf("Checking VFS for <%s>", getBookmarkDir())
 	return nil
 }
 
 func UnlockPlaces() error {
-	log.Debugf("Unlocking VFS <%s>", path.Join(GetBookmarkDir(), PrefsFile))
+	log.Debugf("Unlocking VFS <%s>", path.Join(getBookmarkDir(), moz.PrefsFile))
 
-	prefsPath := path.Join(GetBookmarkDir(), PrefsFile)
+	prefsPath := path.Join(getBookmarkDir(), moz.PrefsFile)
 
 	// Find if multiProcessAccess option is defined
 
-	pref, err := GetPrefBool(prefsPath, PrefMultiProcessAccess)
-	if err != nil && err != ErrPrefNotFound {
+	pref, err := moz.GetPrefBool(prefsPath, PrefMultiProcessAccess)
+	if err != nil && err != moz.ErrPrefNotFound {
 		return err
 	}
 
@@ -57,7 +58,7 @@ func UnlockPlaces() error {
 
 		// Checking if firefox is running
 		// TODO: #multiprocess add CLI to unlock places.sqlite
-		pusers, err := utils.FileProcessUsers(path.Join(GetBookmarkDir(), BookmarkFile))
+		pusers, err := utils.FileProcessUsers(path.Join(getBookmarkDir(), moz.BookmarkFile))
 		if err != nil {
 			log.Error(err)
 		}
@@ -72,7 +73,7 @@ func UnlockPlaces() error {
 		// End testing
 
 		// enable multi process access in firefox
-		err = SetPrefBool(prefsPath,
+		err = moz.SetPrefBool(prefsPath,
 			PrefMultiProcessAccess,
 			true)
 

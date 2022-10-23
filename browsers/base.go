@@ -26,33 +26,36 @@ import (
 	"github.com/sp4ke/hashmap"
 )
 
-type IWatchable = watch.Watchable
-type Watcher = watch.Watcher
-type Watch = watch.Watch
-
 var log = logging.GetLogger("BASE")
-var CacheDB = database.CacheDB
 
 type BrowserType uint8
 
 // Browser types
 const (
+	// Chromium based browsers (chrome, brave ... )
 	TChrome BrowserType = iota
+
+	// Firefox based browsers ie. they relay on places.sqlite
 	TFirefox
+
+	// Other
+	TCustom
 )
 
 // Channel parameters
-const EventsChanLen = 1000
+const eventsChanLen = 1000
 
 // Used to store bookmark paths and other
 // data related to a particular browser kind
+//_TODO: replace in chrome with ProfileManager and remove this ref
 type BrowserPaths struct {
 	BookmarkFile string
 	BookmarkDir  string
 }
 
+//FIX: in chome use Browser interface instead
 type IBrowser interface {
-	IWatchable
+	watch.Watchable
 
 	Init() error // browser initializiation goes here
 	RegisterHooks(...parsing.Hook)
@@ -73,10 +76,13 @@ type IBrowser interface {
 //
 // `BufferDB`: sqlite buffer used across jobs
 type BaseBrowser struct {
-	watcher    *Watcher
+	watcher    *watch.Watcher
 	eventsChan chan fsnotify.Event
-	BaseDir    string
-	BkFile     string
+
+	// Dir where bookmarks file is stored
+	BaseDir string
+	// Name of bookmarks file
+	BkFile string
 
 	WatchedPaths []string
 
@@ -105,33 +111,12 @@ type BaseBrowser struct {
 	bufferInit bool
 }
 
-func (bw *BaseBrowser) GetWatcher() *Watcher {
-	watcherType := reflect.TypeOf((*Watcher)(nil)).Elem()
+func (bw *BaseBrowser) GetWatcher() *watch.Watcher {
+	watcherType := reflect.TypeOf((*watch.Watcher)(nil)).Elem()
 	// In case we use other types of watchers/events
 	if reflect.TypeOf(bw.watcher) == reflect.PtrTo(watcherType) {
 		return bw.watcher
 	}
-	return nil
-}
-
-func (bw *BaseBrowser) Load() error {
-
-	if !bw.baseInit {
-		return fmt.Errorf("base init on <%s> missing, call Init() on BaseBrowser !", bw.Name)
-	}
-
-	// Check if cache is initialized
-	if CacheDB == nil || CacheDB.Handle == nil {
-		return fmt.Errorf("<%s> Loading bookmarks while cache not yet initialized !", bw.Name)
-	}
-
-	// In case we use other types of watchers/events
-	if bw.UseFileWatcher && bw.watcher == nil {
-		return fmt.Errorf("<%s> watcher not initialized, use SetupFileWatcher() when creating the browser !", bw.Name)
-	}
-
-	log.Debugf("<%s> preloading bookmarks", bw.Name)
-
 	return nil
 }
 
@@ -144,19 +129,19 @@ func (bw *BaseBrowser) GetBookmarksPath() string {
 }
 
 func (bw *BaseBrowser) InitEventsChan() {
-	bw.eventsChan = make(chan fsnotify.Event, EventsChanLen)
+	bw.eventsChan = make(chan fsnotify.Event, eventsChanLen)
 }
 
 func (bw *BaseBrowser) EventsChan() chan fsnotify.Event {
 	return bw.eventsChan
 }
 
-func (bw *BaseBrowser) GetDir() string {
+func (bw *BaseBrowser) GetWatchedDir() string {
 	return bw.BaseDir
 }
 
 // Setup file watcher using the provided []Watch elements
-func (bw *BaseBrowser) SetupFileWatcher(watches ...*Watch) {
+func (bw *BaseBrowser) SetupFileWatcher(watches ...*watch.Watch) {
 	var err error
 
 	if !bw.UseFileWatcher {
@@ -168,12 +153,12 @@ func (bw *BaseBrowser) SetupFileWatcher(watches ...*Watch) {
 		log.Critical(err)
 	}
 
-	watchedMap := make(map[string]*Watch)
+	watchedMap := make(map[string]*watch.Watch)
 	for _, v := range watches {
 		watchedMap[v.Path] = v
 	}
 
-	bw.watcher = &Watcher{
+	bw.watcher = &watch.Watcher{
 		W:       fswatcher,
 		Watched: watchedMap,
 		Watches: watches,
@@ -229,6 +214,36 @@ func (b *BaseBrowser) Shutdown() {
 	log.Debugf("<%s> shutdown complete ", b.Name)
 }
 
+// setup checks if Browser implements Initializer and Loader interfaces and
+// call the appropriate methods
+//_TODO: use BaseBrowser implementation for Init and Load !! 
+//_TODO: so that implementers don't need to manually call the base Init / Load
+func Setup(b Browser) error {
+	log.Debugf("setting up <%s>", b)
+
+	// Initialization logic
+	if initializer, ok := b.(Initializer); ok {
+		err := initializer.Init()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Loading logic
+	if loader, ok := b.(Loader); ok {
+		err := loader.Load()
+		if err != nil {
+			return err
+		}
+
+	}
+
+	// var loader, ok := b.(Loader)
+
+	return nil
+}
+
+//TODO: use the new interfaces Loader / Initializer 
 func (b *BaseBrowser) Init() error {
 
 	// Init browser buffer
@@ -242,6 +257,28 @@ func (b *BaseBrowser) Init() error {
 	b.URLIndex = index.NewIndex()
 
 	b.baseInit = true
+
+	return nil
+}
+
+//TODO: use the new interfaces Loader / Initializer 
+func (bw *BaseBrowser) Load() error {
+
+	if !bw.baseInit {
+		return fmt.Errorf("base init on <%s> missing, call Init() on BaseBrowser", bw.Name)
+	}
+
+	// Check if cache is initialized
+	if !database.Cache.IsInitialized() {
+		return fmt.Errorf("<%s> Loading bookmarks while cache not yet initialized", bw.Name)
+	}
+
+	// In case we use other types of watchers/events
+	if bw.UseFileWatcher && bw.watcher == nil {
+		return fmt.Errorf("<%s> watcher not initialized, use SetupFileWatcher() when creating the browser", bw.Name)
+	}
+
+	log.Debugf("<%s> preloading bookmarks", bw.Name)
 
 	return nil
 }

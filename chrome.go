@@ -21,7 +21,7 @@ import (
 type BaseBrowser = browsers.BaseBrowser
 type IBrowser = browsers.IBrowser
 
-//TODO: replace with new profile manager
+//_TODO: replace with new profile manager
 var ChromeData = browsers.BrowserPaths{
 	BookmarkDir: "/home/spike/.config/google-chrome-unstable/Default/",
 }
@@ -144,6 +144,7 @@ func (bw *ChromeBrowser) Run() {
 	bw.RebuildNodeTree()
 
 	// Load bookmark file
+    //TODO: use base.GetBookmarksPath
 	bookmarkPath := path.Join(bw.BaseDir, bw.BkFile)
 	f, err := ioutil.ReadFile(bookmarkPath)
 	if err != nil {
@@ -328,7 +329,7 @@ func (bw *ChromeBrowser) Run() {
 
 	//bw.BufferDB.Print()
 
-	// cacheDB represents bookmarks across all browsers
+	// database.Cache represents bookmarks across all browsers
 	// From browsers it should support: add/update
 	// Delete method should only be possible through admin interface
 	// We could have an @ignore command to ignore a bookmark
@@ -341,22 +342,22 @@ func (bw *ChromeBrowser) Run() {
 	// Buffer is the current state of the browser represetned by
 	// URLIndex and nodeTree
 
-	// If cacheDB is empty just copy buffer to cacheDB
+	// If the cache is empty just copy buffer to cache
 	// until local db is already populated and preloaded
 	//debugPrint("%d", BufferDB.Count())
-	if empty, err := CacheDB.IsEmpty(); empty {
+	if empty, err := database.Cache.DB.IsEmpty(); empty {
 		if err != nil {
 			log.Error(err)
 		}
-		log.Info("cache empty: loading buffer to Cachedb")
+		log.Info("cache empty: loading buffer to CacheDB")
 
-		bw.BufferDB.CopyTo(CacheDB)
+		bw.BufferDB.CopyTo(database.Cache.DB)
 
-		log.Debugf("syncing <%s> to disk", CacheDB.Name)
+		log.Debugf("syncing <%s> to disk", database.Cache.DB.Name)
 	} else {
-		bw.BufferDB.SyncTo(CacheDB)
+		bw.BufferDB.SyncTo(database.Cache.DB)
 	}
 
-	go CacheDB.SyncToDisk(database.GetDBFullPath())
+	go database.Cache.DB.SyncToDisk(database.GetDBFullPath())
 	bw.Stats.LastWatchRunTime = time.Since(startRun)
 }

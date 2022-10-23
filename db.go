@@ -9,9 +9,6 @@ import (
 
 type DB = database.DB
 
-// Global cache database
-var CacheDB = database.CacheDB
-
 func initDB() {
 	var err error
 
@@ -33,7 +30,7 @@ func initDB() {
 			log.Warning(err)
 		}
 		log.Infof("<%s> exists, preloading to cache", dbpath)
-		er := CacheDB.SyncFromDisk(dbpath)
+		er := database.Cache.DB.SyncFromDisk(dbpath)
 		if er != nil {
 			log.Critical(er)
 		}
@@ -43,12 +40,12 @@ func initDB() {
 		}
 
 		// Else initialize it
-		initLocalDB(CacheDB, dbpath)
+		initLocalDB(database.Cache.DB, dbpath)
 	}
 
 }
 
-//Initialize the local database file
+// Initialize the local database file
 func initLocalDB(db *DB, dbpath string) {
 
 	log.Infof("Initializing local db at '%s'", dbpath)

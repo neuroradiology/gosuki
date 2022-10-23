@@ -17,7 +17,7 @@ type Bookmark = bookmarks.Bookmark
 
 func getBookmarks(c *gin.Context) {
 
-	rows, err := CacheDB.Handle.QueryContext(c, "SELECT URL, metadata, tags FROM bookmarks")
+	rows, err := database.Cache.DB.Handle.QueryContext(c, "SELECT URL, metadata, tags FROM bookmarks")
 	if err != nil {
 		log.Error(err)
 	}

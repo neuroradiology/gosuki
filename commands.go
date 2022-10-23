@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/parsing"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
 
@@ -31,37 +32,39 @@ func startServer(c *cli.Context) error {
 	// Initialize sqlite database available in global `cacheDB` variable
 	initDB()
 
-	var browsers []IBrowser
+	registeredBrowsers := browsers.Modules()
+	log.Debugf("registered browsers: %v", registeredBrowsers)
 
-	ff := NewFFBrowser()
-	if ff != nil {
-		browsers = append(browsers, ff)
-	}
+	//TODO: instanciate all browsers
 
-	//cr := NewChromeBrowser()
-	//if cr != nil {
-	//browsers = append(browsers, cr)
-	//}
+	for _, b := range registeredBrowsers {
+		defer b.Browser.Shutdown()
+		log.Debugf("new browser instance with path %s", b.Browser.GetBookmarksPath())
+		b.Browser.RegisterHooks(parsing.ParseTags)
 
-	for _, b := range browsers {
-		defer b.Shutdown()
-		b.RegisterHooks(parsing.ParseTags)
-
-		err := b.Init()
+		//TODO: call the setup logic for init,load for each browser instance
+		err := browsers.Setup(b.Browser)
 		if err != nil {
 			log.Criticalf("<%s> %s", b, err)
-			b.Shutdown()
+			b.Browser.Shutdown()
 			continue
 		}
 
-		err = b.Load()
-		if err != nil {
-			log.Criticalf("<%s> %s", b, err)
-			b.Shutdown()
-			continue
-		}
+		// err := b.Init()
+		// if err != nil {
+		// 	log.Criticalf("<%s> %s", b, err)
+		// 	b.Shutdown()
+		// 	continue
+		// }
+		//
+		// err = b.Load()
+		// if err != nil {
+		// 	log.Criticalf("<%s> %s", b, err)
+		// 	b.Shutdown()
+		// 	continue
+		// }
 
-		b.Watch()
+		b.Browser.Watch()
 	}
 
 	<-manager.Quit

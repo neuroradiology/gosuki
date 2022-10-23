@@ -2,12 +2,14 @@ package database
 
 import (
 	"path/filepath"
-
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
 )
 
+func GetDefaultDBPath() string {
+	return DefaultDBPath
+}
+
 func GetDBFullPath() string {
-	dbdir := utils.GetDefaultDBPath()
+	dbdir := GetDefaultDBPath()
 	dbpath := filepath.Join(dbdir, DBFileName)
 	return dbpath
 }
