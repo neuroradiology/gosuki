@@ -21,8 +21,7 @@ var (
 	_sql3conns           []*sqlite3.SQLiteConn // Only used for backup hook
 	backupHookRegistered bool                  // set to true once the backup hook is registered
 
-	// Global cache database
-	CacheDB *DB // Main in memory db, is synced with disc
+	DefaultDBPath = "./"
 )
 
 type Index = *hashmap.RBTree
@@ -32,13 +31,8 @@ var log = logging.GetLogger("DB")
 
 const (
 	DBFileName = "gomarks.db"
-	CacheName  = "memcache"
-	//MemcacheFmt = "file:%s?mode=memory&cache=shared"
-	//BufferFmt   = "file:%s?mode=memory&cache=shared"
 
-	DBTypeInMemoryDSN = "file:%s?mode=memory&cache=shared"
-	DBTypeCacheDSN    = DBTypeInMemoryDSN
-	DBTypeFileDSN     = "file:%s"
+	DBTypeFileDSN = "file:%s"
 
 	DriverBackupMode = "sqlite_hook_backup"
 	DriverDefault    = "sqlite3"
@@ -66,7 +60,8 @@ const (
 	// flags: designed to be extended in future using bitwise masks
 	// Masks:
 	//     0b00000001: set title immutable ((do not change title when updating the bookmarks from the web ))
-	QCreateGomarkDBSchema = `CREATE TABLE if not exists bookmarks (
+	QCreateGomarkDBSchema = `
+    CREATE TABLE if not exists bookmarks (
 		id integer PRIMARY KEY,
 		URL text NOT NULL UNIQUE,
 		metadata text default '',
@@ -74,7 +69,8 @@ const (
 		desc text default '',
 		modified integer default (strftime('%s')),
 		flags integer default 0
-	)`
+	)
+    `
 )
 
 type DsnOptions map[string]string
@@ -224,8 +220,6 @@ func New(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB {
 // with interface so we can mock it and test the lock status in Init()
 // Initialize a sqlite database with Gomark Schema if not already done
 func (db *DB) Init() (*DB, error) {
-
-	// `cacheDB` is a memory replica of disk db
 
 	var err error
 
@@ -430,20 +424,6 @@ func registerSqliteHooks() {
 			},
 		})
 
-}
-
-func initCache() {
-	var err error
-	// Initialize memory db with schema
-	CacheDB, err = New(CacheName, "", DBTypeCacheDSN).Init()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = CacheDB.InitSchema()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func init() {

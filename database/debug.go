@@ -97,7 +97,7 @@ func DebugPrintRow(rows *sql.Rows) {
 	w.Flush()
 }
 
-func (db *DB) Print() error {
+func (db *DB) PrintBookmarks() error {
 
 	var url, tags string
 

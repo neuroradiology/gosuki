@@ -10,14 +10,17 @@ var log = logging.GetLogger("WATCH")
 
 // Used as input to WatcherThread
 // It does not have to be a browser as long is the interface is implemented
+// TODO: simplify interface
 type Watchable interface {
-	HasReducer() bool           // Does the watchable has a reducer
+	HasReducer() bool // Does the watchable has a reducer
+
+	//TODO: make interface optional
 	SetupFileWatcher(...*Watch) // Starts watching bookmarks and runs Load on change
 	Watch() bool                // starts watching linked watcher
 	GetWatcher() *Watcher       // returns linked watcher
 	ResetWatcher()              // resets a new watcher
 	GetBookmarksPath() string   // returns watched path
-	GetDir() string             // returns watched dir
+	GetWatchedDir() string      // returns watched dir
 	Run()                       // Callbaks to run on event
 	EventsChan() chan fsnotify.Event
 }

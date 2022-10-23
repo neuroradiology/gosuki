@@ -1,10 +1,10 @@
-package cmd
+package firefox
 
 import (
 	"strings"
 
+	"git.sp4ke.xyz/sp4ke/gomark/cmd"
 	"git.sp4ke.xyz/sp4ke/gomark/config"
-	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
 
 	"github.com/gobuffalo/flect"
@@ -15,15 +15,21 @@ const (
 	FirefoxDefaultProfileFlag = "firefox-default-profile"
 )
 
-var FirefoxGlobalFlags = []cli.Flag{
+var globalFirefoxFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:  FirefoxDefaultProfileFlag,
 		Usage: "Set the default firefox `PROFILE` to use",
 	},
+    &cli.StringFlag{
+        Name: "firefox-default-dir",
+        Usage: "test",
+    },
 }
 
 // Firefox global flags must start with --firefox-<flag name here>
-func GlobalFirefoxFlagsManager(c *cli.Context) error {
+// NOTE: is called in *cli.App.Before callback
+func globalCommandFlagsManager(c *cli.Context) error {
+	log.Debugf("<%s> registering global flag manager", BrowserName)
 	for _, f := range c.App.Flags {
 
 		if utils.Inlist(f.Names(), "help") ||
@@ -46,11 +52,12 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 		}
 
 		//TODO: document this feature
+        // extract global options that start with --firefox-*
 		optionName := flect.Pascalize(strings.Join(sp[1:], " "))
 		var destVal interface{}
 
 		// Find the corresponding flag
-		for _, ff := range FirefoxGlobalFlags {
+		for _, ff := range globalFirefoxFlags {
 			if ff.String() == f.String() {
 
 				// Type switch on the flag type
@@ -62,13 +69,19 @@ func GlobalFirefoxFlagsManager(c *cli.Context) error {
 			}
 		}
 
-		err := config.RegisterModuleOpt(mozilla.ConfigName,
+		err := config.RegisterModuleOpt(BrowserName,
 			optionName, destVal)
 		if err != nil {
-			fflog.Fatal(err)
+			log.Fatal(err)
 		}
-
 	}
-
 	return nil
+}
+
+func init() {
+	cmd.RegBeforeHook(BrowserName, globalCommandFlagsManager)
+
+    for _, flag := range globalFirefoxFlags {
+        cmd.RegGlobalFlag(BrowserName, flag)
+    }
 }

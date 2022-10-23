@@ -1,4 +1,5 @@
-//TODO: add cli options to set/get options
+// TODO: add cli options to set/get options
+// TODO: move browser module commands to their own module packag
 package cmd
 
 import (
@@ -6,7 +7,6 @@ import (
 	"path/filepath"
 
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
 
 	"github.com/urfave/cli/v2"
 )

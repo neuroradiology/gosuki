@@ -182,7 +182,11 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	if err != nil {
 		return err
 	}
-	bkDb.Ping()
+
+	err = bkDb.Ping()
+	if err != nil {
+		return err
+	}
 
 	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
 	if err != nil {

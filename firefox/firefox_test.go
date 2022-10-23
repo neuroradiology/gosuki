@@ -1,9 +1,10 @@
-package main
+package firefox
 
 import (
 	"testing"
 
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
+	"git.sp4ke.xyz/sp4ke/gomark/database"
 	"git.sp4ke.xyz/sp4ke/gomark/index"
 	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
 	"git.sp4ke.xyz/sp4ke/gomark/parsing"
@@ -178,4 +179,94 @@ func Test_addTagNode(t *testing.T) {
 
 func Test_fetchUrlChanges(t *testing.T) {
 	t.Error("split into small units")
+}
+
+func Test_GetFFBookmarks(t *testing.T) {
+
+	// expected data from testdata/places.sqlite
+	data := struct {
+		tags    []string
+		folders []string // list of tags
+
+		urlBookmarks []string // list of folder names
+
+	}{ // list of urls which are bookmarked
+		tags: []string{"golang", "programming", "rust"},
+
+		folders: []string{
+			"menu",
+			"toolbar", "tags",
+			"unfiled",
+			"mobile",
+			"Mozilla Firefox",
+			"cooking",
+			"indian",
+			"GomarkMenu",
+		},
+
+		urlBookmarks: []string{
+			"https://based.cooking/",
+			"https://go.dev/",
+			"https://support.mozilla.org/en-US/kb/customize-firefox-controls-buttons-and-toolbars?utm_source=firefox-browser&utm_medium=default-bookmarks&utm_campaign=customize",
+			"https://support.mozilla.org/en-US/products/firefox",
+			"https://www.mozilla.org/en-US/about/",
+			"https://www.mozilla.org/en-US/contribute/",
+			"https://www.mozilla.org/en-US/firefox/central/",
+			"https://www.rust-lang.org/",
+			"https://www.tasteofhome.com/article/indian-cooking/",
+		},
+	}
+
+	// expected tags are in places.sqlite
+	ff := &FFBrowser{
+		BaseBrowser: browsers.BaseBrowser{
+			Name:           "firefox",
+			Type:           browsers.TFirefox,
+			BkFile:         mozilla.BookmarkFile,
+			BaseDir:        "testdata", // inside testdata
+			NodeTree:       &tree.Node{Name: "root", Parent: nil, Type: "root"},
+			Stats:          &parsing.Stats{},
+			UseFileWatcher: false,
+		},
+		tagMap: make(map[sqlid]*tree.Node),
+	}
+
+	database.DefaultDBPath = "testdata"
+
+	err := ff.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("Load firefox bookmarks verify that:")
+
+	// find the following entries in CacheDB
+	// 1- find all tags defined by user
+
+	t.Run("should find all tags", func(t *testing.T) {
+
+		t.Log(CacheDB)
+		err := CacheDB.PrintBookmarks()
+		if err != nil {
+			t.Error(err)
+		}
+
+		t.Log(data)
+		t.Error("not implemented !")
+
+	})
+
+	/*
+		2.find all folders
+		- Should ignore Mozilla folders, any folder with (id < 13 && type == 2)
+		- Should get any user defined folder with bkId > 12
+	*/
+
+	/*
+	   3. find all url bookmarks with their tags
+	   - should get any user added bookmark (id > 12)
+	*/
+
+	// teardown
+	// remove gomarks.db
 }
