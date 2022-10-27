@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/parsing"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
+	"git.sp4ke.xyz/sp4ke/gomark/watch"
 
 	"git.sp4ke.xyz/sp4ke/gum"
 
@@ -37,16 +39,39 @@ func startServer(c *cli.Context) error {
 
 	//TODO: instanciate all browsers
 
-	for _, b := range registeredBrowsers {
-		defer b.Browser.Shutdown()
-		log.Debugf("new browser instance with path %s", b.Browser.GetBookmarksPath())
-		b.Browser.RegisterHooks(parsing.ParseTags)
+	for _, mod := range registeredBrowsers {
+
+		// type assert to Browser interface
+		var browser browsers.BrowserModule
+		browser, ok := mod.(browsers.BrowserModule)
+		if !ok {
+			log.Errorf("<%s> is not a browser module", mod.ModInfo().ID)
+			continue
+		}
+
+		//TIP: shutdown logic
+		// shutdowner, isShutdowner := browser.(browsers.Shutdowner)
+		// if isShutdowner {
+		// 	defer shutdowner.Shutdown()
+		// }
+
+		log.Debugf("new browser instance with path %s", browser.Config().BookmarkPath())
+		h, ok := browser.(browsers.HookRunner)
+		if ok {
+			//TODO: document hook running
+			h.RegisterHooks(parsing.ParseTags)
+		}
 
 		//TODO: call the setup logic for init,load for each browser instance
-		err := browsers.Setup(b.Browser)
+		err := browsers.Setup(browser)
 		if err != nil {
-			log.Criticalf("<%s> %s", b, err)
-			b.Browser.Shutdown()
+			log.Criticalf("setting up <%s> %v", browser.Config().Name, err)
+			if isShutdowner {
+				err := shutdowner.Shutdown()
+				if err != nil {
+					log.Critical(fmt.Errorf("shutting down <%s>: %v", browser.Config().Name, err))
+				}
+			}
 			continue
 		}
 
@@ -64,7 +89,8 @@ func startServer(c *cli.Context) error {
 		// 	continue
 		// }
 
-		b.Browser.Watch()
+		watch.SpawnWatcher(browser)
+		// b.Browser.Watch()
 	}
 
 	<-manager.Quit

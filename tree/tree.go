@@ -14,9 +14,18 @@ var log = logging.GetLogger("TREE")
 
 type Bookmark = bookmarks.Bookmark
 
+type NodeType int
+
+const (
+    RootNode NodeType = iota
+	URLNode
+	FolderNode
+	TagNode
+)
+
 type Node struct {
 	Name       string
-	Type       string // folder, tag, url
+	Type       NodeType // folder, tag, url
 	URL        string
 	Tags       []string
 	Desc       string
@@ -68,7 +77,7 @@ func (node *Node) GetParentTags() []*Node {
 	walk = func(n *Node) {
 		nodePtr = n
 
-		if nodePtr.Type == "url" {
+		if nodePtr.Type == URLNode {
 			return
 		}
 
@@ -78,7 +87,7 @@ func (node *Node) GetParentTags() []*Node {
 
 		for _, v := range nodePtr.Children {
 			if v.URL == node.URL &&
-				nodePtr.Type == "tag" {
+				nodePtr.Type == TagNode {
 				parents = append(parents, nodePtr)
 			}
 			walk(v)
@@ -113,7 +122,7 @@ func PrintTree(root *Node) {
 // Rebuilds the memory url index after parsing all bookmarks.
 // Keeps memory index in sync with last known state of browser bookmarks
 func WalkBuildIndex(node *Node, index index.HashTree) {
-	if node.Type == "url" {
+	if node.Type == URLNode {
 		index.Insert(node.URL, node)
 		//log.Debugf("Inserted URL: %s and Hash: %v", node.URL, node.NameHash)
 	}

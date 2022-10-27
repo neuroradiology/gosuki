@@ -6,10 +6,13 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"git.sp4ke.xyz/sp4ke/gomark/logging"
 )
 
 var (
 	TMPDIR = ""
+	log    = logging.GetLogger("")
 )
 
 func copyFileToDst(src string, dst string) error {
@@ -28,11 +31,10 @@ func copyFileToDst(src string, dst string) error {
 		return err
 	}
 
-  err = dstFile.Sync()
-  if err != nil {
-    return err
-  }
-  
+	err = dstFile.Sync()
+	if err != nil {
+		return err
+	}
 
 	return nil
 

@@ -392,7 +392,7 @@ func SyncURLIndexToBuffer(urls []string, index Index, buffer *DB) {
 }
 
 func SyncTreeToBuffer(node *Node, buffer *DB) {
-	if node.Type == "url" {
+	if node.Type == tree.URLNode {
 		bk := node.GetBookmark()
 		buffer.InsertOrUpdateBookmark(bk)
 	}

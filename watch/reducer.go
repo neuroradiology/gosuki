@@ -1,29 +1,20 @@
-package utils
+package watch
 
-import (
-	"time"
-
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/watch"
-
-	"github.com/fsnotify/fsnotify"
-)
-
-var log = logging.GetLogger("WATCH")
+import "time"
 
 // Run reducer in its own thread when the watcher is started
 // It receives a struct{event, func} and runs the func only once in the interval
 func ReduceEvents(interval time.Duration,
-	input chan fsnotify.Event,
-	w watch.Watchable) {
+	w WatchRunner) {
 	log.Debug("Running reducer")
 
+	eventsIn := w.Watcher().eventsChan
 	timer := time.NewTimer(interval)
 	var events []bool
 
 	for {
 		select {
-		case <-input:
+		case <-eventsIn:
 			// log.Debug("[reducuer] received event, resetting watch interval !")
 			timer.Reset(interval)
 			events = append(events, true)

@@ -1,10 +1,11 @@
 package parsing
 
 import (
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/tree"
 	"regexp"
 	"time"
+
+	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.sp4ke.xyz/sp4ke/gomark/tree"
 )
 
 type Node = tree.Node
@@ -34,6 +35,13 @@ type Stats struct {
 	LastURLCount          int
 	CurrentNodeCount      int
 	CurrentUrlCount       int
+}
+
+func (s *Stats) Reset() {
+    s.LastURLCount = s.CurrentUrlCount
+	s.LastNodeCount = s.CurrentNodeCount
+	s.CurrentNodeCount = 0
+	s.CurrentUrlCount = 0
 }
 
 type Hook func(node *Node)
