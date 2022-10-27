@@ -8,28 +8,82 @@ import (
 
 var log = logging.GetLogger("WATCH")
 
-// Used as input to WatcherThread
-// It does not have to be a browser as long is the interface is implemented
-// TODO: simplify interface
-type Watchable interface {
-	HasReducer() bool // Does the watchable has a reducer
+type WatchRunner interface {
+	Watcher
+	Runner
+}
 
-	//TODO: make interface optional
-	SetupFileWatcher(...*Watch) // Starts watching bookmarks and runs Load on change
-	Watch() bool                // starts watching linked watcher
-	GetWatcher() *Watcher       // returns linked watcher
-	ResetWatcher()              // resets a new watcher
-	GetBookmarksPath() string   // returns watched path
-	GetWatchedDir() string      // returns watched dir
-	Run()                       // Callbaks to run on event
-	EventsChan() chan fsnotify.Event
+// If the browser needs the watcher to be reset for each new event
+type ResetWatcher interface {
+	ResetWatcher() // resets a new watcher
+}
+
+// Required interface to be implemented by browsers that want to use the
+// fsnotify event loop and watch changes on bookmark files.
+type Watcher interface {
+	Watcher() *WatchDescriptor
+}
+
+type Runner interface {
+	Run()
 }
 
 // Wrapper around fsnotify watcher
-type Watcher struct {
+type WatchDescriptor struct {
+	ID      string
 	W       *fsnotify.Watcher // underlying fsnotify watcher
 	Watched map[string]*Watch // watched paths
 	Watches []*Watch          // helper var
+
+	// channel used to communicate watched events
+	eventsChan chan fsnotify.Event
+    isWatching bool
+}
+
+func (w WatchDescriptor) hasReducer() bool {
+	//TODO: test the type of eventsChan
+	return w.eventsChan != nil
+}
+
+func NewWatcherWithReducer(name string, reducerLen int, watches ...*Watch) (*WatchDescriptor, error) {
+	w, err := NewWatcher(name, watches...)
+	if err != nil {
+		return nil, err
+	}
+	w.eventsChan = make(chan fsnotify.Event, reducerLen)
+
+	return w, nil
+}
+
+func NewWatcher(name string, watches ...*Watch) (*WatchDescriptor, error) {
+
+	fswatcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+
+	watchedMap := make(map[string]*Watch)
+	for _, v := range watches {
+		watchedMap[v.Path] = v
+	}
+
+	watcher := &WatchDescriptor{
+		ID:         name,
+		W:          fswatcher,
+		Watched:    watchedMap,
+		Watches:    watches,
+		eventsChan: nil,
+	}
+
+	// Add all watched paths
+	for _, v := range watches {
+
+		err = watcher.W.Add(v.Path)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return watcher, nil
 }
 
 // Details about the object being watched
@@ -37,17 +91,32 @@ type Watch struct {
 	Path       string        // Path to watch for events
 	EventTypes []fsnotify.Op // events to watch for
 	EventNames []string      // event names to watch for (file/dir names)
-	ResetWatch bool          // Reset the watcher when the event happens (useful for create events)
+
+	// Reset the watcher at each event occurence (useful for create events)
+	ResetWatch bool
+}
+
+func SpawnWatcher(w WatchRunner) {
+    watcher := w.Watcher()
+    if ! watcher.isWatching {
+        go WatcherThread(w)
+        watcher.isWatching = true
+
+		for watched := range watcher.Watched{
+			log.Infof("Watching %s", watched)
+		}
+    }
+
 }
 
 // Main thread for watching file changes
-func WatcherThread(w Watchable) {
+func WatcherThread(w WatchRunner) {
 
-	log.Infof("<%s> Started watcher", w)
+	watcher := w.Watcher()
+	log.Infof("<%s> Started watcher", watcher.ID)
 	for {
 		// Keep watcher here as it is reset from within
 		// the select block
-		watcher := w.GetWatcher()
 		resetWatch := false
 
 		select {
@@ -74,8 +143,8 @@ func WatcherThread(w Watchable) {
 
 							// For watchers who need a reducer
 							// to avoid spammy events
-							if w.HasReducer() {
-								ch := w.EventsChan()
+							if watcher.hasReducer() {
+								ch := watcher.eventsChan
 								ch <- event
 							} else {
 								w.Run()
@@ -85,8 +154,12 @@ func WatcherThread(w Watchable) {
 
 							if watched.ResetWatch {
 								log.Debugf("resetting watchers")
-								w.ResetWatcher()
-								resetWatch = true // needed to break out of big loop
+								if r, ok := w.(ResetWatcher); ok {
+									r.ResetWatcher()
+									resetWatch = true // needed to break out of big loop
+								} else {
+									log.Fatalf("<%s> does not implement ResetWatcher", watcher.ID)
+								}
 							}
 
 						}

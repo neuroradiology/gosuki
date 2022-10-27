@@ -13,6 +13,9 @@ DEBUG_FLAGS := -gcflags="all=-N -l"
 #all: test build
 all: build
 
+# browser modules prototype
+p_modules:
+	@go run ./_prototype_modules/*
 
 run: build
 	@./$(TARGET)

@@ -5,9 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/config"
 	"git.sp4ke.xyz/sp4ke/gomark/database"
 	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
+	"git.sp4ke.xyz/sp4ke/gomark/parsing"
+	"git.sp4ke.xyz/sp4ke/gomark/tree"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
 
 	"github.com/fatih/structs"
@@ -22,7 +25,23 @@ const (
 var (
 
 	// user mutable config
-	Config = &FirefoxConfig{
+	FFConfig = &FirefoxConfig{
+		BrowserConfig: &browsers.BrowserConfig{
+			Name:           BrowserName,
+			Type:           browsers.TFirefox,
+			BkDir:          "",
+			BkFile:         "",
+			WatchedPaths:   []string{},
+            //TODO: Initialize BufferDB
+            //TODO: initialize URLIndex
+			NodeTree:       &tree.Node{
+                Name: "root",
+                Parent: nil,
+                Type: tree.RootNode,
+            },
+			Stats:          &parsing.Stats{},
+			UseFileWatcher: true,
+		},
 
 		// Default data source name query options for `places.sqlite` db
 		PlacesDSN: database.DsnOptions{
@@ -34,9 +53,6 @@ var (
 
 		WatchAllProfiles: false,
 	}
-
-	// Bookmark directory (including profile path)
-	bookmarkDir string
 
 	firefoxProfile = &mozilla.INIProfileLoader{
 		//BasePath to be set at runtime in init
@@ -50,8 +66,13 @@ var (
 	}
 )
 
-// Schema for config parameters to pass on to firefox and that can be
-// overriden by users. Options defined here will automatically supported in the
+func init() {
+	config.RegisterConfigurator(BrowserName, FFConfig)
+	config.RegisterConfReadyHooks(initFirefoxConfig)
+}
+
+// Schema for config parameters to pass on to firefox that can be overriden by
+// users. Options defined here will automatically supported in the
 // config.toml file as well as the command line flags.
 // New command line flags or config file options will only be accepted if they
 // are defined here.
@@ -60,6 +81,9 @@ type FirefoxConfig struct {
 	PlacesDSN        database.DsnOptions
 	WatchAllProfiles bool
 	DefaultProfile   string
+
+	// Embed base browser config
+	*browsers.BrowserConfig
 }
 
 func (fc *FirefoxConfig) Set(opt string, v interface{}) error {
@@ -97,15 +121,6 @@ func (fc *FirefoxConfig) MapFrom(src interface{}) error {
 	return mapstructure.Decode(src, fc)
 }
 
-func setBookmarkDir(dir string) {
-	log.Debugf("setting bookmark dir to %s", dir)
-	bookmarkDir = dir
-}
-
-func getBookmarkDir() string {
-	return bookmarkDir
-}
-
 func initFirefoxConfig() {
 	log.Debugf("<firefox> initializing config")
 
@@ -128,16 +143,15 @@ func initFirefoxConfig() {
 	//_TODO: allow override with flag --firefox-profile-dir (rename pref default-profile)
 
 	// set global firefox bookmark dir
-    //FIX: bookmarkDir is used in created instance of FF before it is setup in config
+	//FIX: bookmarkDir is used in created instance of FF before it is setup in config
 	bookmarkDir, err := FirefoxProfileManager.GetDefaultProfilePath()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Debugf("Using default profile %s", bookmarkDir)
-}
+	// update bookmark dir in firefox config
+    //TEST: verify that bookmark dir is set before browser is started
+	FFConfig.BkDir = bookmarkDir
 
-func init() {
-	config.RegisterConfigurator(BrowserName, Config)
-	config.RegisterConfReadyHooks(initFirefoxConfig)
+	log.Debugf("Using default profile %s", bookmarkDir)
 }
