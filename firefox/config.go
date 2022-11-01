@@ -30,7 +30,7 @@ var (
 			Name:           BrowserName,
 			Type:           browsers.TFirefox,
 			BkDir:          "",
-			BkFile:         "",
+			BkFile: mozilla.PlacesFile,
 			WatchedPaths:   []string{},
             //TODO: Initialize BufferDB
             //TODO: initialize URLIndex
@@ -68,6 +68,9 @@ var (
 
 func init() {
 	config.RegisterConfigurator(BrowserName, FFConfig)
+
+
+    //BUG: initFirefoxConfig is is called too early 
 	config.RegisterConfReadyHooks(initFirefoxConfig)
 }
 
@@ -151,6 +154,7 @@ func initFirefoxConfig() {
 
 	// update bookmark dir in firefox config
     //TEST: verify that bookmark dir is set before browser is started
+    log.Debugf("FFFF Setting bookmark dir to <%s>", bookmarkDir)
 	FFConfig.BkDir = bookmarkDir
 
 	log.Debugf("Using default profile %s", bookmarkDir)

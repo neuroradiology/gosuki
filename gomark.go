@@ -35,6 +35,7 @@ func main() {
 
 	app.Before = func(c *cli.Context) error {
 
+
 		// get all registered browser modules
 		modules := browsers.Modules()
 		for _, mod := range modules {
@@ -60,6 +61,7 @@ func main() {
 	}
 
 	app.Flags = flags
+
 	app.Commands = []*cli.Command{
 		startServerCmd,
 		// cmd.FirefoxCmds,
@@ -70,6 +72,7 @@ func main() {
 	modules := browsers.Modules()
 	for _, mod := range modules {
         modId := string(mod.ModInfo().ID)
+
 		// for each registered module, register own flag management
 		mod_flags := cmd.GlobalFlags(modId)
 		if len(mod_flags) != 0 {
@@ -94,9 +97,12 @@ func init() {
 	config.RegisterGlobalOption("myglobal", 1)
 
 	// First load or bootstrap config
+    //FIX: fix right spot for this 
 	initConfig()
 
 	// Config should be ready, execute registered config hooks
-	config.RunConfHooks()
+    //BUG: initFirefoxConfig is is called too early 
+    // Config hooks should be loaded after 
+	// config.RunConfHooks()
 
 }

@@ -1,5 +1,5 @@
 package mozilla
 
 const (
-	BookmarkFile = "places.sqlite"
+	PlacesFile = "places.sqlite"
 )

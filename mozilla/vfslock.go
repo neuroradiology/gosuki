@@ -1,4 +1,4 @@
-//TODO: auto detect vfs lock then switch or not to watch&copy places
+// TODO: auto detect vfs lock then switch or not to watch&copy places
 package mozilla
 
 import (
@@ -59,7 +59,7 @@ func UnlockPlaces(bkDir string) error {
 
 		// Checking if firefox is running
 		// TODO: #multiprocess add CLI to unlock places.sqlite
-		pusers, err := utils.FileProcessUsers(path.Join(bkDir, BookmarkFile))
+		pusers, err := utils.FileProcessUsers(path.Join(bkDir, PlacesFile))
 		if err != nil {
 			log.Error(err)
 		}

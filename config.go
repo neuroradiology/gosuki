@@ -19,6 +19,7 @@ func initDefaultConfig() {
 // HACK: this section is called well before module options/config parameters are
 // initialized
 func initConfig() {
+	log.Debugf("initializing config")
 
 	// Check if config file exists
 	exists, err := utils.CheckFileExists(config.ConfigFile)
@@ -28,9 +29,9 @@ func initConfig() {
 
 	if !exists {
 		// Initialize default initConfig
-        //NOTE: if custom flags are passed before config.toml exists, falg
-        //options will not be saved to the initial config.toml, this means
-        //command line flags have higher priority than config.toml
+		//NOTE: if custom flags are passed before config.toml exists, falg
+		//options will not be saved to the initial config.toml, this means
+		//command line flags have higher priority than config.toml
 		initDefaultConfig()
 	} else {
 		err = config.LoadFromTomlFile()
