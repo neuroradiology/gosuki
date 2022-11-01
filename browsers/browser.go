@@ -30,8 +30,8 @@ const (
 
 // reducer channel length, bigger means less sensitivity to events
 var (
-    log = logging.GetLogger("BASE")
-    ReducerChanLen = 1000
+	log            = logging.GetLogger("BASE")
+	ReducerChanLen = 1000
 )
 
 type Browser interface {
@@ -83,7 +83,6 @@ func (c BrowserConfig) BookmarkPath() (string, error) {
 
 	exists, err := utils.CheckFileExists(bPath)
 	if err != nil {
-		log.Error(err)
 		return "", err
 	}
 
@@ -129,13 +128,6 @@ type Initializer interface {
 	Init() error
 }
 
-// Browser who implement this interface need to handle all shuttind down and
-// closing logic in the defined methods. This is usually called at the end of
-// the browser instance lifetime
-type CleanUpper interface {
-	CleanUp() error
-}
-
 // Every browser is setup once, the following methods are called in order of
 // their corresponding interfaces are implemented.
 // TODO!: integrate with refactoring
@@ -144,8 +136,8 @@ type CleanUpper interface {
 // 2- Load: Does the first loading of data (ex first loading of bookmarks )
 func Setup(browser BrowserModule) error {
 
+	//TODO!: default init
 	// Init browser BufferDB
-
 	// Creates in memory Index (RB-Tree)
 
 	log.Infof("setting up browser <%s>", browser.ModInfo().ID)
@@ -154,36 +146,38 @@ func Setup(browser BrowserModule) error {
 	// Handle Initializers custom Init from Browser module
 	initializer, ok := browser.(Initializer)
 	if ok {
-		initializer.Init()
+		log.Debugf("<%s> custom init", browserId)
+		if err := initializer.Init(); err != nil {
+            return fmt.Errorf("<%s> initialization error: %v", browserId, err)
+		}
+
 	}
 
-	// Handle Loaders custom Init from Browser module
+	//TODO!: default load
+	// Make sure that cache is initialized
+	if !database.Cache.IsInitialized() {
+		return fmt.Errorf("<%s> Loading bookmarks while cache not yet initialized", browserId)
+	}
+
+	//TODO!: handle Loaders custom Init from Browser module
 	loader, ok := browser.(Loader)
 	if ok {
+		log.Debugf("<%s> custom loading", browserId)
 		err := loader.Load()
 		if err != nil {
-
-			// If Browser implements Shutdown procedure
-			if b, ok := browser.(CleanUpper); ok {
-				err = b.CleanUp()
-				if err != nil {
-					fmt.Println(fmt.Errorf("cleanup <%s>: %v", browserId, err))
-					// continue
-				}
-			}
-			log.Errorf("loading <%s>: %v", browserId, err)
+			return fmt.Errorf("loading error <%s>: %v", browserId, err)
 			// continue
 		}
 	}
 	return nil
 }
 
+
 // Setup a watcher service using the provided []Watch elements
 // Returns true if a new watcher was created. false if it was previously craeted
 // or if the browser does not need a watcher (UseFileWatcher == false).
 func SetupWatchers(browserConf *BrowserConfig, watches ...*watch.Watch) (bool, error) {
 	var err error
-
 	if !browserConf.UseFileWatcher {
 		return false, nil
 	}
@@ -221,3 +215,5 @@ func SetupWatchersWithReducer(browserConf *BrowserConfig,
 // 	BookmarkFile string
 // 	BookmarkDir  string
 // }
+
+

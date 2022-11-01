@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
@@ -35,27 +34,32 @@ func startServer(c *cli.Context) error {
 	initDB()
 
 	registeredBrowsers := browsers.Modules()
-	log.Debugf("registered browsers: %v", registeredBrowsers)
 
 	//TODO: instanciate all browsers
 
-	for _, mod := range registeredBrowsers {
+	for _, browserMod := range registeredBrowsers {
 
-		// type assert to Browser interface
-		var browser browsers.BrowserModule
-		browser, ok := mod.(browsers.BrowserModule)
-		if !ok {
-			log.Errorf("<%s> is not a browser module", mod.ModInfo().ID)
+		mod := browserMod.ModInfo()
+
+		if mod.New == nil {
+			log.Criticalf("browser module <%s> has no constructor", mod.ID)
 			continue
 		}
 
-		//TIP: shutdown logic
-		// shutdowner, isShutdowner := browser.(browsers.Shutdowner)
-		// if isShutdowner {
-		// 	defer shutdowner.Shutdown()
-		// }
+		// Recover the browser instance
+		browser, ok := mod.New().(browsers.BrowserModule)
+		if !ok {
+			log.Criticalf("module <%s> is not a BrowserModule", mod.ID)
+		}
+		log.Debugf("created browser instance <%s>", browser.Config().Name)
 
-		log.Debugf("new browser instance with path %s", browser.Config().BookmarkPath())
+		//TIP: shutdown logic
+		s, isShutdowner := browser.(browsers.Shutdowner)
+		if isShutdowner {
+			defer handleShutdown(browser.Config().Name, s)
+		}
+
+		log.Debugf("new browser <%s> instance", browser.Config().Name)
 		h, ok := browser.(browsers.HookRunner)
 		if ok {
 			//TODO: document hook running
@@ -65,12 +69,9 @@ func startServer(c *cli.Context) error {
 		//TODO: call the setup logic for init,load for each browser instance
 		err := browsers.Setup(browser)
 		if err != nil {
-			log.Criticalf("setting up <%s> %v", browser.Config().Name, err)
+			log.Errorf("setting up <%s> %v", browser.Config().Name, err)
 			if isShutdowner {
-				err := shutdowner.Shutdown()
-				if err != nil {
-					log.Critical(fmt.Errorf("shutting down <%s>: %v", browser.Config().Name, err))
-				}
+				handleShutdown(browser.Config().Name, s)
 			}
 			continue
 		}
@@ -89,11 +90,24 @@ func startServer(c *cli.Context) error {
 		// 	continue
 		// }
 
-		watch.SpawnWatcher(browser)
+		runner, ok := browser.(watch.WatchRunner)
+		if !ok {
+			log.Criticalf("<%s> must implement watch.WatchRunner interface", browser.Config().Name)
+			continue
+		}
+
+		watch.SpawnWatcher(runner)
 		// b.Browser.Watch()
 	}
 
 	<-manager.Quit
 
 	return nil
+}
+
+func handleShutdown(id string, s browsers.Shutdowner) {
+	err := s.Shutdown()
+	if err != nil {
+		log.Panicf("could not shutdown browser <%s>", id)
+	}
 }

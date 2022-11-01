@@ -41,7 +41,7 @@ func main() {
 
 			// Run module's before context hooks
 			// for example setup flags management
-			err := cmd.BeforeHook(mod.Name)(c)
+			err := cmd.BeforeHook(string(mod.ModInfo().ID))(c)
 			if err != nil {
 				return err
 			}
@@ -69,15 +69,16 @@ func main() {
 	// Add global flags from registered modules
 	modules := browsers.Modules()
 	for _, mod := range modules {
+        modId := string(mod.ModInfo().ID)
 		// for each registered module, register own flag management
-		mod_flags := cmd.GlobalFlags(mod.Name)
+		mod_flags := cmd.GlobalFlags(modId)
 		if len(mod_flags) != 0 {
 			app.Flags = append(app.Flags, mod_flags...)
 		}
 
-        //_TODO: migrate ./cmd/_firefox_commands.go to ./firefox package and register commands
+		//_TODO: migrate ./cmd/_firefox_commands.go to ./firefox package and register commands
 		// Add all browser module registered commands
-		cmds := cmd.ModCommands(mod.Name)
+		cmds := cmd.ModCommands(modId)
 		for _, cmd := range cmds {
 			app.Commands = append(app.Commands, cmd)
 		}

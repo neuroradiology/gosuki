@@ -48,7 +48,7 @@ caddy-dep:
 	@caddy version
 
 docs:
-	@gomarkdoc -u ./... > API.md
+	@gomarkdoc -u ./... > docs/API.md
 
 
 test:

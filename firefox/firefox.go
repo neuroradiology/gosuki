@@ -152,7 +152,7 @@ type Firefox struct {
 
 // FIX: depends on config which should be initialized before this init
 func init() {
-	browsers.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
+    browsers.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
 	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
 	//TIP: 	Name: "test",
 	//TIP: })
@@ -161,14 +161,13 @@ func init() {
 	//TIP: })
 }
 
-func (ff Firefox) ModInfo() browsers.ModInfo {
+func (f Firefox) ModInfo() browsers.ModInfo {
 	return browsers.ModInfo{
-		ID:  browsers.ModID(ff.Name),
-		New: func() browsers.Module { return new(Firefox) },
+		ID:  browsers.ModID(f.Name),
+        New: func() browsers.Module { return &Firefox{FirefoxConfig: FFConfig} },
 	}
 }
 
-// TEST: Test browser creation errors
 // In case of critical errors degrade the browser to only log errors and disable
 // all directives
 // func NewFirefox() *Firefox {
@@ -237,6 +236,10 @@ func (f *Firefox) Watcher() *watch.WatchDescriptor {
 	return f.Watcher()
 }
 
+func (f Firefox) Config() *browsers.BrowserConfig {
+    return f.BrowserConfig
+}
+
 // Firefox custom logic for preloading the bookmarks when the browser module
 // starts. Implements browsers.Loader interface.
 // TODO!: Implement default loading in browsers package
@@ -296,12 +299,12 @@ func (f *Firefox) Run() {
 	}
 
 	log.Debugf("Checking changes since <%d> %s",
-		bw.lastRunTime.UTC().UnixNano()/1000,
-		bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+		f.lastRunTime.UTC().UnixNano()/1000,
+		f.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
 	queryArgs := map[string]interface{}{
 		"not_root_tags":    []int{ffBkRoot, ffBkTags},
-		"last_runtime_utc": bw.lastRunTime.UTC().UnixNano() / 1000,
+		"last_runtime_utc": f.lastRunTime.UTC().UnixNano() / 1000,
 	}
 
 	query, args, err := sqlx.Named(
@@ -317,10 +320,10 @@ func (f *Firefox) Run() {
 		log.Error(err)
 	}
 
-	query = bw.places.Handle.Rebind(query)
+	query = f.places.Handle.Rebind(query)
 	utils.PrettyPrint(query)
 
-	rows, err := bw.places.Handle.Query(query, args...)
+	rows, err := f.places.Handle.Query(query, args...)
 	if err != nil {
 		log.Error(err)
 	}
@@ -338,7 +341,7 @@ func (f *Firefox) Run() {
 		changedURLS := make([]string, 0)
 
 		log.Debugf("Found changes since: %s",
-			bw.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+			f.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
 		// extract bookmarks to this map
 		bookmarks := make(map[sqlid]*FFBookmark)
@@ -347,7 +350,7 @@ func (f *Firefox) Run() {
 		places := make(map[sqlid]*FFPlace)
 
 		// Fetch all changes into bookmarks and places maps
-		bw.fetchUrlChanges(rows, bookmarks, places)
+		f.fetchUrlChanges(rows, bookmarks, places)
 
 		// utils.PrettyPrint(places)
 		// For each url
@@ -355,7 +358,7 @@ func (f *Firefox) Run() {
 			var urlNode *tree.Node
 			changedURLS = utils.Extends(changedURLS, place.URL)
 
-			ok, urlNode := bw.addUrlNode(place.URL, place.Title.String, place.Description.String)
+			ok, urlNode := f.addUrlNode(place.URL, place.Title.String, place.Description.String)
 			if !ok {
 				log.Infof("url <%s> already in url index", place.URL)
 			}
@@ -372,7 +375,7 @@ func (f *Firefox) Run() {
 					bkId != ffBkTags {
 
 					log.Debugf("adding tag node %s", bk.title)
-					ok, tagNode := bw.addTagNode(bkId, bk.title)
+					ok, tagNode := f.addTagNode(bkId, bk.title)
 					if !ok {
 						log.Infof("tag <%s> already in tag map", tagNode.Name)
 					}
@@ -389,27 +392,27 @@ func (f *Firefox) Run() {
 					bk.parent > ffBkMobile {
 
 					// The tag node should have already been created
-					tagNode, tagNodeExists := bw.tagMap[bk.parent]
+					tagNode, tagNodeExists := f.tagMap[bk.parent]
 
 					if tagNodeExists && urlNode != nil {
 						log.Debugf("URL has tag %s", tagNode.Name)
 
 						urlNode.Tags = utils.Extends(urlNode.Tags, tagNode.Name)
 
-						tree.AddChild(bw.tagMap[bk.parent], urlNode)
+						tree.AddChild(f.tagMap[bk.parent], urlNode)
 						//TEST: remove after testing this code section
-						// urlNode.Parent = bw.tagMap[bk.parent]
-						// tree.Insert(bw.tagMap[bk.parent].Children, urlNode)
+						// urlNode.Parent = f.tagMap[bk.parent]
+						// tree.Insert(f.tagMap[bk.parent].Children, urlNode)
 
-						bw.Stats.CurrentUrlCount++
+						f.Stats.CurrentUrlCount++
 					}
 				}
 			}
 
 		}
 
-		database.SyncURLIndexToBuffer(changedURLS, bw.URLIndex, bw.BufferDB)
-		bw.BufferDB.SyncTo(database.Cache.DB)
+		database.SyncURLIndexToBuffer(changedURLS, f.URLIndex, f.BufferDB)
+		f.BufferDB.SyncTo(database.Cache.DB)
 		database.Cache.DB.SyncToDisk(database.GetDBFullPath())
 
 	}
@@ -420,17 +423,17 @@ func (f *Firefox) Run() {
 
 	// TODO: change logger for more granular debugging
 
-	bw.Stats.LastWatchRunTime = time.Since(startRun)
+	f.Stats.LastWatchRunTime = time.Since(startRun)
 	// log.Debugf("execution time %s", time.Since(startRun))
 
-	// tree.PrintTree(bw.NodeTree) // debugging
+	// tree.PrintTree(f.NodeTree) // debugging
 
-	err = bw.places.Close()
+	err = f.places.Close()
 	if err != nil {
 		log.Error(err)
 	}
 
-	bw.lastRunTime = time.Now().UTC()
+	f.lastRunTime = time.Now().UTC()
 }
 
 // Implement browsers.Shutdowner
@@ -446,8 +449,9 @@ func (f *Firefox) Shutdown() {
 	}
 }
 
-func (browser *Firefox) copyPlacesToTmp() error {
-	err := utils.CopyFilesToTmpFolder(path.Join(f.config.BkDir, browser.BkFile+"*"))
+func (f *Firefox) copyPlacesToTmp() error {
+	//TODO: use browsers.BookmarkPath()
+	err := utils.CopyFilesToTmpFolder(path.Join(f.BkDir, f.BkFile+"*"))
 	if err != nil {
 		return err
 	}
@@ -463,20 +467,20 @@ func (browser *Firefox) getPathToPlacesCopy() string {
 // HACK: addUrl and addTag share a lot of code, find a way to reuse shared code
 // and only pass extra details about tag/url along in some data structure
 // PROBLEM: tag nodes use IDs and URL nodes use URL as hashes
-func (browser *Firefox) addUrlNode(url, title, desc string) (bool, *tree.Node) {
+func (f *Firefox) addUrlNode(url, title, desc string) (bool, *tree.Node) {
 	var urlNode *tree.Node
-	iUrlNode, exists := browser.URLIndex.Get(url)
+	iUrlNode, exists := f.URLIndex.Get(url)
 	if !exists {
 		urlNode := &tree.Node{
 			Name: title,
-			Type: "url",
+			Type: tree.URLNode,
 			URL:  url,
 			Desc: desc,
 		}
 
 		log.Debugf("inserting url %s in url index", url)
-		browser.URLIndex.Insert(url, urlNode)
-		browser.URLIndexList = append(browser.URLIndexList, url)
+		f.URLIndex.Insert(url, urlNode)
+		f.URLIndexList = append(f.URLIndexList, url)
 
 		return true, urlNode
 	} else {
@@ -498,7 +502,7 @@ func (browser *Firefox) addTagNode(tagId sqlid, tagName string) (bool, *tree.Nod
 
 	tagNode := &tree.Node{
 		Name:   tagName,
-		Type:   "tag",
+		Type:   tree.TagNode,
 		Parent: browser.NodeTree, // root node
 	}
 
@@ -535,12 +539,12 @@ func (f *Firefox) initPlacesCopy() error {
 // load all bookmarks from `places.sqlite` and store them in BaseBrowser.NodeTree
 // this method is used the first time gomark is started or to extract bookmarks
 // using a command
-func getBookmarks(bw *Firefox) {
-	log.Debugf("root tree children len is %d", len(bw.NodeTree.Children))
+func getBookmarks(f *Firefox) {
+	log.Debugf("root tree children len is %d", len(f.NodeTree.Children))
 	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
 	//
 
-	rows, err := bw.places.Handle.Query(QgetBookmarks, ffBkTags)
+	rows, err := f.places.Handle.Query(QgetBookmarks, ffBkTags)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -549,12 +553,12 @@ func getBookmarks(bw *Firefox) {
 	if e, ok := err.(sqlite3.Error); ok {
 		if e.Code == sqlite3.ErrBusy {
 			log.Critical(err)
-			bw.Shutdown()
+			f.Shutdown()
 			return
 		}
 	}
 	if err != nil {
-		log.Errorf("%s: %s", bw.places.Name, err)
+		log.Errorf("%s: %s", f.places.Name, err)
 		return
 	}
 
@@ -582,13 +586,13 @@ func getBookmarks(bw *Firefox) {
 		 * If this is the first time we see this tag
 		 * add it to the tagMap and create its node
 		 */
-		ok, tagNode := bw.addTagNode(tagId, tagTitle)
+		ok, tagNode := f.addTagNode(tagId, tagTitle)
 		if !ok {
 			log.Infof("tag <%s> already in tag map", tagNode.Name)
 		}
 
 		// Add the url to the tag
-		ok, urlNode := bw.addUrlNode(url, title, desc)
+		ok, urlNode := f.addUrlNode(url, title, desc)
 		if !ok {
 			log.Infof("url <%s> already in url index", url)
 		}
@@ -597,19 +601,19 @@ func getBookmarks(bw *Firefox) {
 		urlNode.Tags = append(urlNode.Tags, tagNode.Name)
 
 		// Set tag as parent to urlnode
-		tree.AddChild(bw.tagMap[tagId], urlNode)
+		tree.AddChild(f.tagMap[tagId], urlNode)
 
-		bw.Stats.CurrentUrlCount++
+		f.Stats.CurrentUrlCount++
 	}
 
-	log.Debugf("root tree children len is %d", len(bw.NodeTree.Children))
+	log.Debugf("root tree children len is %d", len(f.NodeTree.Children))
 }
 
 // fetchUrlChanges method  
 // scan rows from a firefox `places.sqlite` db and extract all bookmarks and
 // places (moz_bookmarks, moz_places tables) that changed/are new since the browser.lastRunTime
 // using the QBookmarksChanged query
-func (bw *Firefox) fetchUrlChanges(rows *sql.Rows,
+func (f *Firefox) fetchUrlChanges(rows *sql.Rows,
 	bookmarks map[sqlid]*FFBookmark,
 	places map[sqlid]*FFPlace,
 ) {
@@ -638,7 +642,7 @@ func (bw *Firefox) fetchUrlChanges(rows *sql.Rows,
 
 		// Use unsafe db to ignore non existant columns in
 		// dest field
-		udb := bw.places.Handle.Unsafe()
+		udb := f.places.Handle.Unsafe()
 		err := udb.QueryRowx(QGetBookmarkPlace, bk.fk).StructScan(&place)
 		if err != nil {
 			log.Fatal(err)
@@ -668,7 +672,7 @@ func (bw *Firefox) fetchUrlChanges(rows *sql.Rows,
 	}
 
 	for rows.Next() {
-		bw.fetchUrlChanges(rows, bookmarks, places)
+		f.fetchUrlChanges(rows, bookmarks, places)
 	}
 	log.Debugf("fetching changes done !")
 }
