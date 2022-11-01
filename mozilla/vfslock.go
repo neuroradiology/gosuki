@@ -1,12 +1,11 @@
-// TODO: vfs for firefox should be removed in favor of copy/parse method
-package firefox
+//TODO: auto detect vfs lock then switch or not to watch&copy places
+package mozilla
 
 import (
 	"errors"
 	"fmt"
 	"path"
 
-	moz "git.sp4ke.xyz/sp4ke/gomark/mozilla"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
 )
 
@@ -30,20 +29,22 @@ var (
 	ErrMultiProcessAlreadyEnabled = errors.New("multiProcessAccess already enabled")
 )
 
-func CheckVFSLock() error {
-	log.Debugf("Checking VFS for <%s>", getBookmarkDir())
+// TEST:
+// TODO!:
+func CheckVFSLock(bkDir string) error {
+	log.Debugf("TODO: checking VFS for <%s>", bkDir)
 	return nil
 }
 
-func UnlockPlaces() error {
-	log.Debugf("Unlocking VFS <%s>", path.Join(getBookmarkDir(), moz.PrefsFile))
+func UnlockPlaces(bkDir string) error {
+	log.Debugf("Unlocking VFS <%s>", path.Join(bkDir, PrefsFile))
 
-	prefsPath := path.Join(getBookmarkDir(), moz.PrefsFile)
+	prefsPath := path.Join(bkDir, PrefsFile)
 
 	// Find if multiProcessAccess option is defined
 
-	pref, err := moz.GetPrefBool(prefsPath, PrefMultiProcessAccess)
-	if err != nil && err != moz.ErrPrefNotFound {
+	pref, err := GetPrefBool(prefsPath, PrefMultiProcessAccess)
+	if err != nil && err != ErrPrefNotFound {
 		return err
 	}
 
@@ -58,7 +59,7 @@ func UnlockPlaces() error {
 
 		// Checking if firefox is running
 		// TODO: #multiprocess add CLI to unlock places.sqlite
-		pusers, err := utils.FileProcessUsers(path.Join(getBookmarkDir(), moz.BookmarkFile))
+		pusers, err := utils.FileProcessUsers(path.Join(bkDir, BookmarkFile))
 		if err != nil {
 			log.Error(err)
 		}
@@ -73,7 +74,7 @@ func UnlockPlaces() error {
 		// End testing
 
 		// enable multi process access in firefox
-		err = moz.SetPrefBool(prefsPath,
+		err = SetPrefBool(prefsPath,
 			PrefMultiProcessAccess,
 			true)
 
