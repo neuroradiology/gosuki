@@ -164,6 +164,7 @@ func init() {
 func (f Firefox) ModInfo() browsers.ModInfo {
 	return browsers.ModInfo{
 		ID:  browsers.ModID(f.Name),
+        //HACK: duplicate instance with init().RegisterBrowser ??
         New: func() browsers.Module { return &Firefox{FirefoxConfig: FFConfig} },
 	}
 }
