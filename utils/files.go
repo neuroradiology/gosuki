@@ -66,7 +66,6 @@ func CleanFiles() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func init() {

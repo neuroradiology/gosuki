@@ -18,31 +18,29 @@ import (
 )
 
 const (
-	BrowserName = "firefox"
-	FirefoxConfigDir   = "$HOME/.mozilla/firefox"
-    DefaultProfile = "default"
+	BrowserName      = "firefox"
+	FirefoxConfigDir = "$HOME/.mozilla/firefox"
+	DefaultProfile   = "default"
 )
 
 var (
 
-    // Global Firefox Config state.  it implements the Configurator interface
-    // which allows it to register and set field through the Configurator. 
-    // This is used alongside cli_flags.go to dynamically register cli flags
-    // that can change this config (struct fields) from command line at runtime
+	// Global Firefox Config state.  it implements the Configurator interface
+	// which allows it to register and set field through the Configurator.
+	// This is used alongside cli_flags.go to dynamically register cli flags
+	// that can change this config (struct fields) from command line at runtime
 	FFConfig = &FirefoxConfig{
 		BrowserConfig: &browsers.BrowserConfig{
-			Name:           BrowserName,
-			Type:           browsers.TFirefox,
-			BkDir:          "",
-			BkFile: mozilla.PlacesFile,
-			WatchedPaths:   []string{},
-            //TODO: Initialize BufferDB
-            //TODO: initialize URLIndex
-			NodeTree:       &tree.Node{
-                Name: "root",
-                Parent: nil,
-                Type: tree.RootNode,
-            },
+			Name:         BrowserName,
+			Type:         browsers.TFirefox,
+			BkDir:        "",
+			BkFile:       mozilla.PlacesFile,
+			WatchedPaths: []string{},
+			NodeTree: &tree.Node{
+				Name:   "root",
+				Parent: nil,
+				Type:   tree.RootNode,
+			},
 			Stats:          &parsing.Stats{},
 			UseFileWatcher: true,
 		},
@@ -56,7 +54,6 @@ var (
 		Profile: DefaultProfile,
 
 		WatchAllProfiles: false,
-
 	}
 
 	ffProfileLoader = &mozilla.INIProfileLoader{
@@ -73,8 +70,7 @@ var (
 func init() {
 	config.RegisterConfigurator(BrowserName, FFConfig)
 
-
-    //BUG: initFirefoxConfig is is called too early 
+	//BUG: initFirefoxConfig is is called too early
 	config.RegisterConfReadyHooks(initFirefoxConfig)
 }
 
@@ -87,7 +83,7 @@ type FirefoxConfig struct {
 	// Default data source name query options for `places.sqlite` db
 	PlacesDSN        database.DsnOptions
 	WatchAllProfiles bool
-	Profile   string
+	Profile          string
 
 	// Embed base browser config
 	*browsers.BrowserConfig
@@ -132,9 +128,9 @@ func initFirefoxConfig() {
 	log.Debugf("<firefox> initializing config")
 
 	// expand env variables to config dir
-    pm := FirefoxProfileManager
-    
-    // build the config directory
+	pm := FirefoxProfileManager
+
+	// build the config directory
 	pm.ConfigDir = filepath.Join(os.ExpandEnv(FirefoxConfigDir))
 
 	// Check if base folder exists
@@ -149,9 +145,6 @@ func initFirefoxConfig() {
 
 	ffProfileLoader.BasePath = pm.ConfigDir
 
-
-
-
 	//_TODO: allow override with flag --firefox-profile-dir (rename pref default-profile)
 
 	// set global firefox bookmark dir
@@ -163,8 +156,8 @@ func initFirefoxConfig() {
 	}
 
 	// update bookmark dir in firefox config
-    //TEST: verify that bookmark dir is set before browser is started
-    log.Debugf("FFFF Setting bookmark dir to <%s>", bookmarkDir)
+	//TEST: verify that bookmark dir is set before browser is started
+	log.Debugf("FFFF Setting bookmark dir to <%s>", bookmarkDir)
 	FFConfig.BkDir = bookmarkDir
 
 	log.Debugf("Using default profile %s", bookmarkDir)

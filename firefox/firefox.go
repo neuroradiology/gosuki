@@ -119,14 +119,6 @@ type FFPlace struct {
 	AutoIncr
 }
 
-//type FFBookmark struct {
-//BType  int `db:type`
-//Parent sqlid
-//FK     sql.NullInt64
-//Title  sql.NullString
-//AutoIncr
-//}
-
 type FFBookmark struct {
 	btype  sqlid
 	parent sqlid
@@ -150,7 +142,6 @@ type Firefox struct {
 	lastRunTime time.Time
 }
 
-// FIX: depends on config which should be initialized before this init
 func init() {
 	browsers.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
 	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
@@ -175,28 +166,6 @@ func (f Firefox) ModInfo() browsers.ModInfo {
 		},
 	}
 }
-
-// In case of critical errors degrade the browser to only log errors and disable
-// all directives
-// func NewFirefox() *Firefox {
-// 	browser := &FFBrowser{
-// 		BaseBrowser: browsers.BaseBrowser{
-// 			Name:   BrowserName,
-// 			Type:   browsers.TFirefox,
-// 			BkFile: mozilla.BookmarkFile,
-// 			//FIX: basedir is set here before config has time to set the right path
-// 			//NOTE: maybe use reflect and instanciate the module in core package
-// 			//              &bookmarkDir ??
-// 			BaseDir:        getBookmarkDir(),
-// 			NodeTree:       &tree.Node{Name: "root", Parent: nil, Type: "root"},
-// 			Stats:          &parsing.Stats{},
-// 			UseFileWatcher: true,
-// 		},
-// 		tagMap: make(map[sqlid]*tree.Node),
-// 	}
-//
-// 	return browser
-// }
 
 // TEST:
 // Implements browser.Initializer interface
@@ -250,9 +219,7 @@ func (f Firefox) Config() *browsers.BrowserConfig {
 
 // Firefox custom logic for preloading the bookmarks when the browser module
 // starts. Implements browsers.Loader interface.
-// TODO!: Implement default loading in browsers package
 func (f *Firefox) Load() error {
-	// err := f.BaseBrowser.Load()
 
 	// Parse bookmarks to a flat tree (for compatibility with tree system)
 	start := time.Now()
@@ -429,8 +396,6 @@ func (f *Firefox) Run() {
 		log.Error(err)
 	}
 
-	// TODO: change logger for more granular debugging
-
 	f.Stats.LastWatchRunTime = time.Since(startRun)
 	// log.Debugf("execution time %s", time.Since(startRun))
 
@@ -458,7 +423,6 @@ func (f *Firefox) Shutdown() {
 }
 
 func (f *Firefox) copyPlacesToTmp() error {
-	//TODO: use browsers.BookmarkPath()
 	err := utils.CopyFilesToTmpFolder(path.Join(f.BkDir, f.BkFile+"*"))
 	if err != nil {
 		return err
