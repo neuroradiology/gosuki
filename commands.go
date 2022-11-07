@@ -76,29 +76,14 @@ func startServer(c *cli.Context) error {
 			continue
 		}
 
-		// err := b.Init()
-		// if err != nil {
-		// 	log.Criticalf("<%s> %s", b, err)
-		// 	b.Shutdown()
-		// 	continue
-		// }
-		//
-		// err = b.Load()
-		// if err != nil {
-		// 	log.Criticalf("<%s> %s", b, err)
-		// 	b.Shutdown()
-		// 	continue
-		// }
-
 		runner, ok := browser.(watch.WatchRunner)
 		if !ok {
 			log.Criticalf("<%s> must implement watch.WatchRunner interface", browser.Config().Name)
 			continue
 		}
 
-        log.Infof("start watching <%s>", runner.Watcher().ID)
+		log.Infof("start watching <%s>", runner.Watcher().ID)
 		watch.SpawnWatcher(runner)
-		// b.Browser.Watch()
 	}
 
 	<-manager.Quit

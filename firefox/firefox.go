@@ -152,17 +152,21 @@ func init() {
 	//TIP: })
 }
 
+func NewFirefox() *Firefox {
+	return &Firefox{
+		FirefoxConfig: FFConfig,
+		places:        &database.DB{},
+		URLIndexList:  []string{},
+		tagMap:        map[sqlid]*tree.Node{},
+	}
+}
+
 func (f Firefox) ModInfo() browsers.ModInfo {
 	return browsers.ModInfo{
 		ID: browsers.ModID(f.Name),
 		//HACK: duplicate instance with init().RegisterBrowser ??
 		New: func() browsers.Module {
-			return &Firefox{
-				FirefoxConfig: FFConfig,
-				places:        &database.DB{},
-				URLIndexList:  []string{},
-				tagMap:        map[sqlid]*tree.Node{},
-			}
+			return NewFirefox()
 		},
 	}
 }

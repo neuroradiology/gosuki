@@ -14,7 +14,6 @@ import (
 	"git.sp4ke.xyz/sp4ke/gomark/cmd"
 
 	"github.com/urfave/cli/v2"
-
 	// Load firefox browser modules
 	_ "git.sp4ke.xyz/sp4ke/gomark/firefox"
 )
@@ -35,7 +34,6 @@ func main() {
 
 	app.Before = func(c *cli.Context) error {
 
-
 		// get all registered browser modules
 		modules := browsers.Modules()
 		for _, mod := range modules {
@@ -46,11 +44,6 @@ func main() {
 			if err != nil {
 				return err
 			}
-
-			//FIX: err := cmd.GlobalFirefoxFlagsManager(c)
-			//FIX: if err != nil {
-			//FIX: 	return err
-			//FIX: }
 		}
 
 		// Execute config hooks
@@ -62,16 +55,17 @@ func main() {
 
 	app.Flags = flags
 
+    // Browser modules can register commands through cmd.RegisterModCommand.
+    // registered commands will be appended here
 	app.Commands = []*cli.Command{
 		startServerCmd,
-		// cmd.FirefoxCmds,
 		cmd.ConfigCmds,
 	}
 
 	// Add global flags from registered modules
 	modules := browsers.Modules()
 	for _, mod := range modules {
-        modId := string(mod.ModInfo().ID)
+		modId := string(mod.ModInfo().ID)
 
 		// for each registered module, register own flag management
 		mod_flags := cmd.GlobalFlags(modId)
@@ -79,7 +73,6 @@ func main() {
 			app.Flags = append(app.Flags, mod_flags...)
 		}
 
-		//_TODO: migrate ./cmd/_firefox_commands.go to ./firefox package and register commands
 		// Add all browser module registered commands
 		cmds := cmd.ModCommands(modId)
 		for _, cmd := range cmds {
@@ -97,12 +90,6 @@ func init() {
 	config.RegisterGlobalOption("myglobal", 1)
 
 	// First load or bootstrap config
-    //FIX: fix right spot for this 
+	//TEST: load order of init
 	initConfig()
-
-	// Config should be ready, execute registered config hooks
-    //BUG: initFirefoxConfig is is called too early 
-    // Config hooks should be loaded after 
-	// config.RunConfHooks()
-
 }
