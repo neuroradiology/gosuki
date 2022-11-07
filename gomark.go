@@ -55,7 +55,7 @@ func main() {
 
 		// Execute config hooks
 		//TODO: better doc for what are Conf hooks ???
-		// config.RunConfHooks()
+		config.RunConfHooks()
 
 		return nil
 	}

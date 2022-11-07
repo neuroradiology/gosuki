@@ -165,7 +165,7 @@ func (db *DB) Locked() (bool, error) {
 
 // dbPath is empty string ("") when using in memory sqlite db
 // Call to Init() required before using
-func New(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB {
+func NewDB(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB {
 
 	var path string
 	var dbType DBType
@@ -376,32 +376,6 @@ func ScanBookmarkRow(row *sql.Rows) (*SBookmark, error) {
 	}
 
 	return scan, nil
-}
-
-func SyncURLIndexToBuffer(urls []string, index Index, buffer *DB) {
-	for _, url := range urls {
-		iNode, exists := index.Get(url)
-		if !exists {
-			log.Warningf("url does not exist in index: %s", url)
-			break
-		}
-		node := iNode.(*Node)
-		bk := node.GetBookmark()
-		buffer.InsertOrUpdateBookmark(bk)
-	}
-}
-
-func SyncTreeToBuffer(node *Node, buffer *DB) {
-	if node.Type == tree.URLNode {
-		bk := node.GetBookmark()
-		buffer.InsertOrUpdateBookmark(bk)
-	}
-
-	if len(node.Children) > 0 {
-		for _, node := range node.Children {
-			SyncTreeToBuffer(node, buffer)
-		}
-	}
 }
 
 func flushSqliteCon(con *sqlx.DB) {

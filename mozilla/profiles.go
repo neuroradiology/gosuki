@@ -55,7 +55,11 @@ func (pm *MozProfileManager) loadProfile() error {
 }
 
 func (pm *MozProfileManager) GetProfiles() ([]*profiles.Profile, error) {
-	pm.loadProfile()
+    err := pm.loadProfile()
+    if err != nil {
+      return nil, err
+    }
+
 	sections := pm.ProfilesFile.Sections()
 	var filtered []*ini.Section
 	var result []*profiles.Profile
@@ -80,9 +84,9 @@ func (pm *MozProfileManager) GetProfiles() ([]*profiles.Profile, error) {
 	return result, nil
 }
 
-func (pm *MozProfileManager) GetDefaultProfilePath() (string, error) {
+func (pm *MozProfileManager) GetProfilePath(name string) (string, error) {
 	log.Debugf("using config dir %s", pm.ConfigDir)
-	p, err := pm.GetDefaultProfile()
+	p, err := pm.GetProfileByName(name)
 	if err != nil {
 		return "", err
 	}

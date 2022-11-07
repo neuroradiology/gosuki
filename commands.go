@@ -35,8 +35,7 @@ func startServer(c *cli.Context) error {
 
 	registeredBrowsers := browsers.Modules()
 
-	//TODO: instanciate all browsers
-
+	// instanciate all browsers
 	for _, browserMod := range registeredBrowsers {
 
 		mod := browserMod.ModInfo()
@@ -46,14 +45,14 @@ func startServer(c *cli.Context) error {
 			continue
 		}
 
-		// Recover the browser instance
+		//Get a browser instance
 		browser, ok := mod.New().(browsers.BrowserModule)
 		if !ok {
 			log.Criticalf("module <%s> is not a BrowserModule", mod.ID)
 		}
 		log.Debugf("created browser instance <%s>", browser.Config().Name)
 
-		//TIP: shutdown logic
+		// shutdown logic
 		s, isShutdowner := browser.(browsers.Shutdowner)
 		if isShutdowner {
 			defer handleShutdown(browser.Config().Name, s)
@@ -66,7 +65,8 @@ func startServer(c *cli.Context) error {
 			h.RegisterHooks(parsing.ParseTags)
 		}
 
-		//TODO: call the setup logic for init,load for each browser instance
+		//TODO: call the setup logic for each browser instance
+		// includes the browsers.Initializer and browsers.Loader interfaces
 		err := browsers.Setup(browser)
 		if err != nil {
 			log.Errorf("setting up <%s> %v", browser.Config().Name, err)
@@ -96,6 +96,7 @@ func startServer(c *cli.Context) error {
 			continue
 		}
 
+        log.Infof("start watching <%s>", runner.Watcher().ID)
 		watch.SpawnWatcher(runner)
 		// b.Browser.Watch()
 	}

@@ -152,7 +152,7 @@ type Firefox struct {
 
 // FIX: depends on config which should be initialized before this init
 func init() {
-    browsers.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
+	browsers.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
 	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
 	//TIP: 	Name: "test",
 	//TIP: })
@@ -163,9 +163,16 @@ func init() {
 
 func (f Firefox) ModInfo() browsers.ModInfo {
 	return browsers.ModInfo{
-		ID:  browsers.ModID(f.Name),
-        //HACK: duplicate instance with init().RegisterBrowser ??
-        New: func() browsers.Module { return &Firefox{FirefoxConfig: FFConfig} },
+		ID: browsers.ModID(f.Name),
+		//HACK: duplicate instance with init().RegisterBrowser ??
+		New: func() browsers.Module {
+			return &Firefox{
+				FirefoxConfig: FFConfig,
+				places:        &database.DB{},
+				URLIndexList:  []string{},
+				tagMap:        map[sqlid]*tree.Node{},
+			}
+		},
 	}
 }
 
@@ -234,11 +241,11 @@ func (f *Firefox) Init() error {
 }
 
 func (f *Firefox) Watcher() *watch.WatchDescriptor {
-	return f.Watcher()
+	return f.BrowserConfig.Watcher()
 }
 
 func (f Firefox) Config() *browsers.BrowserConfig {
-    return f.BrowserConfig
+	return f.BrowserConfig
 }
 
 // Firefox custom logic for preloading the bookmarks when the browser module
@@ -524,7 +531,7 @@ func (f *Firefox) initPlacesCopy() error {
 
 	opts := FFConfig.PlacesDSN
 
-	f.places, err = database.New("places",
+	f.places, err = database.NewDB("places",
 		// using the copied places file instead of the original to avoid
 		// sqlite vfs lock errors
 		f.getPathToPlacesCopy(),

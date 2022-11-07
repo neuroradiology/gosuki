@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"git.sp4ke.xyz/sp4ke/gomark/database"
+	"git.sp4ke.xyz/sp4ke/gomark/index"
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
 	"git.sp4ke.xyz/sp4ke/gomark/parsing"
 	"git.sp4ke.xyz/sp4ke/gomark/tree"
@@ -137,8 +138,15 @@ type Initializer interface {
 func Setup(browser BrowserModule) error {
 
 	//TODO!: default init
-	// Init browser BufferDB
+	// Init browsers' BufferDB
+    bConf := browser.Config()
+	buffer, err := database.NewBuffer(bConf.Name)
+	if err != nil {
+		return err
+	}
+    bConf.BufferDB = buffer
 	// Creates in memory Index (RB-Tree)
+    bConf.URLIndex = index.NewIndex()
 
 	log.Infof("setting up browser <%s>", browser.ModInfo().ID)
 	browserId := browser.ModInfo().ID
@@ -148,7 +156,7 @@ func Setup(browser BrowserModule) error {
 	if ok {
 		log.Debugf("<%s> custom init", browserId)
 		if err := initializer.Init(); err != nil {
-            return fmt.Errorf("<%s> initialization error: %v", browserId, err)
+			return fmt.Errorf("<%s> initialization error: %v", browserId, err)
 		}
 
 	}
@@ -171,7 +179,6 @@ func Setup(browser BrowserModule) error {
 	}
 	return nil
 }
-
 
 // Setup a watcher service using the provided []Watch elements
 // Returns true if a new watcher was created. false if it was previously craeted
@@ -215,5 +222,3 @@ func SetupWatchersWithReducer(browserConf *BrowserConfig,
 // 	BookmarkFile string
 // 	BookmarkDir  string
 // }
-
-

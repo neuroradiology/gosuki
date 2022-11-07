@@ -19,12 +19,16 @@ import (
 
 const (
 	BrowserName = "firefox"
-	configDir   = "$HOME/.mozilla/firefox"
+	FirefoxConfigDir   = "$HOME/.mozilla/firefox"
+    DefaultProfile = "default"
 )
 
 var (
 
-	// user mutable config
+    // Global Firefox Config state.  it implements the Configurator interface
+    // which allows it to register and set field through the Configurator. 
+    // This is used alongside cli_flags.go to dynamically register cli flags
+    // that can change this config (struct fields) from command line at runtime
 	FFConfig = &FirefoxConfig{
 		BrowserConfig: &browsers.BrowserConfig{
 			Name:           BrowserName,
@@ -49,20 +53,20 @@ var (
 		},
 
 		// default profile to use
-		DefaultProfile: "default",
+		Profile: DefaultProfile,
 
 		WatchAllProfiles: false,
+
 	}
 
-	firefoxProfile = &mozilla.INIProfileLoader{
+	ffProfileLoader = &mozilla.INIProfileLoader{
 		//BasePath to be set at runtime in init
 		ProfilesFile: mozilla.ProfilesFile,
 	}
 
 	FirefoxProfileManager = &mozilla.MozProfileManager{
 		BrowserName: BrowserName,
-		ConfigDir:   configDir,
-		PathGetter:  firefoxProfile,
+		PathGetter:  ffProfileLoader,
 	}
 )
 
@@ -83,7 +87,7 @@ type FirefoxConfig struct {
 	// Default data source name query options for `places.sqlite` db
 	PlacesDSN        database.DsnOptions
 	WatchAllProfiles bool
-	DefaultProfile   string
+	Profile   string
 
 	// Embed base browser config
 	*browsers.BrowserConfig
@@ -128,8 +132,10 @@ func initFirefoxConfig() {
 	log.Debugf("<firefox> initializing config")
 
 	// expand env variables to config dir
-	pm := FirefoxProfileManager
-	pm.ConfigDir = filepath.Join(os.ExpandEnv(configDir))
+    pm := FirefoxProfileManager
+    
+    // build the config directory
+	pm.ConfigDir = filepath.Join(os.ExpandEnv(FirefoxConfigDir))
 
 	// Check if base folder exists
 	configFolderExists, err := utils.CheckDirExists(pm.ConfigDir)
@@ -141,13 +147,17 @@ func initFirefoxConfig() {
 		log.Critical(err)
 	}
 
-	firefoxProfile.BasePath = pm.ConfigDir
+	ffProfileLoader.BasePath = pm.ConfigDir
+
+
+
 
 	//_TODO: allow override with flag --firefox-profile-dir (rename pref default-profile)
 
 	// set global firefox bookmark dir
 	//FIX: bookmarkDir is used in created instance of FF before it is setup in config
-	bookmarkDir, err := FirefoxProfileManager.GetDefaultProfilePath()
+
+	bookmarkDir, err := FirefoxProfileManager.GetProfilePath(FFConfig.Profile)
 	if err != nil {
 		log.Fatal(err)
 	}

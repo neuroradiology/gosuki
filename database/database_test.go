@@ -17,7 +17,7 @@ func TestNew(t *testing.T) {
 	// Test buffer format
 	t.Run("BufferPath", func(t *testing.T) {
 
-		db := New("buffer", "", DBTypeInMemoryDSN)
+		db := NewDB("buffer", "", DBTypeInMemoryDSN)
 
 		if db.Path != "file:buffer?mode=memory&cache=shared" {
 			t.Error("invalid buffer path")
@@ -27,7 +27,7 @@ func TestNew(t *testing.T) {
 
 	t.Run("MemPath", func(t *testing.T) {
 
-		db := New("cache", "", DBTypeCacheDSN)
+		db := NewDB("cache", "", DBTypeCacheDSN)
 		if db.Path != "file:cache?mode=memory&cache=shared" {
 			t.Fail()
 		}
@@ -36,7 +36,7 @@ func TestNew(t *testing.T) {
 
 	t.Run("FilePath", func(t *testing.T) {
 
-		db := New("file_test", "/tmp/test/testdb.sqlite", DBTypeFileDSN)
+		db := NewDB("file_test", "/tmp/test/testdb.sqlite", DBTypeFileDSN)
 
 		if db.Path != "file:/tmp/test/testdb.sqlite" {
 			t.Fail()
@@ -50,7 +50,7 @@ func TestNew(t *testing.T) {
 			"mode": "rw",
 		}
 
-		db := New("file_dsn", "", DBTypeFileDSN, opts)
+		db := NewDB("file_dsn", "", DBTypeFileDSN, opts)
 
 		if db.Path != "file:file_dsn?foo=bar&mode=rw" {
 			t.Fail()
@@ -63,7 +63,7 @@ func TestNew(t *testing.T) {
 			"mode": "rw",
 		}
 
-		db := New("append_opts", "", DBTypeInMemoryDSN, opts)
+		db := NewDB("append_opts", "", DBTypeInMemoryDSN, opts)
 
 		if db.Path != "file:append_opts?mode=memory&cache=shared&foo=bar&mode=rw" {
 			t.Fail()

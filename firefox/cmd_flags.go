@@ -12,18 +12,21 @@ import (
 )
 
 const (
-	FirefoxDefaultProfileFlag = "firefox-default-profile"
+	FirefoxProfileFlag = "firefox-profile"
 )
 
 var globalFirefoxFlags = []cli.Flag{
+    // This allows us to register dynamic cli flags which get converted to 
+    // config.Configurator options. 
+    // The flag must be given a name in the form `--firefox-<flag>`.
 	&cli.StringFlag{
-		Name:  FirefoxDefaultProfileFlag,
+		Name:  FirefoxProfileFlag,
 		Usage: "Set the default firefox `PROFILE` to use",
 	},
-    &cli.StringFlag{
-        Name: "firefox-default-dir",
-        Usage: "test",
-    },
+    // &cli.StringFlag{
+    //     Name: "firefox-default-dir",
+    //     Usage: "test",
+    // },
 }
 
 // Firefox global flags must start with --firefox-<flag name here>

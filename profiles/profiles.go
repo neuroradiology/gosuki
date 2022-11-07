@@ -1,4 +1,6 @@
+//go:build linux
 // +build linux
+
 //
 
 package profiles
@@ -30,6 +32,7 @@ type PathGetter interface {
 }
 
 type INIProfileLoader struct {
+	// The absolute path to the directory where profiles.ini is located
 	BasePath     string
 	ProfilesFile string
 }

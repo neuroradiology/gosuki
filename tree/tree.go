@@ -17,7 +17,7 @@ type Bookmark = bookmarks.Bookmark
 type NodeType int
 
 const (
-    RootNode NodeType = iota
+	RootNode NodeType = iota
 	URLNode
 	FolderNode
 	TagNode
@@ -47,7 +47,7 @@ func (node *Node) GetRoot() *Node {
 
 // Insert *Node in nodeList if it does not already exists
 func AddChild(parent *Node, child *Node) {
-	log.Debugf("adding child %s <%s>", child.Type, child.Name)
+	log.Debugf("adding child %v: <%s>", child.Type, child.Name)
 
 	if len(parent.Children) == 0 {
 		parent.Children = []*Node{child}

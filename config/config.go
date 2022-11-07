@@ -21,6 +21,8 @@ const (
 	GlobalConfigName = "global"
 )
 
+// A Configurator allows multiple packages and modules to set and access configs
+// which can be mapped to any output backend (toml, cli flags, env variables ...)
 type Configurator interface {
 	Set(opt string, v interface{}) error
 	Get(opt string) (interface{}, error)
@@ -99,7 +101,6 @@ func LoadFromTomlFile() error {
 		}
 	}
 
-	log.Debug(configs)
 	return err
 }
 

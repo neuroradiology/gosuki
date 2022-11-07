@@ -12,7 +12,7 @@ func RegGlobalFlag(modId string, flag cli.Flag) {
 		log.Panic("registering nil flag")
 	}
 
-	log.Debugf("<%s> registering global flag: %s=", modId, flag)
+	log.Debugf("<%s> registering global flag: %s=(%v)", modId, flag)
 	if _, ok := modFlags[modId]; !ok {
 		modFlags[modId] = []cli.Flag{flag}
 	} else {
