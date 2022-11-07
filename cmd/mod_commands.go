@@ -26,6 +26,5 @@ func RegisterModCommand(modId string, cmd *cli.Command) {
 
 // return list of registered commands for browser module
 func ModCommands(modId string) modCmds {
-
 	return modCommands[modId]
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 )
 
 func GetDefaultDBPath() string {
@@ -70,4 +71,8 @@ func CheckWriteable(dir string) error {
 func GetHomeDir() string {
 	user, _ := user.Current()
 	return user.HomeDir
+}
+
+func ExpandPath(paths ...string) string {
+	return os.ExpandEnv(filepath.Join(paths...))
 }

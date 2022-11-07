@@ -161,13 +161,13 @@ func Setup(browser BrowserModule) error {
 
 	}
 
-	//TODO!: default load
+	// Default browser loading logic
 	// Make sure that cache is initialized
 	if !database.Cache.IsInitialized() {
 		return fmt.Errorf("<%s> Loading bookmarks while cache not yet initialized", browserId)
 	}
 
-	//TODO!: handle Loaders custom Init from Browser module
+	//handle Loader interface
 	loader, ok := browser.(Loader)
 	if ok {
 		log.Debugf("<%s> custom loading", browserId)

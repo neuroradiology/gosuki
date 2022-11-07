@@ -1,12 +1,14 @@
 // TODO: add cli options to set/get options
 // TODO: move browser module commands to their own module packag
-package cmd
+package firefox
 
 import (
 	"fmt"
-	"path/filepath"
 
+	"git.sp4ke.xyz/sp4ke/gomark/cmd"
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
+	"git.sp4ke.xyz/sp4ke/gomark/utils"
 
 	"github.com/urfave/cli/v2"
 )
@@ -60,21 +62,25 @@ var FirefoxCmds = &cli.Command{
 	//Action:  unlockFirefox,
 }
 
+func init() {
+	cmd.RegisterModCommand(BrowserName, FirefoxCmds)
+}
+
 func ffListProfiles(c *cli.Context) error {
-	profs, err := mozilla.FirefoxProfileManager.GetProfiles()
+	profs, err := FirefoxProfileManager.GetProfiles()
 	if err != nil {
 		return err
 	}
 
 	for _, p := range profs {
-		fmt.Printf("<%s>: %s\n", p.Name, filepath.Join(mozilla.GetBookmarkDir(), p.Path))
+		fmt.Printf("%-10s \t--> %s\n", p.Name, utils.ExpandPath(FirefoxProfileManager.ConfigDir, p.Path))
 	}
 
 	return nil
 }
 
 func ffCheckVFS(c *cli.Context) error {
-	err := mozilla.CheckVFSLock()
+	err := mozilla.CheckVFSLock("path to profile")
 	if err != nil {
 		return err
 	}
@@ -83,7 +89,7 @@ func ffCheckVFS(c *cli.Context) error {
 }
 
 func ffUnlockVFS(c *cli.Context) error {
-	err := mozilla.UnlockPlaces()
+	err := mozilla.UnlockPlaces("path to profile")
 	if err != nil {
 		return err
 	}
