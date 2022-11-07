@@ -25,7 +25,8 @@ type BrowserModule interface {
 type ModInfo struct {
 	ID ModID // Id of this browser
 
-	// New returns a pointer to a new instance of a gomark module
+	// New returns a pointer to a new instance of a gomark module.
+	// Browser modules MUST implement this method.
 	New func() Module
 }
 
