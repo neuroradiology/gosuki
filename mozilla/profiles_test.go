@@ -17,7 +17,7 @@ var BadProfile = &INIProfileLoader{
 func TestListProfiles(t *testing.T) {
 	t.Run("OK", func(t *testing.T) {
 		pm := &MozProfileManager{
-			pathGetter: OkProfile,
+			PathGetter: OkProfile,
 		}
 
 		t.Log("Listing profiles")
@@ -36,7 +36,7 @@ func TestListProfiles(t *testing.T) {
 
 	t.Run("Bad", func(t *testing.T) {
 		pm := &MozProfileManager{
-			pathGetter: BadProfile,
+			PathGetter: BadProfile,
 		}
 
 		_, err := pm.ListProfiles()
@@ -50,7 +50,7 @@ func TestListProfiles(t *testing.T) {
 
 func TestGetProfiles(t *testing.T) {
 	pm := &MozProfileManager{
-		pathGetter: OkProfile,
+		PathGetter: OkProfile,
 	}
 
 	profs, err := pm.GetProfiles()
