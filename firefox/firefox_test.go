@@ -1,6 +1,7 @@
 package firefox
 
 import (
+	"os"
 	"testing"
 
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
@@ -16,22 +17,30 @@ import (
 // 	t.Run("")
 // }
 
-func Test_addUrlNode(t *testing.T) {
+var ff Firefox
 
-	ff := &FFBrowser{
-		BaseBrowser: browsers.BaseBrowser{
-			Name:     "firefox",
-			Type:     browsers.TFirefox,
-			BkFile:   mozilla.BookmarkFile,
-			BaseDir:  mozilla.GetBookmarkDir(),
-			NodeTree: &tree.Node{Name: "root", Parent: nil, Type: "root"},
-			Stats:    &parsing.Stats{},
+func TestMain(m *testing.M) {
+	ff = Firefox{
+		FirefoxConfig: &FirefoxConfig{
+			BrowserConfig: &browsers.BrowserConfig{
+				Name:     "firefox",
+				Type:     browsers.TFirefox,
+				BkFile:   mozilla.PlacesFile,
+				BkDir:    "testdata",
+				BufferDB: &database.DB{},
+				URLIndex: index.NewIndex(),
+				NodeTree: &tree.Node{Name: "root", Parent: nil, Type: tree.RootNode},
+				Stats:    &parsing.Stats{},
+			},
 		},
-		tagMap: make(map[sqlid]*tree.Node),
+		tagMap: map[sqlid]*tree.Node{},
 	}
 
-	// Creates in memory Index (RB-Tree)
-	ff.URLIndex = index.NewIndex()
+	exitVal := m.Run()
+	os.Exit(exitVal)
+}
+
+func Test_addUrlNode(t *testing.T) {
 
 	testUrl := struct {
 		url   string
@@ -46,12 +55,9 @@ func Test_addUrlNode(t *testing.T) {
 	}
 
 	// fetch url changes into places and bookmarks
-
 	// for each urlId/place
-
 	// if urlNode does not exists create it
 	// if urlNode exists find fetch it
-
 	// if urlNode exists put tag node as parent to this url
 
 	testNewUrl := "new urlNode: url does not exist in URLIndex"
@@ -107,18 +113,6 @@ func Test_addUrlNode(t *testing.T) {
 
 func Test_addTagNode(t *testing.T) {
 
-	ff := &FFBrowser{
-		BaseBrowser: browsers.BaseBrowser{
-			Name:     "firefox",
-			Type:     browsers.TFirefox,
-			BkFile:   mozilla.BookmarkFile,
-			BaseDir:  mozilla.GetBookmarkDir(),
-			NodeTree: &tree.Node{Name: "root", Parent: nil, Type: "root"},
-			Stats:    &parsing.Stats{},
-		},
-		tagMap: make(map[sqlid]*tree.Node),
-	}
-
 	testTag := struct {
 		tagname string
 		tagType string
@@ -154,7 +148,7 @@ func Test_addTagNode(t *testing.T) {
 		})
 
 		t.Run("increment node count", func(t *testing.T) {
-			if ff.Stats.CurrentNodeCount != 1 {
+			if ff.CurrentNodeCount != 1 {
 				t.Errorf("wrong node count")
 			}
 		})
@@ -181,6 +175,7 @@ func Test_fetchUrlChanges(t *testing.T) {
 	t.Error("split into small units")
 }
 
+//TODO!: loading firefox bookmarks
 func Test_GetFFBookmarks(t *testing.T) {
 
 	// expected data from testdata/places.sqlite
@@ -217,26 +212,8 @@ func Test_GetFFBookmarks(t *testing.T) {
 		},
 	}
 
-	// expected tags are in places.sqlite
-	ff := &FFBrowser{
-		BaseBrowser: browsers.BaseBrowser{
-			Name:           "firefox",
-			Type:           browsers.TFirefox,
-			BkFile:         mozilla.BookmarkFile,
-			BaseDir:        "testdata", // inside testdata
-			NodeTree:       &tree.Node{Name: "root", Parent: nil, Type: "root"},
-			Stats:          &parsing.Stats{},
-			UseFileWatcher: false,
-		},
-		tagMap: make(map[sqlid]*tree.Node),
-	}
-
+	// expected tags are in testdata/places.sqlite
 	database.DefaultDBPath = "testdata"
-
-	err := ff.Init()
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	t.Log("Load firefox bookmarks verify that:")
 
@@ -245,8 +222,7 @@ func Test_GetFFBookmarks(t *testing.T) {
 
 	t.Run("should find all tags", func(t *testing.T) {
 
-		t.Log(CacheDB)
-		err := CacheDB.PrintBookmarks()
+		err := database.Cache.DB.PrintBookmarks()
 		if err != nil {
 			t.Error(err)
 		}
