@@ -55,8 +55,8 @@ func main() {
 
 	app.Flags = flags
 
-    // Browser modules can register commands through cmd.RegisterModCommand.
-    // registered commands will be appended here
+	// Browser modules can register commands through cmd.RegisterModCommand.
+	// registered commands will be appended here
 	app.Commands = []*cli.Command{
 		startServerCmd,
 		cmd.ConfigCmds,
@@ -86,7 +86,7 @@ func main() {
 }
 
 func init() {
-	//HACK: testing global variables
+	//TODO: register global flags as cli flags
 	config.RegisterGlobalOption("myglobal", 1)
 
 	// First load or bootstrap config
