@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/database"
 	"git.sp4ke.xyz/sp4ke/gomark/index"
@@ -60,7 +62,7 @@ func Test_addUrlNode(t *testing.T) {
 	// if urlNode exists find fetch it
 	// if urlNode exists put tag node as parent to this url
 
-	testNewUrl := "new urlNode: url does not exist in URLIndex"
+	testNewUrl := "new urlNode: url is not yet in URLIndex"
 
 	t.Run(testNewUrl, func(t *testing.T) {
 		ok, urlNode := ff.addUrlNode(testUrl.url, testUrl.title, testUrl.desc)
@@ -175,7 +177,18 @@ func Test_fetchUrlChanges(t *testing.T) {
 	t.Error("split into small units")
 }
 
-//TODO!: loading firefox bookmarks
+func Test_PlaceBookmark(t *testing.T){ 
+    assert := assert.New(t)
+    pb := PlaceBookmark{
+    	BkLastModified: 1663878015759000,
+    }
+
+    res := pb.datetime().Format("2006-01-02 15:04:05.000000")
+    assert.Equal(res, "2022-09-22 20:20:15.759000", "wrong time in scanned bookmark")
+}
+
+
+// TODO!: loading firefox bookmarks
 func Test_GetFFBookmarks(t *testing.T) {
 
 	// expected data from testdata/places.sqlite
@@ -246,3 +259,4 @@ func Test_GetFFBookmarks(t *testing.T) {
 	// teardown
 	// remove gomarks.db
 }
+

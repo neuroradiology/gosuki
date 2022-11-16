@@ -17,7 +17,12 @@ func (src *DB) SyncTo(dst *DB) {
 	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
 
 	getSourceTable, err := src.Handle.Prepare(`SELECT * FROM bookmarks`)
-	defer getSourceTable.Close()
+	defer func() {
+		err = getSourceTable.Close()
+		if err != nil {
+			log.Critical(err)
+		}
+	}()
 	if err != nil {
 		log.Error(err)
 	}
@@ -25,7 +30,15 @@ func (src *DB) SyncTo(dst *DB) {
 	getDstTags, err := dst.Handle.Prepare(
 		`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`,
 	)
-	defer getDstTags.Close()
+
+	defer func() {
+		err := getDstTags.Close()
+
+		if err != nil {
+			log.Critical(err)
+		}
+	}()
+
 	if err != nil {
 		log.Error(err)
 	}
@@ -35,7 +48,13 @@ func (src *DB) SyncTo(dst *DB) {
 		bookmarks(url, metadata, tags, desc, flags)
 		VALUES (?, ?, ?, ?, ?)`,
 	)
-	defer tryInsertDstRow.Close()
+	defer func() {
+		err := tryInsertDstRow.Close()
+		if err != nil {
+			log.Critical(err)
+		}
+	}()
+
 	if err != nil {
 		log.Error(err)
 	}
@@ -47,7 +66,13 @@ func (src *DB) SyncTo(dst *DB) {
 		`,
 	)
 
-	defer updateDstRow.Close()
+    defer func(){
+        err := updateDstRow.Close()
+        if err != nil {
+            log.Critical()
+        }
+    }()
+    
 	if err != nil {
 		log.Error(err)
 	}
@@ -131,7 +156,7 @@ func (src *DB) SyncTo(dst *DB) {
 		}
 
 		var newTags []string //merged tags
-		for k, _ := range tagMap {
+		for k := range tagMap {
 			newTags = append(newTags, k)
 		}
 
