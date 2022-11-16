@@ -119,6 +119,7 @@ type FFPlace struct {
 	AutoIncr
 }
 
+// TODO!: replace by PlaceBokmark
 type FFBookmark struct {
 	btype  sqlid
 	parent sqlid
@@ -126,6 +127,35 @@ type FFBookmark struct {
 	title  string
 	id     sqlid
 }
+
+// plId  plUrl plDescription bkId  bkTitle bkLastModified  isFolder  isTag  isBk  bkParent
+type PlaceBookmark struct {
+	PlId    sqlid  `db:"plId"`
+	PlUrl   string `db:"plUrl"`
+	PlDesc  string `db:"plDescription"`
+	BkId    sqlid  `db:"bkId"`
+	BkTitle string `db:"bkTitle"`
+
+	//firefox stores timestamps in milliseconds as integer
+	//sqlite3 strftime('%s', ...) returns seconds
+	//This field stores the timestamp as raw milliseconds
+	BkLastModified sqlid `db:"bkLastModified"`
+
+    //NOTE: parsing into time.Time not working, I need to have a sqlite column of 
+    //time Datetime [see](https://github.com/mattn/go-sqlite3/issues/748)!!
+	//Our query converts to the format scannable by go-sqlite3 SQLiteTimestampFormats
+	//This field stores the timestamp parsable as time.Time
+	// BkLastModifiedDateTime time.Time `db:"bkLastModifiedDateTime"`
+
+	IsFolder bool  `db:"isFolder"`
+	IsTag    bool  `db:"isTag"`
+	IsBk     bool  `db:"isBk"`
+	BkParent sqlid `db:"bkParent"`
+}
+
+func (pb *PlaceBookmark) datetime() time.Time {
+    return time.Unix(int64(pb.BkLastModified / (1000*1000)),
+            int64(pb.BkLastModified % (1000*1000)) *1000).UTC() }
 
 type Firefox struct {
 	*FirefoxConfig
@@ -227,7 +257,7 @@ func (f *Firefox) Load() error {
 
 	// Parse bookmarks to a flat tree (for compatibility with tree system)
 	start := time.Now()
-	getBookmarks(f)
+	loadBookmarks(f)
 	f.Stats.LastFullTreeParseTime = time.Since(start)
 	f.lastRunTime = time.Now().UTC()
 
@@ -515,7 +545,7 @@ func (f *Firefox) initPlacesCopy() error {
 // load all bookmarks from `places.sqlite` and store them in BaseBrowser.NodeTree
 // this method is used the first time gomark is started or to extract bookmarks
 // using a command
-func getBookmarks(f *Firefox) {
+func loadBookmarks(f *Firefox) {
 	log.Debugf("root tree children len is %d", len(f.NodeTree.Children))
 	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
 	//
@@ -568,6 +598,7 @@ func getBookmarks(f *Firefox) {
 		}
 
 		// Add the url to the tag
+		// NOTE: this call is responsible for updating URLIndexList
 		ok, urlNode := f.addUrlNode(url, title, desc)
 		if !ok {
 			log.Infof("url <%s> already in url index", url)

@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"fmt"
 	"os"
 
 	glogging "github.com/op/go-logging"
@@ -65,8 +64,7 @@ func SetDebug(d bool) {
 	debugMode = d
 
 	if !debugMode {
-		for m, log := range loggers {
-			fmt.Println(m)
+		for _, log := range loggers {
 			log.SetBackend(leveledRelease)
 		}
 	}

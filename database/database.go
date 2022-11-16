@@ -138,7 +138,7 @@ type DB struct {
 	LockChecker
 }
 
-func (db *DB) Open() error {
+func (db *DB) open() error {
 	var err error
 	err = db.SQLXOpener.Open(db.EngineMode, db.Path)
 	if err != nil {
@@ -244,7 +244,7 @@ func (db *DB) Init() (*DB, error) {
 	}
 
 	// Open database
-	err = db.Open()
+	err = db.open()
 
 	sqlErr, _ := err.(sqlite3.Error)
 
@@ -378,6 +378,7 @@ func ScanBookmarkRow(row *sql.Rows) (*SBookmark, error) {
 	return scan, nil
 }
 
+//TODO: doc
 func flushSqliteCon(con *sqlx.DB) {
 	con.Close()
 	_sql3conns = _sql3conns[:len(_sql3conns)-1]
