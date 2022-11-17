@@ -81,16 +81,16 @@ func init() {
 // are defined here.
 type FirefoxConfig struct {
 	// Default data source name query options for `places.sqlite` db
-	PlacesDSN        database.DsnOptions
-	WatchAllProfiles bool
-	Profile          string
+    PlacesDSN        database.DsnOptions
+    WatchAllProfiles bool
+    Profile          string
 
+    //FIX: ignore this field in config.Configurator interface
 	// Embed base browser config
-	*browsers.BrowserConfig
+    *browsers.BrowserConfig `toml:"-"`
 }
 
 func (fc *FirefoxConfig) Set(opt string, v interface{}) error {
-	//log.Debugf("setting option %s = %v", opt, v)
 	s := structs.New(fc)
 	f, ok := s.FieldOk(opt)
 	if !ok {
