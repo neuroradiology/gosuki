@@ -10,6 +10,7 @@ import (
 
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/config"
+	"git.sp4ke.xyz/sp4ke/gomark/logging"
 
 	"git.sp4ke.xyz/sp4ke/gomark/cmd"
 
@@ -30,7 +31,20 @@ func main() {
 			Value: config.ConfigFile,
 			Usage: "TOML config `FILE` path",
 		},
+
+        &cli.IntFlag{
+        	Name:        "debug",
+        	Aliases:     []string{"d"},
+        	EnvVars:     []string{logging.EnvGomarkDebug},
+            Action: func (c *cli.Context, val int) error {
+                logging.SetMode(val)
+                return nil
+            },
+
+        },
 	}
+
+	app.Flags = flags
 
 	app.Before = func(c *cli.Context) error {
 
@@ -53,7 +67,6 @@ func main() {
 		return nil
 	}
 
-	app.Flags = flags
 
 	// Browser modules can register commands through cmd.RegisterModCommand.
 	// registered commands will be appended here

@@ -1,59 +1,57 @@
 package logging
 
 import (
+	"fmt"
 	"os"
+	"strconv"
 
-	"github.com/gin-gonic/gin"
 	glogging "github.com/op/go-logging"
 )
 
-var log = glogging.MustGetLogger("MODE")
+var (
+	log         = glogging.MustGetLogger("MODE")
 
-const ENV_GOMARK_MODE = "GOMARK_MODE"
+    //RELEASE: Change to Release for release mode
+	LoggingMode = Debug
 
-const (
-	DebugMode   string = "debug"
-	ReleaseMode string = "release"
-	TestMode    string = "test"
 )
 
+const EnvGomarkDebug = "GOMARK_DEBUG"
+
+const Test = -1
 const (
-	debugCode = iota
-	releaseCode
-	testCode
+	Release = iota
+	Info
+	Debug
 )
 
-var gomarkMode = debugCode
-var modeName = DebugMode
-
-func SetMode(value string) {
-	switch value {
-	case DebugMode:
-		gomarkMode = debugCode
-	case ReleaseMode:
-		gomarkMode = releaseCode
-	case TestMode:
-		gomarkMode = testCode
-	default:
-		log.Panic("go-bookmark mode unknown: " + value)
+func SetMode(lvl int) {
+	if lvl > Debug || lvl < -1 {
+		log.Warningf("using wrong debug level: %v", lvl)
+		return
 	}
-	modeName = value
+	LoggingMode = lvl
+    setLogLevel(lvl)
 }
 
-func RunMode() string {
-	return modeName
-}
+func initRuntimeMode() {
 
-func IsDebugging() bool {
-	return gomarkMode == debugCode
-}
+	envDebug := os.Getenv(EnvGomarkDebug)
 
-func init() {
-	mode := os.Getenv(ENV_GOMARK_MODE)
-	if mode == "" {
-		SetMode(DebugMode)
-	} else {
-		SetMode(mode)
-		gin.SetMode(mode)
-	}
+	if envDebug != "" {
+		mode, err := strconv.Atoi(os.Getenv(EnvGomarkDebug))
+
+		if err != nil {
+			log.Errorf("wrong debug level: %v\n%v", envDebug, err)
+		}
+
+        SetMode(mode)
+	} 
+
+	// if mode == Debug {
+	// 	SetMode(Debug)
+	// } else {
+	// 	SetMode(mode)
+	// 	gin.SetMode(mode)
+	// }
 }
