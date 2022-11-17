@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	git.sp4ke.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17
-	github.com/BurntSushi/toml v1.2.0
+	github.com/BurntSushi/toml v1.2.1
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.6.0
@@ -18,7 +18,7 @@ require (
 	github.com/shirou/gopsutil v2.20.7+incompatible
 	github.com/sp4ke/hashmap v0.0.0-20171130100710-1ac30a6923c3
 	github.com/swithek/dotsqlx v1.0.0
-	github.com/urfave/cli/v2 v2.2.0
+	github.com/urfave/cli/v2 v2.23.5
 	github.com/xlab/treeprint v1.0.0
 	golang.org/x/sys v0.1.0
 )
@@ -26,6 +26,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

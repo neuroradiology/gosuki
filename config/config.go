@@ -72,6 +72,7 @@ func GetAll() Config {
 	return result
 }
 
+
 // Create a toml config file
 func InitConfigFile() error {
 	configFile, err := os.Create(ConfigFile)
@@ -118,7 +119,7 @@ func RunConfHooks() {
 	}
 }
 
-// A configurator can set options for available under it's own module scope
+// A configurator can set options available under it's own module scope
 // or under the global scope. A configurator implements the Configurator interface
 func RegisterConfigurator(name string, c Configurator) {
 	log.Debugf("Registering configurator %s", name)
