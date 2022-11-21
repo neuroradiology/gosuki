@@ -1,8 +1,8 @@
 package logging
 
 import (
-	"fmt"
 	"os"
+
 	"strconv"
 
 	glogging "github.com/op/go-logging"

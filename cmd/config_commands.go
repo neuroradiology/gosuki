@@ -3,8 +3,8 @@ package cmd
 import (
 	"git.sp4ke.xyz/sp4ke/gomark/config"
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
 
+	"github.com/kr/pretty"
 	"github.com/urfave/cli/v2"
 )
 
@@ -26,11 +26,7 @@ var ConfigCmds = &cli.Command{
 }
 
 func printConfig(c *cli.Context) error {
-	err := utils.PrettyPrint(config.GetAll())
-	if err != nil {
-		return err
-	}
+	pretty.Println(config.GetAll())
 
-	return nil
-
+    return nil
 }

@@ -158,7 +158,6 @@ func initFirefoxConfig() {
 
 	// update bookmark dir in firefox config
 	//TEST: verify that bookmark dir is set before browser is started
-	log.Debugf("FFFF Setting bookmark dir to <%s>", bookmarkDir)
 	FFConfig.BkDir = bookmarkDir
 
 	log.Debugf("Using default profile %s", bookmarkDir)
