@@ -119,7 +119,7 @@ type FFPlace struct {
 	AutoIncr
 }
 
-// TODO!: replace by PlaceBokmark
+// TODO!: replace by PlaceBokmark below
 type FFBookmark struct {
 	btype  sqlid
 	parent sqlid
@@ -141,8 +141,8 @@ type PlaceBookmark struct {
 	//This field stores the timestamp as raw milliseconds
 	BkLastModified sqlid `db:"bkLastModified"`
 
-    //NOTE: parsing into time.Time not working, I need to have a sqlite column of 
-    //time Datetime [see](https://github.com/mattn/go-sqlite3/issues/748)!!
+	//NOTE: parsing into time.Time not working, I need to have a sqlite column of
+	//time Datetime [see](https://github.com/mattn/go-sqlite3/issues/748)!!
 	//Our query converts to the format scannable by go-sqlite3 SQLiteTimestampFormats
 	//This field stores the timestamp parsable as time.Time
 	// BkLastModifiedDateTime time.Time `db:"bkLastModifiedDateTime"`
@@ -154,8 +154,19 @@ type PlaceBookmark struct {
 }
 
 func (pb *PlaceBookmark) datetime() time.Time {
-    return time.Unix(int64(pb.BkLastModified / (1000*1000)),
-            int64(pb.BkLastModified % (1000*1000)) *1000).UTC() }
+	return time.Unix(int64(pb.BkLastModified/(1000*1000)),
+		int64(pb.BkLastModified%(1000*1000))*1000).UTC()
+}
+
+//WIP
+// load bookmarks from places.sqlite 
+// returns a []*PlaceBookmark 
+func scanPlacesBookmarks(db *sqlx.DB) ([]*PlaceBookmark, error){
+
+    return nil, nil
+}
+
+//WIP
 
 type Firefox struct {
 	*FirefoxConfig

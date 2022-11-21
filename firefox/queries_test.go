@@ -50,12 +50,18 @@ func Test_loadQueries(t *testing.T) {
 
 
     // Loading of bookmarks and their folders algorithm:
-    //     1. [ ] execute merged places_bookmarks table query
+    //     1. [*] execute merged places_bookmarks table query
     //         [*] scan the query into a bookmark_places struct
+
     //     3- go through bookmarks and
     //         - add tag nodes
     //         - add url nodes
+
     //         ?- add hierarchy relationship ?
+    //            - store folders as hierarchy using a separate tree
+    //            - extract folders tree into a flat tag list
+    //            - store tag list with appropriate hierarcy info
+    //
     //     4- Sync URLIndex to the the buffer DB
 
     t.Run("Scan a bookmark", func(t *testing.T){
@@ -72,8 +78,17 @@ func Test_loadQueries(t *testing.T) {
             if err != nil {
               t.Error(err)
             }
-
-            t.Log(placebk)
         }
+    })
+
+    t.Run("Select bookmarks", func (t *testing.T){
+
+        var bookmarks []*PlaceBookmark
+        err := dotx.Select(db.Handle, &bookmarks, "merge-places-bookmarks")
+        if err != nil {
+          t.Error(err)
+        }
+        
+        // pretty.Log(bookmarks)
     })
 }

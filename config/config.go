@@ -64,6 +64,7 @@ func RegisterModuleOpt(module string, opt string, val interface{}) error {
 }
 
 // Get all configs as a map[string]interface{}
+// FIX: only print exported fields, parse tags for hidden fields
 func GetAll() Config {
 	result := make(Config)
 	for k, c := range configs {

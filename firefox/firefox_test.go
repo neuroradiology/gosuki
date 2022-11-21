@@ -2,9 +2,8 @@ package firefox
 
 import (
 	"os"
+	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/database"
@@ -13,6 +12,8 @@ import (
 	"git.sp4ke.xyz/sp4ke/gomark/parsing"
 	"git.sp4ke.xyz/sp4ke/gomark/tree"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
+	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/assert"
 )
 
 // func Test_scanBookmarks(t *testing.T) {
@@ -177,19 +178,18 @@ func Test_fetchUrlChanges(t *testing.T) {
 	t.Error("split into small units")
 }
 
-func Test_PlaceBookmark(t *testing.T){ 
-    assert := assert.New(t)
-    pb := PlaceBookmark{
-    	BkLastModified: 1663878015759000,
-    }
+func Test_PlaceBookmark(t *testing.T) {
+	assert := assert.New(t)
+	pb := PlaceBookmark{
+		BkLastModified: 1663878015759000,
+	}
 
-    res := pb.datetime().Format("2006-01-02 15:04:05.000000")
-    assert.Equal(res, "2022-09-22 20:20:15.759000", "wrong time in scanned bookmark")
+	res := pb.datetime().Format("2006-01-02 15:04:05.000000")
+	assert.Equal(res, "2022-09-22 20:20:15.759000", "wrong time in scanned bookmark")
 }
 
-
 // TODO!: loading firefox bookmarks
-func Test_GetFFBookmarks(t *testing.T) {
+func Test_loadBookmarks(t *testing.T) {
 
 	// expected data from testdata/places.sqlite
 	data := struct {
@@ -228,7 +228,9 @@ func Test_GetFFBookmarks(t *testing.T) {
 	// expected tags are in testdata/places.sqlite
 	database.DefaultDBPath = "testdata"
 
-	t.Log("Load firefox bookmarks verify that:")
+	t.Log("loading firefox bookmarks")
+
+	// create a Firefox{} instance
 
 	// find the following entries in CacheDB
 	// 1- find all tags defined by user
@@ -260,3 +262,28 @@ func Test_GetFFBookmarks(t *testing.T) {
 	// remove gomarks.db
 }
 
+func Test_scanPlacesBookmarks(t *testing.T) {
+	type args struct {
+		db *sqlx.DB
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []*PlaceBookmark
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := scanPlacesBookmarks(tt.args.db)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("scanPlacesBookmarks() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("scanPlacesBookmarks() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
