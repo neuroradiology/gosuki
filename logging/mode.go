@@ -1,3 +1,6 @@
+// It is possible to enable debugging for execution time that happens before
+// the -debug cli arg is parsed. This is possible using the GOMARK_DEBUG=X env 
+// variable where X is an integer for the debug level
 package logging
 
 import (
