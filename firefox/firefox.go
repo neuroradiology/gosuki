@@ -128,8 +128,9 @@ type FFBookmark struct {
 	id     sqlid
 }
 
+// This type is used for scanning from `merged-`
 // plId  plUrl plDescription bkId  bkTitle bkLastModified  isFolder  isTag  isBk  bkParent
-type PlaceBookmark struct {
+type MergedPlaceBookmark struct {
 	PlId    sqlid  `db:"plId"`
 	PlUrl   string `db:"plUrl"`
 	PlDesc  string `db:"plDescription"`
@@ -153,15 +154,15 @@ type PlaceBookmark struct {
 	BkParent sqlid `db:"bkParent"`
 }
 
-func (pb *PlaceBookmark) datetime() time.Time {
+func (pb *MergedPlaceBookmark) datetime() time.Time {
 	return time.Unix(int64(pb.BkLastModified/(1000*1000)),
 		int64(pb.BkLastModified%(1000*1000))*1000).UTC()
 }
 
 //WIP
 // load bookmarks from places.sqlite 
-// returns a []*PlaceBookmark 
-func scanPlacesBookmarks(db *sqlx.DB) ([]*PlaceBookmark, error){
+// returns a []*MergedPlaceBookmark 
+func scanPlacesBookmarks(db *sqlx.DB) ([]*MergedPlaceBookmark, error){
 
     return nil, nil
 }

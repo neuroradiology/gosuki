@@ -7,9 +7,17 @@ import (
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
 	"github.com/gchaincl/dotsql"
 	"github.com/swithek/dotsqlx"
+	_"github.com/kr/pretty"
 )
 
 func Test_loadQueries(t *testing.T) {
+
+    queries := map[string]string{
+        "merged-places-bookmarks": "merged_places_bookmarks.sql",
+        "recursive-all-bookmarks": "recursive_all_bookmarks.sql",
+    }
+
+    loadedQueries := map[string]*dotsqlx.DotSqlx{}
 
     exists, err := utils.CheckFileExists("testdata/places.sqlite")
     if err != nil {
@@ -36,16 +44,20 @@ func Test_loadQueries(t *testing.T) {
     }
     
 
-	dot, err := dotsql.LoadFromFile("queries.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-    dotx := dotsqlx.Wrap(dot)
-    _, err = dotx.Raw("merge-places-bookmarks")
-    if err != nil {
-      t.Fatal(err)
+    for q, qfile := range queries {
+        dot, err := dotsql.LoadFromFile(qfile)
+        if err != nil {
+            t.Fatal(err)
+        }
+        dotx := dotsqlx.Wrap(dot)
+        _, err = dotx.Raw(q)
+        if err != nil {
+          t.Fatal(err)
+        }
+        loadedQueries[q] = dotx
     }
+
+
 
 
 
@@ -65,14 +77,19 @@ func Test_loadQueries(t *testing.T) {
     //     4- Sync URLIndex to the the buffer DB
 
     t.Run("Scan a bookmark", func(t *testing.T){
+        queryName := "merged-places-bookmarks"
 
-        rowsx, err := dotx.Queryx(db.Handle, "merge-places-bookmarks")
+        dotx, ok := loadedQueries[queryName]
+        if !ok {
+            t.Fatalf("cannot load query")
+        }
+        rowsx, err := dotx.Queryx(db.Handle, queryName)
         if err != nil {
           t.Fatal(err)
         }
 
         for rowsx.Next() {
-            var placebk PlaceBookmark
+            var placebk MergedPlaceBookmark
 
             err = rowsx.StructScan(&placebk)
             if err != nil {
@@ -82,9 +99,10 @@ func Test_loadQueries(t *testing.T) {
     })
 
     t.Run("Select bookmarks", func (t *testing.T){
+        queryName := "merged-places-bookmarks"
 
-        var bookmarks []*PlaceBookmark
-        err := dotx.Select(db.Handle, &bookmarks, "merge-places-bookmarks")
+        var bookmarks []*MergedPlaceBookmark
+        err := loadedQueries["merged-places-bookmarks"].Select(db.Handle, &bookmarks, queryName)
         if err != nil {
           t.Error(err)
         }

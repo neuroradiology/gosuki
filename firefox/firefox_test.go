@@ -1,8 +1,8 @@
 package firefox
 
 import (
+	"fmt"
 	"os"
-	"reflect"
 	"testing"
 
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
@@ -12,7 +12,6 @@ import (
 	"git.sp4ke.xyz/sp4ke/gomark/parsing"
 	"git.sp4ke.xyz/sp4ke/gomark/tree"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
-	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -178,9 +177,9 @@ func Test_fetchUrlChanges(t *testing.T) {
 	t.Error("split into small units")
 }
 
-func Test_PlaceBookmark(t *testing.T) {
+func Test_PlaceBookmarkTimeParsing(t *testing.T) {
 	assert := assert.New(t)
-	pb := PlaceBookmark{
+	pb := MergedPlaceBookmark{
 		BkLastModified: 1663878015759000,
 	}
 
@@ -188,7 +187,7 @@ func Test_PlaceBookmark(t *testing.T) {
 	assert.Equal(res, "2022-09-22 20:20:15.759000", "wrong time in scanned bookmark")
 }
 
-// TODO!: loading firefox bookmarks
+// TODO!: integration test loading firefox bookmarks
 func Test_loadBookmarks(t *testing.T) {
 
 	// expected data from testdata/places.sqlite
@@ -229,23 +228,14 @@ func Test_loadBookmarks(t *testing.T) {
 	database.DefaultDBPath = "testdata"
 
 	t.Log("loading firefox bookmarks")
+    fmt.Sprintf("%#v", data)
 
 	// create a Firefox{} instance
 
 	// find the following entries in CacheDB
+
 	// 1- find all tags defined by user
 
-	t.Run("should find all tags", func(t *testing.T) {
-
-		err := database.Cache.DB.PrintBookmarks()
-		if err != nil {
-			t.Error(err)
-		}
-
-		t.Log(data)
-		t.Error("not implemented !")
-
-	})
 
 	/*
 		2.find all folders
@@ -262,28 +252,28 @@ func Test_loadBookmarks(t *testing.T) {
 	// remove gomarks.db
 }
 
-func Test_scanPlacesBookmarks(t *testing.T) {
-	type args struct {
-		db *sqlx.DB
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []*PlaceBookmark
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := scanPlacesBookmarks(tt.args.db)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("scanPlacesBookmarks() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("scanPlacesBookmarks() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+
+func Test_FindAllBookmarks(t *testing.T) {
+    t.Error("should find all bookmarked urls")
 }
+
+func Test_FindAllTags(t *testing.T) {
+    t.Error("should find all tags")
+}
+
+func Test_FindBookmarkTags(t *testing.T) {
+    t.Error("should find the right tags for each bookmark")
+}
+
+func Test_FindBookmarkFolders(t *testing.T) {
+    t.Error("should find the right bookmark folders for each bookmark")
+}
+
+func Test_FindBookmarkTagsWithFolders(t *testing.T) {
+    t.Error("should find all bookmarks that have tags AND within folders")
+}
+
+func Test_FindChangedBookmarks(t *testing.T) {
+    t.Error("should find all bookmarks that since last change")
+}
+
