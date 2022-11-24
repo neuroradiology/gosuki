@@ -26,6 +26,7 @@ func (c *CacheDB) IsInitialized() bool {
 func initCache() {
 	log.Debug("initializing cacheDB")
 	var err error
+
 	// Initialize memory db with schema
 	Cache.DB, err = NewDB(CacheName, "", DBTypeCacheDSN).Init()
 	if err != nil {
