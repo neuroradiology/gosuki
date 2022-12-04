@@ -84,13 +84,13 @@ WITH RECURSIVE
 		
 
 SELECT
- placeId,
+ placeId as plId,
  ifnull(title, "") as title,
  ifnull(group_concat(tags), "") as tags,
  parentfolderId,
  group_concat(folders) as folders,
  url,
- plDesc,
+ ifnull(plDesc, "") as plDesc,
  (SELECT max(moz_bookmarks.lastModified) FROM moz_bookmarks WHERE fk=placeId ) as lastModified
  FROM all_bookmarks
 GROUP BY placeId

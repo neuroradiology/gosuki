@@ -119,7 +119,7 @@ type FFPlace struct {
 	AutoIncr
 }
 
-// TODO!: replace by PlaceBokmark below
+// TODO!: replace by MergedPlaceBokmark and MozBookmark below
 type FFBookmark struct {
 	btype  sqlid
 	parent sqlid
@@ -128,7 +128,20 @@ type FFBookmark struct {
 	id     sqlid
 }
 
-// This type is used for scanning from `merged-`
+// placeId  title  parentFolderId  folders url plDesc lastModified
+// Type used for scanning from `recursive-all-bookmarks.sql`
+type MozBookmark struct {
+	PlId           sqlid `db:"plId"`
+	Title          string
+	Tags           string
+	Folders        string
+	ParentId       sqlid `db:"parentFolderId"`
+	Url            string
+	PlDesc         string `db:"plDesc"`
+	BkLastModified sqlid  `db:"lastModified"`
+}
+
+// Type is used for scanning from `merged-places-bookmarks.sql`
 // plId  plUrl plDescription bkId  bkTitle bkLastModified  isFolder  isTag  isBk  bkParent
 type MergedPlaceBookmark struct {
 	PlId    sqlid  `db:"plId"`
@@ -159,12 +172,12 @@ func (pb *MergedPlaceBookmark) datetime() time.Time {
 		int64(pb.BkLastModified%(1000*1000))*1000).UTC()
 }
 
-//WIP
-// load bookmarks from places.sqlite 
-// returns a []*MergedPlaceBookmark 
-func scanPlacesBookmarks(db *sqlx.DB) ([]*MergedPlaceBookmark, error){
+// WIP
+// load bookmarks from places.sqlite
+// returns a []*MergedPlaceBookmark
+func scanPlacesBookmarks(db *sqlx.DB) ([]*MergedPlaceBookmark, error) {
 
-    return nil, nil
+	return nil, nil
 }
 
 //WIP
@@ -187,11 +200,11 @@ type Firefox struct {
 func init() {
 	browsers.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
 	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
-	//TIP: 	Name: "test",
-	//TIP: })
-	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
-	//TIP: 	Name: "test2",
-	//TIP: })
+	// 	Name: "test",
+	// })
+	// cmd.RegisterModCommand(BrowserName, &cli.Command{
+	// 	Name: "test2",
+	// })
 }
 
 func NewFirefox() *Firefox {
