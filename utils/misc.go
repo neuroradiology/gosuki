@@ -5,7 +5,7 @@ func S(value interface{}) string {
 	return string(value.([]byte))
 }
 
-func Extends(list []string, in string) []string {
+func Extends[T comparable](list []T, in T) []T {
 	for _, val := range list {
 		if in == val {
 			return list
@@ -15,7 +15,7 @@ func Extends(list []string, in string) []string {
 }
 
 // Return true if elm in list
-func Inlist(list []string, elm string) bool {
+func Inlist[T comparable](list []T, elm T) bool {
 	for _, v := range list {
 		if elm == v {
 			return true
