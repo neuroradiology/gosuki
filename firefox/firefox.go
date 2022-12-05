@@ -43,6 +43,11 @@ const (
     )
 	`
 
+	QFolders = `
+    SELECT id, title, parent FROM moz_bookmarks 
+        WHERE type = 2 AND parent NOT IN (4, 0)
+    `
+
 	//TEST:
 	QgetBookmarks = `
     WITH bookmarks AS
@@ -135,16 +140,21 @@ type MozBookmark struct {
 	Title          string
 	Tags           string
 	Folders        string
-	ParentId       sqlid `db:"parentFolderId"`
+	ParentId       sqlid  `db:"parentFolderId"`
+	ParentFolder   string `db:"parentFolder"`
 	Url            string
 	PlDesc         string `db:"plDesc"`
 	BkLastModified sqlid  `db:"lastModified"`
 }
 
+type MozFolder struct {
+	Id    sqlid
+    Parent sqlid
+	Title string
+}
+
 const MozBookmarkQueryFile = "recursive_all_bookmarks.sql"
 const MozBookmarkQuery = "recursive-all-bookmarks"
-
-
 
 // Type is used for scanning from `merged-places-bookmarks.sql`
 // plId  plUrl plDescription bkId  bkTitle bkLastModified  isFolder  isTag  isBk  bkParent
@@ -177,20 +187,33 @@ func (pb *MergedPlaceBookmark) datetime() time.Time {
 		int64(pb.BkLastModified%(1000*1000))*1000).UTC()
 }
 
+// scan all folders from moz_bookmarks and load them into the node tree
+func scanFolders(db *sqlx.DB) ([]*MozFolder, error) {
+
+	var folders []*MozFolder
+	err := db.Select(&folders, QFolders)
+
+    // TODO: transform list of folders into a tree (recursive ?)
+    // TODO: implement Firefox.addFolderNode
+
+
+	return folders, err
+}
+
 // WIP
 // load bookmarks from places.sqlite
 // returns a []*MergedPlaceBookmark
 func scanBookmarks(db *sqlx.DB) ([]*MozBookmark, error) {
-    var bookmarks []*MozBookmark
+	var bookmarks []*MozBookmark
 
-    dotx, err := database.DotxQuery(MozBookmarkQueryFile)
-    if err != nil {
-      return nil, err
-    }
+	dotx, err := database.DotxQuery(MozBookmarkQueryFile)
+	if err != nil {
+		return nil, err
+	}
 
-    err = dotx.Select(db, &bookmarks, MozBookmarkQuery)
+	err = dotx.Select(db, &bookmarks, MozBookmarkQuery)
 
-    return bookmarks, err
+	return bookmarks, err
 }
 
 //WIP
@@ -204,7 +227,8 @@ type Firefox struct {
 	// All elements stored in URLIndex
 	URLIndexList []string
 
-	// Map from place tag IDs to the parse node tree
+	// Map from moz_bookmarks tag ids to a tree node
+    // tagMap is used as a quick lookup table into the node tree
 	tagMap map[sqlid]*tree.Node
 
 	lastRunTime time.Time
@@ -512,6 +536,7 @@ func (browser *Firefox) getPathToPlacesCopy() string {
 // and only pass extra details about tag/url along in some data structure
 // PROBLEM: tag nodes use IDs and URL nodes use URL as hashes
 func (f *Firefox) addUrlNode(url, title, desc string) (bool, *tree.Node) {
+
 	var urlNode *tree.Node
 	iUrlNode, exists := f.URLIndex.Get(url)
 	if !exists {
@@ -534,7 +559,7 @@ func (f *Firefox) addUrlNode(url, title, desc string) (bool, *tree.Node) {
 	return false, urlNode
 }
 
-// adds a new tagNode if it is not existing in the tagMap
+// adds a new tagNode if it is not yet in the tagMap
 // returns true if tag added or false if already existing
 // returns the created tagNode
 func (browser *Firefox) addTagNode(tagId sqlid, tagName string) (bool, *tree.Node) {
@@ -556,6 +581,19 @@ func (browser *Firefox) addTagNode(tagId sqlid, tagName string) (bool, *tree.Nod
 
 	return true, tagNode
 }
+
+// add a folder node to the parsed node tree under the specified folder parent
+func (browser *Firefox) addFolderNode(folderId sqlid, name string) (bool, *tree.Node){
+
+    // should I reuse tagMap ? 
+    // use the hashmap.RBTree ?
+
+
+
+	return true, nil
+}
+
+
 
 // Copies places.sqlite to a tmp dir to read a VFS lock sqlite db
 func (f *Firefox) initPlacesCopy() error {

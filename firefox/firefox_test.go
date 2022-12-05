@@ -138,6 +138,7 @@ func Test_addUrlNode(t *testing.T) {
 
 }
 
+
 func Test_addTagNode(t *testing.T) {
 
 	testTag := struct {
@@ -239,13 +240,13 @@ func Test_scanBookmarks(t *testing.T) {
 		},
 
 		bookmarkTags: map[string][]string{
-            "https://based.cooking/": {"based"},
-            "https://go.dev/": {"golang", "programming"},
-            "https://www.rust-lang.org/": {"programming","rust","systems"},
-            "https://www.tasteofhome.com/article/indian-cooking/": {},
-            "http://gomark.io/": {"gomark"},
-            "https://www.budapestinfo.hu/": {"budapest"},
-            "https://www.fsf.org/": {"libre"},
+			"https://based.cooking/":                              {"based"},
+			"https://go.dev/":                                     {"golang", "programming"},
+			"https://www.rust-lang.org/":                          {"programming", "rust", "systems"},
+			"https://www.tasteofhome.com/article/indian-cooking/": {},
+			"http://gomark.io/":                                   {"gomark"},
+			"https://www.budapestinfo.hu/":                        {"budapest"},
+			"https://www.fsf.org/":                                {"libre"},
 		},
 	}
 
@@ -267,14 +268,13 @@ func Test_scanBookmarks(t *testing.T) {
 				urls = utils.Extends(urls, bk.Url)
 			}
 
+			var testUrls []string
+			for url, _ := range data.bookmarkTags {
+				testUrls = append(testUrls, url)
+			}
+			testUrls = collection.Collect(testUrls).Unique().ToStringArray()
 
-            var testUrls []string
-            for url, _ := range data.bookmarkTags {
-                testUrls = append(testUrls, url)
-            }
-            testUrls = collection.Collect(testUrls).Unique().ToStringArray()
-
-			assert.ElementsMatch(t, urls,testUrls)
+			assert.ElementsMatch(t, urls, testUrls)
 		})
 
 		/*
@@ -289,52 +289,74 @@ func Test_scanBookmarks(t *testing.T) {
 				}
 			}
 			assert.ElementsMatch(t, folders, data.folders)
+			t.Error("should find the right bookmark folders for each bookmark")
 		})
 
 		/*
-		   3. find all url bookmarks with their tags
+		   3. find all url bookmarks with their corresponding tags
 		   - should get any user added bookmark (id > 12)
 		*/
 		t.Run("all tags", func(t *testing.T) {
-            bkTags  := map[string][]string{}
+			bkTags := map[string][]string{}
 
-            for _, bk := range bookmarks {
-                bkTags[bk.Url] = collection.Collect(strings.Split(bk.Tags, ",")).
-                    Unique().Filter(func(item, val interface{}) bool {
-                        // Filter out empty ("") strings
-                        if v, ok := val.(string); ok {
-                            if v == "" { return false }
-                        }
-                        return true
-                    }).ToStringArray()
-            }
+			for _, bk := range bookmarks {
+				bkTags[bk.Url] = collection.Collect(strings.Split(bk.Tags, ",")).
+					Unique().Filter(func(item, val interface{}) bool {
+					// Filter out empty ("") strings
+					if v, ok := val.(string); ok {
+						if v == "" {
+							return false
+						}
+					}
+					return true
+				}).ToStringArray()
+			}
 
-            assert.Equal(t, data.bookmarkTags, bkTags)
-            // t.Error("urls with their matching tags")
+			assert.Equal(t, data.bookmarkTags, bkTags)
+			// t.Error("urls with their matching tags")
 		})
+
+		t.Error("should find all bookmarks that have tags AND within folders")
+	})
+}
+
+func Test_scanFolders(t *testing.T) {
+
+	folders := []string{
+		"menu",    // Bookmarks Menu
+		"toolbar", // Bookmarks Toolbar
+		"tags",    // Tags Virtual Folder
+		"unfiled", // Other Bookmarks
+		"mobile",  // Mobile Bookmarks
+        "Mozilla Firefox",
+		"cooking",
+		"Travel",
+		"indian",
+		"GomarkMenu",
+	}
+
+	runPlacesTest("scan all folders", t, func(t *testing.T) {
+
+		// query all folders
+		scannedFolders, err := scanFolders(ff.places.Handle)
+		if err != nil {
+			t.Error(err)
+		}
+
+        // test that we loaded all folders
+        folderS := []string{}
+        for _, f := range scannedFolders {
+            folderS = utils.Extends(folderS, f.Title)
+        }
+        assert.ElementsMatch(t, folders, folderS)
 
 	})
 
-	// teardown
-	// remove gomarks.db
-}
-
-func Test_FindAllTags(t *testing.T) {
-	t.Error("should find all tags")
-}
-
-func Test_FindBookmarkTags(t *testing.T) {
-	t.Error("should find the right tags for each bookmark")
-}
-
-func Test_FindBookmarkFolders(t *testing.T) {
-	t.Error("should find the right bookmark folders for each bookmark")
-}
-
-func Test_FindBookmarkTagsWithFolders(t *testing.T) {
-	t.Error("should find all bookmarks that have tags AND within folders")
+	// test that folders are loaded into tree
+	// print tree
+	// test tree
 }
 
 func Test_FindChangedBookmarks(t *testing.T) {
-	t.Error("should find all bookmarks that since last change")
+	t.Error("should find all bookmarks modified/added since last change")
 }

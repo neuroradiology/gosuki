@@ -68,7 +68,7 @@ WITH RECURSIVE
 				WHERE marks.type = 2
 				GROUP BY placeId
 
-			UNION
+			UNION ALL
 			-- All bookmarks only within folders
 			SELECT
 				fbm.plId as placeId,
@@ -89,6 +89,7 @@ SELECT
  ifnull(title, "") as title,
  ifnull(group_concat(tags), "") as tags,
  parentfolderId,
+(SELECT moz_bookmarks.title FROM moz_bookmarks WHERE id = parentFolderId) as parentFolder,
  group_concat(folders) as folders,
  url,
  ifnull(plDesc, "") as plDesc,
