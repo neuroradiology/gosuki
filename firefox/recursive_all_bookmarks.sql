@@ -8,6 +8,7 @@ WITH RECURSIVE
 		UNION ALL
 		SELECT id, moz_bookmarks.type, moz_bookmarks.title, folder, folder_marks.parent -- get all bookmarks with folder parents
 				FROM  moz_bookmarks JOIN folder_marks ON moz_bookmarks.parent=bid	
+				WHERE id > 12 --ignore native mozilla folders
 	),
 	
 	bk_in_folders(id, type, fk, title, parent) AS(
