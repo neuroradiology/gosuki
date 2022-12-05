@@ -1,8 +1,8 @@
 package firefox
 
 import (
-	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
@@ -12,6 +12,7 @@ import (
 	"git.sp4ke.xyz/sp4ke/gomark/parsing"
 	"git.sp4ke.xyz/sp4ke/gomark/tree"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
+	"github.com/chenhg5/collection"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,6 +41,30 @@ func TestMain(m *testing.M) {
 
 	exitVal := m.Run()
 	os.Exit(exitVal)
+}
+
+func runPlacesTest(name string, t *testing.T, test func(t *testing.T)) {
+
+	bkPath, err := ff.BookmarkPath()
+	if err != nil {
+		t.Error(err)
+	}
+
+	ff.places, err = database.NewDB("places", bkPath, database.DBTypeFileDSN,
+		FFConfig.PlacesDSN).Init()
+
+	t.Cleanup(func() {
+		err = ff.places.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Run(name, test)
 }
 
 func Test_addUrlNode(t *testing.T) {
@@ -188,92 +213,128 @@ func Test_PlaceBookmarkTimeParsing(t *testing.T) {
 }
 
 // TODO!: integration test loading firefox bookmarks
-func Test_loadBookmarks(t *testing.T) {
+func Test_scanBookmarks(t *testing.T) {
 
 	// expected data from testdata/places.sqlite
+	// data := struct {
 	data := struct {
 		tags    []string
 		folders []string // list of tags
 
-		urlBookmarks []string // list of folder names
+		bookmarkTags map[string][]string // list of folder names
 
 	}{ // list of urls which are bookmarked
 		tags: []string{"golang", "programming", "rust"},
 
 		folders: []string{
-			"menu",
-			"toolbar", "tags",
-			"unfiled",
-			"mobile",
-			"Mozilla Firefox",
+			"menu",    // Bookmarks Menu
+			"toolbar", // Bookmarks Toolbar
+			"tags",    // Tags Virtual Folder
+			"unfiled", // Other Bookmarks
+			"mobile",  // Mobile Bookmarks
 			"cooking",
+			"Travel",
 			"indian",
 			"GomarkMenu",
 		},
 
-		urlBookmarks: []string{
-			"https://based.cooking/",
-			"https://go.dev/",
-			"https://support.mozilla.org/en-US/kb/customize-firefox-controls-buttons-and-toolbars?utm_source=firefox-browser&utm_medium=default-bookmarks&utm_campaign=customize",
-			"https://support.mozilla.org/en-US/products/firefox",
-			"https://www.mozilla.org/en-US/about/",
-			"https://www.mozilla.org/en-US/contribute/",
-			"https://www.mozilla.org/en-US/firefox/central/",
-			"https://www.rust-lang.org/",
-			"https://www.tasteofhome.com/article/indian-cooking/",
+		bookmarkTags: map[string][]string{
+            "https://based.cooking/": {"based"},
+            "https://go.dev/": {"golang", "programming"},
+            "https://www.rust-lang.org/": {"programming","rust","systems"},
+            "https://www.tasteofhome.com/article/indian-cooking/": {},
+            "http://gomark.io/": {"gomark"},
+            "https://www.budapestinfo.hu/": {"budapest"},
+            "https://www.fsf.org/": {"libre"},
 		},
 	}
 
-	// expected tags are in testdata/places.sqlite
-	database.DefaultDBPath = "testdata"
-
 	t.Log("loading firefox bookmarks")
-    fmt.Sprintf("%#v", data)
 
-	// create a Firefox{} instance
+	// First make sure bookmarks are scaned then verify they are loaded
+	// in CacheDB
 
-	// find the following entries in CacheDB
+	runPlacesTest("find", t, func(t *testing.T) {
+		bookmarks, err := scanBookmarks(ff.places.Handle)
+		if err != nil {
+			t.Error(err)
+		}
 
-	// 1- find all tags defined by user
+		// 1- find all tags defined by user
+		t.Run("all urls", func(t *testing.T) {
+			var urls []string
+			for _, bk := range bookmarks {
+				urls = utils.Extends(urls, bk.Url)
+			}
 
 
-	/*
-		2.find all folders
-		- Should ignore Mozilla folders, any folder with (id < 13 && type == 2)
-		- Should get any user defined folder with bkId > 12
-	*/
+            var testUrls []string
+            for url, _ := range data.bookmarkTags {
+                testUrls = append(testUrls, url)
+            }
+            testUrls = collection.Collect(testUrls).Unique().ToStringArray()
 
-	/*
-	   3. find all url bookmarks with their tags
-	   - should get any user added bookmark (id > 12)
-	*/
+			assert.ElementsMatch(t, urls,testUrls)
+		})
+
+		/*
+		   2.find all folders
+		*/
+		t.Run("all folders", func(t *testing.T) {
+			var folders []string
+			for _, bk := range bookmarks {
+				folderS := strings.Split(bk.Folders, ",")
+				for _, f := range folderS {
+					folders = utils.Extends(folders, f)
+				}
+			}
+			assert.ElementsMatch(t, folders, data.folders)
+		})
+
+		/*
+		   3. find all url bookmarks with their tags
+		   - should get any user added bookmark (id > 12)
+		*/
+		t.Run("all tags", func(t *testing.T) {
+            bkTags  := map[string][]string{}
+
+            for _, bk := range bookmarks {
+                bkTags[bk.Url] = collection.Collect(strings.Split(bk.Tags, ",")).
+                    Unique().Filter(func(item, val interface{}) bool {
+                        // Filter out empty ("") strings
+                        if v, ok := val.(string); ok {
+                            if v == "" { return false }
+                        }
+                        return true
+                    }).ToStringArray()
+            }
+
+            assert.Equal(t, data.bookmarkTags, bkTags)
+            // t.Error("urls with their matching tags")
+		})
+
+	})
 
 	// teardown
 	// remove gomarks.db
 }
 
-
-func Test_FindAllBookmarks(t *testing.T) {
-    t.Error("should find all bookmarked urls")
-}
-
 func Test_FindAllTags(t *testing.T) {
-    t.Error("should find all tags")
+	t.Error("should find all tags")
 }
 
 func Test_FindBookmarkTags(t *testing.T) {
-    t.Error("should find the right tags for each bookmark")
+	t.Error("should find the right tags for each bookmark")
 }
 
 func Test_FindBookmarkFolders(t *testing.T) {
-    t.Error("should find the right bookmark folders for each bookmark")
+	t.Error("should find the right bookmark folders for each bookmark")
 }
 
 func Test_FindBookmarkTagsWithFolders(t *testing.T) {
-    t.Error("should find all bookmarks that have tags AND within folders")
+	t.Error("should find all bookmarks that have tags AND within folders")
 }
 
 func Test_FindChangedBookmarks(t *testing.T) {
-    t.Error("should find all bookmarks that since last change")
+	t.Error("should find all bookmarks that since last change")
 }
-

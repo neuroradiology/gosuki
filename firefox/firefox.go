@@ -141,6 +141,11 @@ type MozBookmark struct {
 	BkLastModified sqlid  `db:"lastModified"`
 }
 
+const MozBookmarkQueryFile = "recursive_all_bookmarks.sql"
+const MozBookmarkQuery = "recursive-all-bookmarks"
+
+
+
 // Type is used for scanning from `merged-places-bookmarks.sql`
 // plId  plUrl plDescription bkId  bkTitle bkLastModified  isFolder  isTag  isBk  bkParent
 type MergedPlaceBookmark struct {
@@ -175,9 +180,17 @@ func (pb *MergedPlaceBookmark) datetime() time.Time {
 // WIP
 // load bookmarks from places.sqlite
 // returns a []*MergedPlaceBookmark
-func scanPlacesBookmarks(db *sqlx.DB) ([]*MergedPlaceBookmark, error) {
+func scanBookmarks(db *sqlx.DB) ([]*MozBookmark, error) {
+    var bookmarks []*MozBookmark
 
-	return nil, nil
+    dotx, err := database.DotxQuery(MozBookmarkQueryFile)
+    if err != nil {
+      return nil, err
+    }
+
+    err = dotx.Select(db, &bookmarks, MozBookmarkQuery)
+
+    return bookmarks, err
 }
 
 //WIP
