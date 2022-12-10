@@ -51,10 +51,5 @@ func initRuntimeMode() {
         SetMode(mode)
 	} 
 
-	// if mode == Debug {
-	// 	SetMode(Debug)
-	// } else {
-	// 	SetMode(mode)
-	// 	gin.SetMode(mode)
-	// }
+    //TODO: disable debug log when testing
 }
