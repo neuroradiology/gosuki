@@ -25,6 +25,7 @@ var (
 	debugBackend        = glogging.NewBackendFormatter(stdoutBackend, debugFormatter)
 	debugDefaultBackend = glogging.NewBackendFormatter(stdoutBackend, debugDefaultFormatter)
 	releaseBackend      = glogging.NewBackendFormatter(stdoutBackend, releaseFormatter)
+	silentBackend      = glogging.NewBackendFormatter(nullBackend, debugDefaultFormatter)
 
 	loggers map[string]*glogging.Logger
 
@@ -32,6 +33,7 @@ var (
 	leveledDefaultDebug = glogging.AddModuleLevel(debugDefaultBackend)
 	leveledDebug        = glogging.AddModuleLevel(debugBackend)
 	leveledRelease      = glogging.AddModuleLevel(releaseBackend)
+    leveledSilent = glogging.AddModuleLevel(silentBackend)
 
 	LoggingLevels = map[int]int{
 		Release: int(glogging.WARNING),
@@ -81,13 +83,16 @@ func setLogLevel(lvl int) {
 		if lvl >= Info {
 			// fmt.Println("setting backend to debug for ", k)
 			logger.SetBackend(leveledDebug)
-		} else {
+		} else if lvl == -1 {
+            logger.SetBackend(leveledSilent)
+        } else {
 			logger.SetBackend(leveledRelease)
 			// fmt.Println("setting backend to release for ", k)
-
 		}
 	}
 }
+
+//FIX: Suppress output during testing
 
 func init() {
 	initRuntimeMode()
@@ -96,7 +101,7 @@ func init() {
 	loggers = make(map[string]*glogging.Logger)
 
 	// Sets the default backend for all new loggers
-    //RELEASE: set to release when app released
+	//RELEASE: set to release when app released
 	glogging.SetBackend(debugBackend)
 
 	// Release level
