@@ -45,6 +45,32 @@ func (node *Node) GetRoot() *Node {
 	return nodePtr
 }
 
+// Returns the ancestor of this node
+func Ancestor(node *Node) *Node {
+	if node.Parent == nil {
+		return node
+	} else {
+		return Ancestor(node.Parent)
+	}
+}
+
+
+
+// Finds a node and the tree starting at root
+func FindNode(node *Node, root *Node) bool {
+
+	if node == root {
+		return true
+	} else {
+        for _, child := range root.Children {
+            found := FindNode(node, child)
+            if found { return true }
+        }
+    }
+
+    return false
+}
+
 // Insert *Node in nodeList if it does not already exists
 func AddChild(parent *Node, child *Node) {
 	log.Debugf("adding child %v: <%s>", child.Type, child.Name)
@@ -99,24 +125,27 @@ func (node *Node) GetParentTags() []*Node {
 }
 
 func PrintTree(root *Node) {
+	fmt.Println("---")
+	fmt.Println("PrintTree")
 	var walk func(node *Node, tree treeprint.Tree)
 	tree := treeprint.New()
 
 	walk = func(node *Node, t treeprint.Tree) {
 
 		if len(node.Children) > 0 {
-			t = t.AddBranch(fmt.Sprintf("%s <%s>", node.Type, node.Name))
+			t = t.AddBranch(fmt.Sprintf("%#v <%s>", node.Type, node.Name))
 
 			for _, child := range node.Children {
-				go walk(child, t)
+				walk(child, t)
 			}
 		} else {
-			t.AddNode(fmt.Sprintf("%s <%s>", node.Type, node.URL))
+			t.AddNode(fmt.Sprintf("%#v <%s>", node.Type, node.Name))
 		}
 	}
 
 	walk(root, tree)
 	fmt.Println(tree.String())
+	fmt.Println("---")
 }
 
 // Rebuilds the memory url index after parsing all bookmarks.

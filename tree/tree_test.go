@@ -1,12 +1,15 @@
 package tree
 
-import "testing"
+import(
+    "testing"
+	"github.com/stretchr/testify/assert"
+)
 
 func Test_AddChild(t *testing.T) {
-	rootNode := &Node{Name: "root", Parent: nil, Type: "root"}
-	childNode := &Node{Name: "child", Type: "testing"}
-	childNode2 := &Node{Type: "testing", Name: "second child"}
-	childNode3 := &Node{Type: "testing", Name: "third child"}
+	rootNode := &Node{Name: "root", Parent: nil, Type:RootNode}
+	childNode := &Node{Name: "child", Type: URLNode}
+	childNode2 := &Node{Type: FolderNode, Name: "second child"}
+	childNode3 := &Node{Type: TagNode, Name: "third child"}
 
 	AddChild(rootNode, childNode)
 	t.Run("[first child] parent has the child", func(t *testing.T) {
@@ -42,5 +45,28 @@ func Test_AddChild(t *testing.T) {
 			t.Errorf("child sees too many brothers, expected %v, got %v", 3, len(rootNode.Children))
 		}
 	})
+}
+
+func TestFindNode(t *testing.T){
+	rootNode := &Node{Name: "root", Parent: nil, Type:RootNode}
+	childNode := &Node{Name: "child", Type: URLNode}
+	childNode2 := &Node{Type: FolderNode, Name: "second child"}
+	childNode3 := &Node{Type: TagNode, Name: "third child"}
+
+    AddChild(rootNode, childNode)
+    AddChild(rootNode, childNode2)
+    AddChild(childNode2, childNode3)
+
+    result := FindNode(childNode3, rootNode)
+    assert.True(t, result)
+
+    result = FindNode(childNode2, rootNode)
+    assert.True(t, result)
+
+    result = FindNode(childNode, rootNode)
+    assert.True(t, result)
+
+    result = FindNode(rootNode, rootNode)
+    assert.True(t, result)
 
 }
