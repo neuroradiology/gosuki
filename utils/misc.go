@@ -27,3 +27,8 @@ func Inlist[T comparable](list []T, elm T) bool {
 	return false
 }
 
+
+// Use to shutoff golang "unused variable comment"
+func UseVar(any interface{}) {
+    return
+}

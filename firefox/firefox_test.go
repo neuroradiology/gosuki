@@ -17,9 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// func Test_scanBookmarks(t *testing.T) {
-// 	t.Run("")
-// }
 
 var ff Firefox
 
@@ -37,7 +34,7 @@ func TestMain(m *testing.M) {
 				Stats:    &parsing.Stats{},
 			},
 		},
-		tagMap: map[sqlid]*tree.Node{},
+		tagMap: map[string]*tree.Node{},
         folderMap: map[sqlid]*tree.Node{},
 	}
 
@@ -207,33 +204,37 @@ func Test_addFolderNode(t *testing.T) {
     })
 }
 
+// TODO: use tag name instead of id inside the map
 func Test_addTagNode(t *testing.T) {
 
     testTag := struct {
-        tagname string
+        tagName string
         tagType string
-        id      sqlid
     }{
-        tagname: "#test_tag",
+        tagName: "#test_tag",
         tagType: "tag",
-        id:      42,
     }
 
     // Should return true with the new node
     testName := "add new tag to root tree"
     t.Run(testName, func(t *testing.T) {
-        ok, tagNode := ff.addTagNode(testTag.id, testTag.tagname)
+        ok, tagNode := ff.addTagNode(testTag.tagName)
         if !ok {
             t.Errorf("[%s] expected %v ,got %v", testName, true, false)
         }
         if tagNode == nil {
             t.Fatalf("[%s] tag node was not returned", testName)
         }
-        if tagNode.Parent != ff.NodeTree {
+
+        // "tags" branch should exist
+
+        // TagNode should be underneath "tags" branch 
+        if tagNode.Parent.Parent != ff.NodeTree &&
+            tagNode.Name != "tags" {
             t.Errorf("[%s] wrong parent root for tag", testName)
         }
         t.Run("should be in tagMap", func(t *testing.T) {
-            node, ok := ff.tagMap[testTag.id]
+            node, ok := ff.tagMap[testTag.tagName]
             if !ok {
                 t.Error("tag node was not found in tagMap")
             }
@@ -253,12 +254,12 @@ func Test_addTagNode(t *testing.T) {
     // This should return false with the existing node and not add a new one
     testName = "add existing tag to root tree"
     t.Run(testName, func(t *testing.T) {
-        ff.addTagNode(testTag.id, testTag.tagname)
-        ok, tagNode := ff.addTagNode(testTag.id, testTag.tagname)
+        ff.addTagNode(testTag.tagName)
+        ok, tagNode := ff.addTagNode(testTag.tagName)
         if tagNode == nil {
             t.Fatalf("[%s] tag node was not returned", testName)
         }
-        if tagNode.Parent != ff.NodeTree {
+        if tagNode.Parent.Name != TagsBranchName {
             t.Errorf("[%s] wrong parent root for tag", testName)
         }
         if ok {
@@ -283,10 +284,10 @@ func Test_PlaceBookmarkTimeParsing(t *testing.T) {
 
 // TODO!: integration test loading firefox bookmarks
 func Test_scanBookmarks(t *testing.T) {
+    logging.SetMode(-1)
 
 
     // expected data from testdata/places.sqlite
-    // data := struct {
     data := struct {
         tags    []string
         folders []string // list of tags
@@ -325,7 +326,7 @@ func Test_scanBookmarks(t *testing.T) {
     // in CacheDB
 
     runPlacesTest("find", t, func(t *testing.T) {
-        bookmarks, err := scanBookmarks(ff.places.Handle)
+        bookmarks, err := ff.scanBookmarks()
         if err != nil {
             t.Error(err)
         }
@@ -344,6 +345,14 @@ func Test_scanBookmarks(t *testing.T) {
             testUrls = collection.Collect(testUrls).Unique().ToStringArray()
 
             assert.ElementsMatch(t, urls, testUrls)
+
+
+            // all urls are in urlindex
+            for _, bk := range bookmarks {
+                _, inIndex := ff.URLIndex.Get(bk.Url)
+                assert.True(t, inIndex, "url should be in url index")
+            }
+
         })
 
         /*
@@ -358,9 +367,6 @@ func Test_scanBookmarks(t *testing.T) {
                 }
             }
             assert.ElementsMatch(t, folders, data.folders)
-
-            t.Error("should find the right bookmark folders for each bookmark")
-
         })
 
         /*
@@ -385,9 +391,63 @@ func Test_scanBookmarks(t *testing.T) {
 
             assert.Equal(t, data.bookmarkTags, bkTags)
             // t.Error("urls with their matching tags")
+
+            t.Run("should find all bookmarks that have tags AND within folders", func (t *testing.T){
+                for _, bk := range bookmarks{
+                    if bk.Url == "https://www.fsf.org/" {
+                        // should have `libre` tag and `Mobile Bookmarks` folder
+                        assert.Equal(t, bk.ParentFolder, "mobile")
+                    }
+                }
+            })
+
+        })
+    })
+
+    runPlacesTest("load bookmarks in node tree", t, func(t *testing.T){
+        bookmarks, err := ff.scanBookmarks()
+        if err != nil {
+            t.Error(err)
+        }
+
+        t.Run("find every url in the node tree", func(t *testing.T){
+            for _, bk := range bookmarks {
+                node, exists := ff.URLIndex.Get(bk.Url)
+                assert.True(t, exists, "url missing in URLIndex")
+
+                assert.True(t, tree.FindNode(node.(*tree.Node), ff.NodeTree), "url node missing from tree")
+
+            }
         })
 
-        t.Error("should find all bookmarks that have tags AND within folders")
+        t.Run("url underneath the right folders", func(t *testing.T){
+            for _, bk := range bookmarks {
+                // folder, folderScanned := ff.folderScanMap[bk.ParentId]
+                //  assert.True(t, folderScanned)
+
+                // Get the folder from tree node
+                folderNode, folderExists := ff.folderMap[bk.ParentId] 
+                assert.True(t, folderExists)
+
+                urlNode, exists := ff.URLIndex.Get(bk.Url)
+                assert.True(t, exists, "url missing in URLIndex")
+
+
+                assert.Equal(t, urlNode.(*tree.Node).Parent.Name, bk.ParentFolder,
+                            "wrong folder for <%s>", bk.Url)
+
+                // FIX: a url can be child of tag as well, we need to test if
+                // parent is a folder and right parent it will not be possible
+                // to have a url as child at 2 different spots as a node cannot
+                // have two parents
+                assert.True(t, urlNode.(*tree.Node).DirectChildOf(folderNode),
+                "missing folder for %s", bk.Url)
+
+
+            }
+        })
+
+        // tree.PrintTree(ff.NodeTree)
     })
 }
 
@@ -410,7 +470,7 @@ func Test_scanFolders(t *testing.T) {
     runPlacesTest("scan all folders", t, func(t *testing.T) {
 
         // query all folders
-        scannedFolders, err := ff.scanFolders(ff.places.Handle)
+        scannedFolders, err := ff.scanFolders()
         if err != nil {
             t.Error(err)
         }
