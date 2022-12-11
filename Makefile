@@ -2,7 +2,7 @@
 
 TARGET=gomark
 # CGO_CFLAGS="-g -O2 -Wno-return-local-addr"
-SRC := *.go
+SRC := .
 NVM_VERSIONS := $(HOME)/.config/nvm/versions/node
 NVM_VERSION := $(shell cat ./web/.nvmrc)
 export PATH := $(NVM_VERSIONS)/$(NVM_VERSION)/bin:$(PATH)
@@ -56,3 +56,6 @@ test:
 
 testv:
 	@go test -v . ./...
+
+clean:
+	rm -rf ./$(TARGET)
