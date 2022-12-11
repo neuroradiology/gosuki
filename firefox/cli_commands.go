@@ -73,7 +73,7 @@ func ffListProfiles(c *cli.Context) error {
 	}
 
 	for _, p := range profs {
-		fmt.Printf("%-10s \t--> %s\n", p.Name, utils.ExpandPath(FirefoxProfileManager.ConfigDir, p.Path))
+		fmt.Printf("%-10s \t %s\n", p.Name, utils.ExpandPath(FirefoxProfileManager.ConfigDir, p.Path))
 	}
 
 	return nil

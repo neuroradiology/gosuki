@@ -6,6 +6,7 @@ import (
 	"git.sp4ke.xyz/sp4ke/gomark/bookmarks"
 	"git.sp4ke.xyz/sp4ke/gomark/index"
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"github.com/kr/pretty"
 
 	"github.com/xlab/treeprint"
 )
@@ -54,6 +55,9 @@ func Ancestor(node *Node) *Node {
 	}
 }
 
+func (node *Node) DirectChildOf(parent *Node) bool {
+    return node.Parent == parent
+}
 
 
 // Finds a node and the tree starting at root
@@ -64,6 +68,20 @@ func FindNode(node *Node, root *Node) bool {
 	} else {
         for _, child := range root.Children {
             found := FindNode(node, child)
+            if found { return true }
+        }
+    }
+
+    return false
+}
+
+func FindNodeByName(name string, root *Node) bool {
+
+	if name == root.Name {
+		return true
+	} else {
+        for _, child := range root.Children {
+            found := FindNodeByName(name, child)
             if found { return true }
         }
     }
@@ -83,7 +101,8 @@ func AddChild(parent *Node, child *Node) {
 
 	for _, n := range parent.Children {
 		if child == n {
-			log.Errorf("<%s> Node already exists", child)
+			// log.Errorf("<%s> Node already exists", child)
+            log.Info(pretty.Sprintf("Node <%#v> already exists", child))
 			return
 		}
 	}

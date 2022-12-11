@@ -69,4 +69,21 @@ func TestFindNode(t *testing.T){
     result = FindNode(rootNode, rootNode)
     assert.True(t, result)
 
+    t.Run("find nodes by name", func(t *testing.T){
+        result := FindNodeByName("third child", rootNode)
+        assert.True(t, result)
+
+        result = FindNodeByName("second child", rootNode)
+        assert.True(t, result)
+
+        result = FindNodeByName("child", rootNode)
+        assert.True(t, result)
+
+        result = FindNodeByName("root", rootNode)
+        assert.True(t, result)
+
+        assert.False(t, FindNodeByName("not existing", rootNode))
+    })
 }
+
+

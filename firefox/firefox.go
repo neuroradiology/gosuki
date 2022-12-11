@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
@@ -91,6 +92,7 @@ var (
 
 const (
 	MozMinJobInterval = 1500 * time.Millisecond
+    TagsBranchName = `TAGS` // name of the `tags` branch in the node tree
 )
 
 // moz_bookmarks.type
@@ -178,7 +180,7 @@ type MergedPlaceBookmark struct {
 	//This field stores the timestamp as raw milliseconds
 	BkLastModified sqlid `db:"bkLastModified"`
 
-	//NOTE: parsing into time.Time not working, I need to have a sqlite column of
+	//NOTE: parsing into time.Time not working, I need to have an sqlite column of
 	//time Datetime [see](https://github.com/mattn/go-sqlite3/issues/748)!!
 	//Our query converts to the format scannable by go-sqlite3 SQLiteTimestampFormats
 	//This field stores the timestamp parsable as time.Time
@@ -196,11 +198,11 @@ func (pb *MergedPlaceBookmark) datetime() time.Time {
 }
 
 // scan all folders from moz_bookmarks and load them into the node tree
-func (ff *Firefox) scanFolders(db *sqlx.DB) ([]*MozFolder, error) {
+func (ff *Firefox) scanFolders() ([]*MozFolder, error) {
 
 	var folders []*MozFolder
     ff.folderScanMap =  make(map[sqlid]*MozFolder)
-	err := db.Select(&folders, QFolders)
+	err := ff.places.Handle.Select(&folders, QFolders)
 
     // store all folders in a hashmap for easier tree construction
     for _, folder := range folders {
@@ -218,19 +220,56 @@ func (ff *Firefox) scanFolders(db *sqlx.DB) ([]*MozFolder, error) {
 	return folders, err
 }
 
-// WIP
-// load bookmarks from places.sqlite
-// returns a []*MergedPlaceBookmark
-func scanBookmarks(db *sqlx.DB) ([]*MozBookmark, error) {
+
+// scans bookmarks from places.sqlite and loads them into the node tree
+func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
+    // scan folders and load them into node tree
+    folders, err := ff.scanFolders()
+    if err != nil {
+      return nil, err
+    }
+    utils.UseVar(folders)
+
 	var bookmarks []*MozBookmark
 
 	dotx, err := database.DotxQuery(MozBookmarkQueryFile)
 	if err != nil {
 		return nil, err
 	}
+	err = dotx.Select(ff.places.Handle, &bookmarks, MozBookmarkQuery)
 
-	err = dotx.Select(db, &bookmarks, MozBookmarkQuery)
 
+    // load bookmarks and tags into the node tree 
+    // then attach them to their assigned folder hierarchy
+    for _, bkEntry := range bookmarks {
+        
+		/*
+         * Iterate through bookmark tags and synchronize new tags with 
+         * the node tree.
+		 */
+         for _, tagName := range strings.Split(bkEntry.Tags, ",") {
+            seen, tagNode := ff.addTagNode(tagName)
+            if !seen {
+                log.Infof("tag <%s> already in tag map", tagNode.Name)
+            }
+
+            // Create/Update URL node and apply tag node
+            ok, urlNode := ff.addUrlNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
+            if !ok {
+                log.Infof("url <%s> already in url index", bkEntry.Url)
+            }
+
+
+            // Add tag name to urlnode tags
+            urlNode.Tags = append(urlNode.Tags, tagNode.Name)
+
+            // Set tag as parent to urlnode
+            tree.AddChild(ff.tagMap[tagNode.Name], urlNode)
+
+            ff.Stats.CurrentUrlCount++
+         }
+
+    }
 	return bookmarks, err
 }
 
@@ -246,7 +285,7 @@ type Firefox struct {
 
 	// Map from moz_bookmarks tag ids to a tree node
     // tagMap is used as a quick lookup table into the node tree
-	tagMap map[sqlid]*tree.Node
+	tagMap map[string]*tree.Node
 
     // map from moz_bookmarks folder id to a folder node in the tree
     folderMap map[sqlid]*tree.Node
@@ -272,7 +311,7 @@ func NewFirefox() *Firefox {
 		FirefoxConfig: FFConfig,
 		places:        &database.DB{},
 		URLIndexList:  []string{},
-		tagMap:        map[sqlid]*tree.Node{},
+		tagMap:        map[string]*tree.Node{},
 		folderMap:        map[sqlid]*tree.Node{},
 	}
 }
@@ -470,7 +509,7 @@ func (f *Firefox) Run() {
 					bkId != ffBkTags {
 
 					log.Debugf("adding tag node %s", bk.title)
-					ok, tagNode := f.addTagNode(bkId, bk.title)
+					ok, tagNode := f.addTagNode(bk.title)
 					if !ok {
 						log.Infof("tag <%s> already in tag map", tagNode.Name)
 					}
@@ -487,14 +526,15 @@ func (f *Firefox) Run() {
 					bk.parent > ffBkMobile {
 
 					// The tag node should have already been created
-					tagNode, tagNodeExists := f.tagMap[bk.parent]
+					// tagNode, tagNodeExists := f.tagMap[bk.parent]
+					 tagNode, tagNodeExists := f.tagMap["bk.parent"]
 
 					if tagNodeExists && urlNode != nil {
 						log.Debugf("URL has tag %s", tagNode.Name)
 
 						urlNode.Tags = utils.Extends(urlNode.Tags, tagNode.Name)
 
-						tree.AddChild(f.tagMap[bk.parent], urlNode)
+						tree.AddChild(f.tagMap["bk.parent"], urlNode)
 						//TEST: remove after testing this code section
 						// urlNode.Parent = f.tagMap[bk.parent]
 						// tree.Insert(f.tagMap[bk.parent].Children, urlNode)
@@ -587,9 +627,26 @@ func (f *Firefox) addUrlNode(url, title, desc string) (bool, *tree.Node) {
 // adds a new tagNode if it is not yet in the tagMap
 // returns true if tag added or false if already existing
 // returns the created tagNode
-func (ff *Firefox) addTagNode(tagId sqlid, tagName string) (bool, *tree.Node) {
+func (ff *Firefox) addTagNode(tagName string) (bool, *tree.Node) {
+    // Check if "tags" branch exists or create it
+    var branchOk bool
+    var tagsBranch *tree.Node
+    for _, c := range ff.NodeTree.Children {
+        if c.Name == TagsBranchName { 
+            branchOk = true 
+            tagsBranch = c
+        }
+    }
+
+    if !branchOk {
+        tagsBranch = &tree.Node{
+            Name: TagsBranchName,
+        }
+        tree.AddChild(ff.NodeTree, tagsBranch)
+    }
+
 	// node, exists :=
-	node, exists := ff.tagMap[tagId]
+	node, exists := ff.tagMap[tagName]
 	if exists {
 		return false, node
 	}
@@ -600,8 +657,8 @@ func (ff *Firefox) addTagNode(tagId sqlid, tagName string) (bool, *tree.Node) {
 		Parent: ff.NodeTree, // root node
 	}
 
-	tree.AddChild(ff.NodeTree, tagNode)
-	ff.tagMap[tagId] = tagNode
+	tree.AddChild(tagsBranch, tagNode)
+	ff.tagMap[tagName] = tagNode
 	ff.Stats.CurrentNodeCount++
 
 	return true, tagNode
@@ -621,7 +678,7 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node){
         return false, folderNode
     }
 
-    //TODO: do not forget to attach children back to their parents after 
+    // TODO: do not forget to attach children back to their parents after 
     // finishing to scan all folders.
 
 
@@ -662,6 +719,7 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node){
 }
 
 
+//TODO: retire this function after scanBookmarks() is implemented
 // load all bookmarks from `places.sqlite` and store them in BaseBrowser.NodeTree
 // this method is used the first time gomark is started or to extract bookmarks
 // using a command
@@ -712,7 +770,7 @@ func loadBookmarks(f *Firefox) {
 		 * If this is the first time we see this tag
 		 * add it to the tagMap and create its node
 		 */
-		ok, tagNode := f.addTagNode(tagId, tagTitle)
+		ok, tagNode := f.addTagNode(tagTitle)
 		if !ok {
 			log.Infof("tag <%s> already in tag map", tagNode.Name)
 		}
@@ -728,7 +786,7 @@ func loadBookmarks(f *Firefox) {
 		urlNode.Tags = append(urlNode.Tags, tagNode.Name)
 
 		// Set tag as parent to urlnode
-		tree.AddChild(f.tagMap[tagId], urlNode)
+		tree.AddChild(f.tagMap[tagTitle], urlNode)
 
 		f.Stats.CurrentUrlCount++
 	}
