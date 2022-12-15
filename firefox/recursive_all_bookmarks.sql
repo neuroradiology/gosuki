@@ -6,7 +6,7 @@ WITH RECURSIVE
 	AS (
 		SELECT id, type, title, title as folder, parent FROM moz_bookmarks WHERE fk IS NULL and parent not in (4,0) -- get all folders
 		UNION ALL
-		SELECT id, moz_bookmarks.type, moz_bookmarks.title, folder, folder_marks.parent -- get all bookmarks with folder parents
+		SELECT id, moz_bookmarks.type, moz_bookmarks.title, folder, moz_bookmarks.parent -- get all bookmarks with folder parents
 				FROM  moz_bookmarks JOIN folder_marks ON moz_bookmarks.parent=bid	
 				WHERE id > 12 --ignore native mozilla folders
 	),
