@@ -242,6 +242,11 @@ func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
     // load bookmarks and tags into the node tree 
     // then attach them to their assigned folder hierarchy
     for _, bkEntry := range bookmarks {
+        // Create/Update URL node and apply tag node
+        ok, urlNode := ff.addUrlNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
+        if !ok {
+            log.Infof("url <%s> already in url index", bkEntry.Url)
+        }
         
 		/*
          * Iterate through bookmark tags and synchronize new tags with 
@@ -253,21 +258,24 @@ func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
                 log.Infof("tag <%s> already in tag map", tagNode.Name)
             }
 
-            // Create/Update URL node and apply tag node
-            ok, urlNode := ff.addUrlNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
-            if !ok {
-                log.Infof("url <%s> already in url index", bkEntry.Url)
-            }
-
-
             // Add tag name to urlnode tags
             urlNode.Tags = append(urlNode.Tags, tagNode.Name)
 
-            // Set tag as parent to urlnode
+            // Add URL node as child of Tag node
+            // Parent will be a folder or nothing?
             tree.AddChild(ff.tagMap[tagNode.Name], urlNode)
 
             ff.Stats.CurrentUrlCount++
          }
+
+         // Link this URL node to its corresponding folder node if it exists.
+         //FIX: sql query wront parentFolderId ?? (indian cooking)
+         //TODO: add all parent folders in the tags list of this url node
+        folderNode, fOk := ff.folderMap[bkEntry.ParentId]
+        if fOk {
+            tree.AddChild(folderNode, urlNode)
+        }
+
 
     }
 	return bookmarks, err

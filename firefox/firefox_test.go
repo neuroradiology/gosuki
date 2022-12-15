@@ -419,6 +419,11 @@ func Test_scanBookmarks(t *testing.T) {
 
             }
         })
+        
+        t.Run("url node is child of the right tag nodes", func(t *testing.T){
+                // Every URL node should be a child of the right tag node
+                t.Error()
+        })
 
         t.Run("url underneath the right folders", func(t *testing.T){
             for _, bk := range bookmarks {
@@ -433,13 +438,20 @@ func Test_scanBookmarks(t *testing.T) {
                 assert.True(t, exists, "url missing in URLIndex")
 
 
-                assert.Equal(t, urlNode.(*tree.Node).Parent.Name, bk.ParentFolder,
-                            "wrong folder for <%s>", bk.Url)
+                // URL node has the right parent folder node
+
+                // If Parent is nil, it means no folder was assigned to this url node
+                if urlNode.(*tree.Node).Parent != nil {
+                    assert.Equal(t, urlNode.(*tree.Node).Parent.Name, bk.ParentFolder,
+                                "wrong folder for <%s>", bk.Url)
+                }
+
 
                 // FIX: a url can be child of tag as well, we need to test if
                 // parent is a folder and right parent it will not be possible
                 // to have a url as child at 2 different spots as a node cannot
-                // have two parents
+                // have two parents.
+                // Make multiple parents to each node
                 assert.True(t, urlNode.(*tree.Node).DirectChildOf(folderNode),
                 "missing folder for %s", bk.Url)
 
@@ -447,7 +459,7 @@ func Test_scanBookmarks(t *testing.T) {
             }
         })
 
-        // tree.PrintTree(ff.NodeTree)
+        tree.PrintTree(ff.NodeTree)
     })
 }
 

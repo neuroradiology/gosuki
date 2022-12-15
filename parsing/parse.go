@@ -46,9 +46,11 @@ func (s *Stats) Reset() {
 
 type Hook func(node *Node)
 
+// Browser.Run hook function that extracts
+// tags from url titles and descriptions
 func ParseTags(node *Node) {
 
-	var regex = regexp.MustCompile(ReTags)
+    var regex = regexp.MustCompile(ReTags)
 
 	matches := regex.FindAllStringSubmatch(node.Name, -1)
 	for _, m := range matches {

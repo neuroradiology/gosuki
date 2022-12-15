@@ -8,6 +8,7 @@ NVM_VERSION := $(shell cat ./web/.nvmrc)
 export PATH := $(NVM_VERSIONS)/$(NVM_VERSION)/bin:$(PATH)
 YARN := $(NVM_VERSIONS)/$(NVM_VERSION)/bin/yarn
 DEBUG_FLAGS := -gcflags="all=-N -l"
+RELEASE_FLAGS := -ldflags="-s -w"
 
 
 #all: test build
@@ -22,12 +23,16 @@ run: build
 
 debug: $(SRC)
 	@#dlv debug . -- server
-	@go build -v $(DEBUG_FLAGS) .
+	@go build -v $(DEBUG_FLAGS) $
 
 build: $(SRC)
 	@echo building ...
 	@# @CGO_CFLAGS=${CGO_CFLAGS} go build -o $(TARGET) *.go
 	go build -v -o $(TARGET)
+
+release: $(SRC)
+	@echo building release ...
+	go build -v $(RELEASE_FLAGS) -o $(TARGET)
 
 
 dev: build

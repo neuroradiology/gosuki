@@ -6,6 +6,7 @@ import (
 	"git.sp4ke.xyz/sp4ke/gomark/bookmarks"
 	"git.sp4ke.xyz/sp4ke/gomark/index"
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.sp4ke.xyz/sp4ke/gomark/utils"
 	"github.com/kr/pretty"
 
 	"github.com/xlab/treeprint"
@@ -89,30 +90,68 @@ func FindNodeByName(name string, root *Node) bool {
     return false
 }
 
-// Insert *Node in nodeList if it does not already exists
+
+// Inserts child node into parent node. Parent will point to child
+// and child will point to parent EXCEPT when parent is a TAG node.
+// If parent is a Tag node, child should not point back to parent
+// as URL nodes should always point to folder parent nodes only.
 func AddChild(parent *Node, child *Node) {
 	log.Debugf("adding child %v: <%s>", child.Type, child.Name)
 
+
 	if len(parent.Children) == 0 {
 		parent.Children = []*Node{child}
-		child.Parent = parent
+
+        // Do not point back to TAG parent node from child
+        if parent.Type != TagNode {
+            child.Parent = parent
+        }
 		return
 	}
 
 	for _, n := range parent.Children {
 		if child == n {
 			// log.Errorf("<%s> Node already exists", child)
-            log.Info(pretty.Sprintf("Node <%#v> already exists", child))
+            log.Info(pretty.Sprintf("skipping node <%s>, already exists", child.Name))
 			return
 		}
 	}
 
 	parent.Children = append(parent.Children, child)
-	child.Parent = parent
+    if parent.Type != TagNode {
+        child.Parent = parent
+    }
 }
 
-// Returns all parent tags for URL nodes
-func (node *Node) GetParentTags() []*Node {
+// Return all parent folder nodes for a given URL node
+func (node *Node) getParentFolders() []*Node{
+    var parents []*Node
+    var walk func(node *Node)
+    var nodePtr *Node
+
+    // breadth first algorithm from lead url node back to root
+    //FIX: change to depth first algorithm and find all parent folders
+    // for bookmark ?? There must be a more efficient way to do it ? 
+    walk = func(n *Node)  {
+        nodePtr = n
+        if nodePtr.Type == RootNode {
+            return
+        }
+
+        if nodePtr.Type == FolderNode {
+            parents = append(parents, nodePtr)
+        }
+
+
+        walk(n.Parent)
+    }
+
+    walk(node)
+    return parents
+}
+
+// Returns all parent tag nodes for a given URL node
+func (node *Node) getParentTags() []*Node {
 	var parents []*Node
 	var walk func(node *Node)
 	var nodePtr *Node
@@ -183,11 +222,30 @@ func WalkBuildIndex(node *Node, index index.HashTree) {
 	}
 }
 
+// Get all possible tags for this node
+func (node *Node) getTags() []string {
+    var tags []string
+
+    // get all parent tag nodes
+    parentTags := node.getParentTags()
+    for _, tagNode := range parentTags {
+        tags = utils.Extends(tags, tagNode.Name)
+    }
+
+    //FIX: get parent folders and add them as tags T
+    parentFolders := node.getParentFolders()
+    for _, fNode := range parentFolders {
+        tags = utils.Extends(tags, fNode.Name)
+    }
+
+    return tags
+}
+
 func (node *Node) GetBookmark() *Bookmark {
 	return &Bookmark{
 		URL:      node.URL,
 		Metadata: node.Name,
 		Desc:     node.Desc,
-		Tags:     node.Tags,
+		Tags:     node.getTags(),
 	}
 }
