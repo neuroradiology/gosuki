@@ -37,7 +37,7 @@ var (
 			BkFile:       mozilla.PlacesFile,
 			WatchedPaths: []string{},
 			NodeTree: &tree.Node{
-				Name:   "root",
+				Name: mozilla.RootName,
 				Parent: nil,
 				Type:   tree.RootNode,
 			},

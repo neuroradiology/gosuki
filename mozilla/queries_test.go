@@ -1,4 +1,4 @@
-package firefox
+package mozilla
 
 import (
 	"testing"

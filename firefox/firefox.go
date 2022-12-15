@@ -1,10 +1,9 @@
 // TODO: unit test critical error should shutdown the browser
 // TODO: shutdown procedure (also close reducer)
-// TODO: migrate own commands to here
+// TODO: migrate ff commands to ff module
 // TODO: handle flag management from this package
-
-// TODO: Refactoring:
 // TODO: * Implement Init() and Load() for firefox
+// TODO: move sql files to mozilla
 package firefox
 
 import (
@@ -16,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/database"
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
@@ -28,73 +28,17 @@ import (
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
-// sql queries
-const (
-	QGetBookmarkPlace = `
-	SELECT *
-	FROM moz_places
-	WHERE id = ?
-	`
-	//TEST:
-	QBookmarksChanged = `
-    SELECT id,type,IFNULL(fk, -1) AS fk,parent,IFNULL(title, '') AS title from moz_bookmarks
-    WHERE(lastModified > :last_runtime_utc
-        AND lastModified < strftime('%s', 'now')*1000*1000
-        AND NOT id IN (:not_root_tags)
-    )
-	`
-
-	QFolders = `
-    SELECT id, title, parent FROM moz_bookmarks 
-        WHERE type = 2 AND parent NOT IN (4, 0)
-    `
-
-	//TEST:
-	QgetBookmarks = `
-    WITH bookmarks AS
-	(SELECT moz_places.url AS url,
-			moz_places.description as desc,
-			moz_places.title as urlTitle,
-			moz_bookmarks.parent AS tagId
-		FROM moz_places LEFT OUTER JOIN moz_bookmarks
-		ON moz_places.id = moz_bookmarks.fk
-		WHERE moz_bookmarks.parent
-		IN (SELECT id FROM moz_bookmarks WHERE parent = ? ))
-
-	SELECT url, IFNULL(urlTitle, ''), IFNULL(desc,''),
-			tagId, moz_bookmarks.title AS tagTitle
-
-	FROM bookmarks LEFT OUTER JOIN moz_bookmarks
-	ON tagId = moz_bookmarks.id
-	ORDER BY url
-    `
-
-	//TEST:
-	//TODO:
-	QGetBookmarkFolders = `
-		SELECT
-		moz_places.id as placesId,
-		moz_places.url as url,	
-			moz_places.description as description,
-			moz_bookmarks.title as title,
-			moz_bookmarks.fk ISNULL as isFolder
-			
-		FROM moz_bookmarks LEFT OUTER JOIN moz_places
-		ON moz_places.id = moz_bookmarks.fk
-		WHERE moz_bookmarks.parent = 3
-	`
-)
-
 var (
 	ErrInitFirefox = errors.New("could not start Firefox watcher")
 	log            = logging.GetLogger("FF")
 )
 
 const (
-	MozMinJobInterval = 1500 * time.Millisecond
-    TagsBranchName = `TAGS` // name of the `tags` branch in the node tree
+	WatchMinJobInterval = 1500 * time.Millisecond
+    TagsBranchName = mozilla.TagsBranchName // name of the `tags` branch in the node tree
 )
 
+//TODO!: delete 
 // moz_bookmarks.type
 const (
 	_ = iota
@@ -102,23 +46,14 @@ const (
 	BkTypeTagFolder
 )
 
-type sqlid int64
 
-// moz_bookmarks.id
-const (
-	_           = iota // 0
-	ffBkRoot           // 1
-	ffBkMenu           // 2 Main bookmarks menu
-	ffBkToolbar        // 3 Bk tookbar that can be toggled under URL zone
-	ffBkTags           // 4 Hidden menu used for tags, stored as a flat one level menu
-	ffBkOther          // 5 Most bookmarks are automatically stored here
-	ffBkMobile         // 6 Mobile bookmarks stored here by default
-)
+type sqlid = mozilla.Sqlid
 
 type AutoIncr struct {
 	ID sqlid
 }
 
+// TODO!: remove
 type FFPlace struct {
 	URL         string         `db:"url"`
 	Description sql.NullString `db:"description"`
@@ -136,73 +71,16 @@ type FFBookmark struct {
 	id     sqlid
 }
 
-// placeId  title  parentFolderId  folders url plDesc lastModified
-// Type used for scanning from `recursive-all-bookmarks.sql`
-type MozBookmark struct {
-	PlId           sqlid `db:"plId"`
-	Title          string
-	Tags           string
-	Folders        string
-	ParentId       sqlid  `db:"parentFolderId"`
-	ParentFolder   string `db:"parentFolder"`
-	Url            string
-	PlDesc         string `db:"plDesc"`
-	BkLastModified sqlid  `db:"lastModified"`
-}
+type MozBookmark = mozilla.MozBookmark
+type MozFolder = mozilla.MozFolder
 
-type MozFolder struct {
-	Id    sqlid
-    Parent sqlid
-	Title string
-}
-
-var RootFolders = map[sqlid]string{
-    2: "Bookmarks Menu",
-    3: "Bookmarks Toolbar",
-    5: "Other Bookmarks",
-    6: "Mobile Bookmarks",
-}
-
-const MozBookmarkQueryFile = "recursive_all_bookmarks.sql"
-const MozBookmarkQuery = "recursive-all-bookmarks"
-
-// Type is used for scanning from `merged-places-bookmarks.sql`
-// plId  plUrl plDescription bkId  bkTitle bkLastModified  isFolder  isTag  isBk  bkParent
-type MergedPlaceBookmark struct {
-	PlId    sqlid  `db:"plId"`
-	PlUrl   string `db:"plUrl"`
-	PlDesc  string `db:"plDescription"`
-	BkId    sqlid  `db:"bkId"`
-	BkTitle string `db:"bkTitle"`
-
-	//firefox stores timestamps in milliseconds as integer
-	//sqlite3 strftime('%s', ...) returns seconds
-	//This field stores the timestamp as raw milliseconds
-	BkLastModified sqlid `db:"bkLastModified"`
-
-	//NOTE: parsing into time.Time not working, I need to have an sqlite column of
-	//time Datetime [see](https://github.com/mattn/go-sqlite3/issues/748)!!
-	//Our query converts to the format scannable by go-sqlite3 SQLiteTimestampFormats
-	//This field stores the timestamp parsable as time.Time
-	// BkLastModifiedDateTime time.Time `db:"bkLastModifiedDateTime"`
-
-	IsFolder bool  `db:"isFolder"`
-	IsTag    bool  `db:"isTag"`
-	IsBk     bool  `db:"isBk"`
-	BkParent sqlid `db:"bkParent"`
-}
-
-func (pb *MergedPlaceBookmark) datetime() time.Time {
-	return time.Unix(int64(pb.BkLastModified/(1000*1000)),
-		int64(pb.BkLastModified%(1000*1000))*1000).UTC()
-}
 
 // scan all folders from moz_bookmarks and load them into the node tree
 func (ff *Firefox) scanFolders() ([]*MozFolder, error) {
 
 	var folders []*MozFolder
     ff.folderScanMap =  make(map[sqlid]*MozFolder)
-	err := ff.places.Handle.Select(&folders, QFolders)
+	err := ff.places.Handle.Select(&folders, mozilla.QFolders)
 
     // store all folders in a hashmap for easier tree construction
     for _, folder := range folders {
@@ -232,11 +110,11 @@ func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
 
 	var bookmarks []*MozBookmark
 
-	dotx, err := database.DotxQuery(MozBookmarkQueryFile)
+	dotx, err := database.DotxQueryEmbedFS(mozilla.EmbeddedSqlQueries, mozilla.MozBookmarkQueryFile)
 	if err != nil {
 		return nil, err
 	}
-	err = dotx.Select(ff.places.Handle, &bookmarks, MozBookmarkQuery)
+	err = dotx.Select(ff.places.Handle, &bookmarks, mozilla.MozBookmarkQuery)
 
 
     // load bookmarks and tags into the node tree 
@@ -371,7 +249,7 @@ func (f *Firefox) Init() error {
 	// TODO!: make a new copy of places for every new event change
 
 	// Add a reducer to the watcher
-	go watch.ReduceEvents(MozMinJobInterval, f)
+	go watch.ReduceEvents(WatchMinJobInterval, f)
 
 	return nil
 }
@@ -445,12 +323,12 @@ func (f *Firefox) Run() {
 		f.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
 	queryArgs := map[string]interface{}{
-		"not_root_tags":    []int{ffBkRoot, ffBkTags},
+		"not_root_tags":    []int{mozilla.RootID, mozilla.TagsID},
 		"last_runtime_utc": f.lastRunTime.UTC().UnixNano() / 1000,
 	}
 
 	query, args, err := sqlx.Named(
-		QBookmarksChanged,
+		mozilla.QBookmarksChanged,
 		queryArgs,
 	)
 	if err != nil {
@@ -512,9 +390,9 @@ func (f *Firefox) Run() {
 				if bk.btype == BkTypeTagFolder &&
 
 					// Ignore root directories
-					// NOTE: ffBkTags change time shows last time bookmark tags
+					// NOTE: TagsID change time shows last time bookmark tags
 					// whre changed ?
-					bkId != ffBkTags {
+					bkId != mozilla.TagsID {
 
 					log.Debugf("adding tag node %s", bk.title)
 					ok, tagNode := f.addTagNode(bk.title)
@@ -531,7 +409,7 @@ func (f *Firefox) Run() {
 				// The tag link should have a parent over 6 and fk->urlId
 				log.Debugf("Bookmark parent %d", bk.parent)
 				if bk.fk == urlId &&
-					bk.parent > ffBkMobile {
+					bk.parent > mozilla.MobileID {
 
 					// The tag node should have already been created
 					// tagNode, tagNodeExists := f.tagMap[bk.parent]
@@ -700,7 +578,7 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node){
     // If this folders' is a Firefox root folder use the appropriate title
     // then add it to the root node
     if utils.Inlist([]int{2,3,5,6}, int(folder.Id)) {
-        folderNode.Name = RootFolders[folder.Id]
+        folderNode.Name = mozilla.RootFolders[folder.Id]
         tree.AddChild(ff.NodeTree, folderNode)
     } else {
         folderNode.Name = folder.Title
@@ -736,7 +614,7 @@ func loadBookmarks(f *Firefox) {
 	//QGetTags := "SELECT id,title from moz_bookmarks WHERE parent = %d"
 	//
 
-	rows, err := f.places.Handle.Query(QgetBookmarks, ffBkTags)
+	rows, err := f.places.Handle.Query(mozilla.QgetBookmarks, mozilla.TagsID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -836,7 +714,7 @@ func (f *Firefox) fetchUrlChanges(rows *sql.Rows,
 		// Use unsafe db to ignore non existant columns in
 		// dest field
 		udb := f.places.Handle.Unsafe()
-		err := udb.QueryRowx(QGetBookmarkPlace, bk.fk).StructScan(&place)
+		err := udb.QueryRowx(mozilla.QGetBookmarkPlace, bk.fk).StructScan(&place)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -851,7 +729,7 @@ func (f *Firefox) fetchUrlChanges(rows *sql.Rows,
 	// This is the tag link
 	if bk.btype == BkTypeURL &&
 		// ignore original tags/folder from mozilla
-		bk.parent > ffBkMobile {
+		bk.parent > mozilla.MobileID {
 
 		bookmarks[bk.id] = bk
 	}

@@ -10,3 +10,5 @@ _master
 .vscode
 .gonvim
 _wt_tmp
+places.sqlite-shm
+places.sqlite-wal

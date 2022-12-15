@@ -27,10 +27,10 @@ func TestMain(m *testing.M) {
 				Name:     "firefox",
 				Type:     browsers.TFirefox,
 				BkFile:   mozilla.PlacesFile,
-				BkDir:    "testdata",
+				BkDir:    "../mozilla/testdata",
 				BufferDB: &database.DB{},
 				URLIndex: index.NewIndex(),
-				NodeTree: &tree.Node{Name: "root", Parent: nil, Type: tree.RootNode},
+				NodeTree: &tree.Node{Name: mozilla.RootName, Parent: nil, Type: tree.RootNode},
 				Stats:    &parsing.Stats{},
 			},
 		},
@@ -52,16 +52,17 @@ func runPlacesTest(name string, t *testing.T, test func(t *testing.T)) {
     ff.places, err = database.NewDB("places", bkPath, database.DBTypeFileDSN,
     FFConfig.PlacesDSN).Init()
 
+    if err != nil {
+        t.Error(err)
+    }
+
     t.Cleanup(func() {
-        err = ff.places.Close()
+        err = ff.places.Handle.Close()
         if err != nil {
             t.Error(err)
         }
     })
 
-    if err != nil {
-        t.Error(err)
-    }
 
     t.Run(name, test)
 }
@@ -274,11 +275,11 @@ func Test_fetchUrlChanges(t *testing.T) {
 
 func Test_PlaceBookmarkTimeParsing(t *testing.T) {
     assert := assert.New(t)
-    pb := MergedPlaceBookmark{
+    pb := mozilla.MergedPlaceBookmark{
         BkLastModified: 1663878015759000,
     }
 
-    res := pb.datetime().Format("2006-01-02 15:04:05.000000")
+    res := pb.Datetime().Format("2006-01-02 15:04:05.000000")
     assert.Equal(res, "2022-09-22 20:20:15.759000", "wrong time in scanned bookmark")
 }
 
@@ -447,11 +448,6 @@ func Test_scanBookmarks(t *testing.T) {
                 }
 
 
-                // FIX: a url can be child of tag as well, we need to test if
-                // parent is a folder and right parent it will not be possible
-                // to have a url as child at 2 different spots as a node cannot
-                // have two parents.
-                // Make multiple parents to each node
                 assert.True(t, urlNode.(*tree.Node).DirectChildOf(folderNode),
                 "missing folder for %s", bk.Url)
 
