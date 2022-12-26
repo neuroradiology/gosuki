@@ -1,5 +1,6 @@
 package utils
 
+import "strings"
 
 // Return string from slice of bytes
 func S(value interface{}) string {
@@ -31,4 +32,14 @@ func Inlist[T comparable](list []T, elm T) bool {
 // Use to shutoff golang "unused variable comment"
 func UseVar(any interface{}) {
     return
+}
+
+// function that iterates through the list of string, for each element it 
+// replaces the occurence of old with new, and returns the updated list 
+func ReplaceInList(l []string, old string, new string) []string {
+    var result []string
+    for _, s := range l {
+        result = append(result, strings.Replace(s, old, new, -1))
+    }
+    return result
 }

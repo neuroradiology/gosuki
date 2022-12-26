@@ -1,8 +1,10 @@
 package database
 
 import (
-	"git.sp4ke.xyz/sp4ke/gomark/bookmarks"
 	"strings"
+
+	"git.sp4ke.xyz/sp4ke/gomark/bookmarks"
+	"git.sp4ke.xyz/sp4ke/gomark/utils"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
@@ -54,8 +56,10 @@ func (db *DB) InsertOrUpdateBookmark(bk *Bookmark) {
 		log.Error(err)
 	}
 
+    // make sure to replace the tag separator string before using it to join the tags
+    tagList := strings.Join(utils.ReplaceInList(bk.Tags, TagJoinSep, "--"), TagJoinSep)
+
 	// First try to insert the bookmark (assume it's new)
-    tagList := strings.Join(bk.Tags, TagJoinSep)
 	_, err = tx.Stmt(tryInsertBk).Exec(
 		bk.URL,
 		bk.Metadata,
