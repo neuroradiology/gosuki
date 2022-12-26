@@ -131,6 +131,7 @@ func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
          * the node tree.
 		 */
          for _, tagName := range strings.Split(bkEntry.Tags, ",") {
+            if tagName == "" { continue }
             seen, tagNode := ff.addTagNode(tagName)
             if !seen {
                 log.Infof("tag <%s> already in tag map", tagNode.Name)
@@ -143,11 +144,10 @@ func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
             // Parent will be a folder or nothing?
             tree.AddChild(ff.tagMap[tagNode.Name], urlNode)
 
-            ff.Stats.CurrentUrlCount++
+            ff.CurrentUrlCount++
          }
 
          // Link this URL node to its corresponding folder node if it exists.
-         //FIX: sql query wront parentFolderId ?? (indian cooking)
          //TODO: add all parent folders in the tags list of this url node
         folderNode, fOk := ff.folderMap[bkEntry.ParentId]
         if fOk {
@@ -276,7 +276,7 @@ func (f *Firefox) Load() error {
 		f.CurrentUrlCount,
 		f.CurrentNodeCount,
 		f.LastFullTreeParseTime)
-	f.Stats.Reset()
+	f.Reset()
 
 	// Sync the URLIndex to the buffer
 	// We do not use the NodeTree here as firefox tags are represented
@@ -425,7 +425,7 @@ func (f *Firefox) Run() {
 						// urlNode.Parent = f.tagMap[bk.parent]
 						// tree.Insert(f.tagMap[bk.parent].Children, urlNode)
 
-						f.Stats.CurrentUrlCount++
+						f.CurrentUrlCount++
 					}
 				}
 			}
@@ -442,7 +442,7 @@ func (f *Firefox) Run() {
 		log.Error(err)
 	}
 
-	f.Stats.LastWatchRunTime = time.Since(startRun)
+	f.LastWatchRunTime = time.Since(startRun)
 	// log.Debugf("execution time %s", time.Since(startRun))
 
 	// tree.PrintTree(f.NodeTree) // debugging
@@ -500,7 +500,7 @@ func (f *Firefox) addUrlNode(url, title, desc string) (bool, *tree.Node) {
 		log.Debugf("inserting url %s in url index", url)
 		f.URLIndex.Insert(url, urlNode)
 		f.URLIndexList = append(f.URLIndexList, url)
-        f.Stats.CurrentNodeCount++
+        f.CurrentNodeCount++
 
 		return true, urlNode
 	} else {
@@ -545,7 +545,7 @@ func (ff *Firefox) addTagNode(tagName string) (bool, *tree.Node) {
 
 	tree.AddChild(tagsBranch, tagNode)
 	ff.tagMap[tagName] = tagNode
-	ff.Stats.CurrentNodeCount++
+	ff.CurrentNodeCount++
 
 	return true, tagNode
 }
@@ -674,7 +674,7 @@ func loadBookmarks(f *Firefox) {
 		// Set tag as parent to urlnode
 		tree.AddChild(f.tagMap[tagTitle], urlNode)
 
-		f.Stats.CurrentUrlCount++
+		f.CurrentUrlCount++
 	}
 
 	log.Debugf("root tree children len is %d", len(f.NodeTree.Children))
@@ -752,7 +752,7 @@ func (f *Firefox) fetchUrlChanges(rows *sql.Rows,
 func (f *Firefox) initPlacesCopy() error {
 	err := f.copyPlacesToTmp()
 	if err != nil {
-		return fmt.Errorf("Could not copy places.sqlite to tmp folder: %s",
+		return fmt.Errorf("could not copy places.sqlite to tmp folder: %s",
 			err)
 	}
 
