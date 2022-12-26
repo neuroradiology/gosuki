@@ -182,6 +182,7 @@ func (node *Node) getTags() []string {
     }
 
     if node.Parent.Type == FolderNode {
+        // clean out the Tag separator from folder names
         node.Tags = utils.Extends(node.Tags, node.Parent.Name)
         return append(node.Parent.getTags(), node.Tags...)
     }
