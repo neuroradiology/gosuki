@@ -138,7 +138,7 @@ func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
             }
 
             // Add tag name to urlnode tags
-            urlNode.Tags = append(urlNode.Tags, tagNode.Name)
+            urlNode.Tags = utils.Extends(urlNode.Tags, tagNode.Name)
 
             // Add URL node as child of Tag node
             // Parent will be a folder or nothing?
@@ -266,9 +266,9 @@ func (f Firefox) Config() *browsers.BrowserConfig {
 // starts. Implements browsers.Loader interface.
 func (f *Firefox) Load() error {
 
-	// Parse bookmarks to a flat tree (for compatibility with tree system)
+	// load all bookmarks 
 	start := time.Now()
-	loadBookmarks(f)
+	f.scanBookmarks()
 	f.LastFullTreeParseTime = time.Since(start)
 	f.lastRunTime = time.Now().UTC()
 

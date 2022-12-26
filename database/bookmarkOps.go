@@ -55,10 +55,11 @@ func (db *DB) InsertOrUpdateBookmark(bk *Bookmark) {
 	}
 
 	// First try to insert the bookmark (assume it's new)
+    tagList := strings.Join(bk.Tags, TagJoinSep)
 	_, err = tx.Stmt(tryInsertBk).Exec(
 		bk.URL,
 		bk.Metadata,
-		strings.Join(bk.Tags, TagJoinSep),
+		tagList,
 		"", 0,
 	)
 
