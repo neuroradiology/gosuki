@@ -129,65 +129,6 @@ func AddChild(parent *Node, child *Node) {
     }
 }
 
-// Return all parent folder nodes for a given URL node
-func (node *Node) getParentFolders() []*Node{
-    var parents []*Node
-    var walk func(node *Node)
-    var nodePtr *Node
-
-    // breadth first algorithm from lead url node back to root
-    //FIX: change to depth first algorithm and find all parent folders
-    // for bookmark ?? There must be a more efficient way to do it ? 
-    walk = func(n *Node)  {
-        nodePtr = n
-        if nodePtr.Type == RootNode {
-            return
-        }
-
-        if nodePtr.Type == FolderNode {
-            parents = append(parents, nodePtr)
-        }
-
-
-        walk(n.Parent)
-    }
-
-    walk(node)
-    return parents
-}
-
-// Returns all parent tag nodes for a given URL node
-func (node *Node) getParentTags() []*Node {
-	var parents []*Node
-	var walk func(node *Node)
-	var nodePtr *Node
-
-	root := node.GetRoot()
-
-	walk = func(n *Node) {
-		nodePtr = n
-
-		if nodePtr.Type == URLNode {
-			return
-		}
-
-		if len(nodePtr.Children) == 0 {
-			return
-		}
-
-		for _, v := range nodePtr.Children {
-			if v.URL == node.URL &&
-				nodePtr.Type == TagNode {
-				parents = append(parents, nodePtr)
-			}
-			walk(v)
-		}
-	}
-
-	walk(root)
-	return parents
-}
-
 func PrintTree(root *Node) {
 	fmt.Println("---")
 	fmt.Println("PrintTree")
@@ -228,26 +169,32 @@ func WalkBuildIndex(node *Node, index index.HashTree) {
 	}
 }
 
-// Get all possible tags for this node
+// Get all possible tags for this url node
+// The tags make sense only in the context of a URL node
+// This will traverse the three breadth first to find all Parent folders and 
+// add them as a tag. URL nodes should already be populated with the list of 
+// tags that exist under the TAG tree. So we only need to find the parent folders
+// and turn them into tags.
 func (node *Node) getTags() []string {
-    var tags []string
 
-    // get all parent tag nodes
-    parentTags := node.getParentTags()
-    for _, tagNode := range parentTags {
-        tags = utils.Extends(tags, tagNode.Name)
+    if node.Parent.Type ==  RootNode {
+        return []string{}
     }
 
-    //FIX: get parent folders and add them as tags T
-    parentFolders := node.getParentFolders()
-    for _, fNode := range parentFolders {
-        tags = utils.Extends(tags, fNode.Name)
+    if node.Parent.Type == FolderNode {
+        node.Tags = utils.Extends(node.Tags, node.Parent.Name)
+        return append(node.Parent.getTags(), node.Tags...)
     }
 
-    return tags
+    return node.Tags
 }
 
 func (node *Node) GetBookmark() *Bookmark {
+
+    if node.Type != URLNode {
+        return nil
+    }
+
 	return &Bookmark{
 		URL:      node.URL,
 		Metadata: node.Name,
