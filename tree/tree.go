@@ -57,7 +57,13 @@ func Ancestor(node *Node) *Node {
 }
 
 func (node *Node) DirectChildOf(parent *Node) bool {
-    return node.Parent == parent
+    if len(parent.Children) == 0 { return false }
+    var found bool
+    for _, child := range parent.Children {
+        if node == child { found = true }
+    }
+
+    return found
 }
 
 

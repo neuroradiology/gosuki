@@ -56,12 +56,15 @@ func runPlacesTest(name string, t *testing.T, test func(t *testing.T)) {
         t.Error(err)
     }
 
-    t.Cleanup(func() {
+    defer func() {
         err = ff.places.Handle.Close()
         if err != nil {
             t.Error(err)
         }
-    })
+		// Run the wal_checkpoint command to clean up the WAL file
+       ff.places.Handle.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
+        
+    }()
 
 
     t.Run(name, test)
@@ -423,7 +426,31 @@ func Test_scanBookmarks(t *testing.T) {
         
         t.Run("url node is child of the right tag nodes", func(t *testing.T){
                 // Every URL node should be a child of the right tag node
-                t.Error()
+
+                // Go through each tag node
+                for _, bk:= range bookmarks {
+
+                    urlNode, urlNodeExists := ff.URLIndex.Get(bk.Url)
+                    assert.True(t, urlNodeExists, "url missing in URLIndex")
+
+                    // only check bookmarks with tags
+                    if len(bk.Tags) == 0 { continue }
+
+                    var foundTagNodeForUrl bool
+                    for _, tagName := range strings.Split(bk.Tags, ",") {
+                        tagNode, tagNodeExists := ff.tagMap[tagName]
+                        if !tagNodeExists {
+                            t.Errorf("missing tag <%s>", tagName)
+                        }
+                        // Check that the URL node is a direct child of the tag node
+                        if urlNode.(*tree.Node).DirectChildOf(tagNode) {
+                            foundTagNodeForUrl = true
+                        }
+                     }
+
+                     assert.True(t, foundTagNodeForUrl)
+
+                }
         })
 
         t.Run("url underneath the right folders", func(t *testing.T){
@@ -442,8 +469,15 @@ func Test_scanBookmarks(t *testing.T) {
                 // URL node has the right parent folder node
 
                 // If Parent is nil, it means no folder was assigned to this url node
+                parentFolder := bk.ParentFolder
+                switch parentFolder {
+                case "unfiled":
+                    parentFolder = mozilla.RootFolders[mozilla.OtherID]
+                case "mobile":
+                    parentFolder = mozilla.RootFolders[mozilla.MobileID]
+                }
                 if urlNode.(*tree.Node).Parent != nil {
-                    assert.Equal(t, urlNode.(*tree.Node).Parent.Name, bk.ParentFolder,
+                    assert.Equal(t, urlNode.(*tree.Node).Parent.Name, parentFolder,
                                 "wrong folder for <%s>", bk.Url)
                 }
 
