@@ -1,9 +1,6 @@
 // TODO: unit test critical error should shutdown the browser
 // TODO: shutdown procedure (also close reducer)
-// TODO: migrate ff commands to ff module
 // TODO: handle flag management from this package
-// TODO: * Implement Init() and Load() for firefox
-// TODO: move sql files to mozilla
 package firefox
 
 import (
@@ -15,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
 	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/database"
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
 	"git.sp4ke.xyz/sp4ke/gomark/tree"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
 	"git.sp4ke.xyz/sp4ke/gomark/watch"
@@ -223,10 +220,6 @@ func (f *Firefox) Init() error {
 
 	log.Debugf("bookmark path is: %s", bookmarkPath)
 
-	err = f.initPlacesCopy()
-	if err != nil {
-		return err
-	}
 
 	// Setup watcher
 	expandedBaseDir, err := filepath.EvalSymlinks(f.BkDir)
@@ -262,9 +255,16 @@ func (f Firefox) Config() *browsers.BrowserConfig {
 	return f.BrowserConfig
 }
 
+
 // Firefox custom logic for preloading the bookmarks when the browser module
 // starts. Implements browsers.Loader interface.
 func (f *Firefox) Load() error {
+    pc, err := f.initPlacesCopy()
+    if err != nil {
+        return err
+    }
+
+    defer pc.Clean()
 
 	// load all bookmarks 
 	start := time.Now()
@@ -304,23 +304,27 @@ func (f *Firefox) Load() error {
 	// tree.PrintTree(f.NodeTree)
 
 	// Close the copy places.sqlite
-	err := f.places.Close()
+	err = f.places.Close()
 
 	return err
 }
 
 // Implement browsers.Runner interface
+// TODO: lock the copied places until the RUN operation is over
 func (f *Firefox) Run() {
 	startRun := time.Now()
 
-	err := f.initPlacesCopy()
+	pc, err := f.initPlacesCopy()
 	if err != nil {
 		log.Error(err)
 	}
+    defer pc.Clean()
 
 	log.Debugf("Checking changes since <%d> %s",
 		f.lastRunTime.UTC().UnixNano()/1000,
 		f.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+
+    return
 
 	queryArgs := map[string]interface{}{
 		"not_root_tags":    []int{mozilla.RootID, mozilla.TagsID},
@@ -466,15 +470,6 @@ func (f *Firefox) Shutdown() {
 			log.Critical(err)
 		}
 	}
-}
-
-func (f *Firefox) copyPlacesToTmp() error {
-	err := utils.CopyFilesToTmpFolder(path.Join(f.BkDir, f.BkFile+"*"))
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (ff *Firefox) getPathToPlacesCopy() string {
@@ -749,11 +744,13 @@ func (f *Firefox) fetchUrlChanges(rows *sql.Rows,
 }
 
 // Copies places.sqlite to a tmp dir to read a VFS lock sqlite db
-func (f *Firefox) initPlacesCopy() error {
-	err := f.copyPlacesToTmp()
+func (f *Firefox) initPlacesCopy() (mozilla.PlaceCopyJob, error) {
+    // create a new copy job
+    pc := mozilla.NewPlaceCopyJob()
+
+	err := utils.CopyFilesToTmpFolder(path.Join(f.BkDir, f.BkFile+"*"), pc.Path())
 	if err != nil {
-		return fmt.Errorf("could not copy places.sqlite to tmp folder: %s",
-			err)
+		return pc, fmt.Errorf("could not copy places.sqlite to tmp folder: %s", err)
 	}
 
 	opts := FFConfig.PlacesDSN
@@ -761,12 +758,12 @@ func (f *Firefox) initPlacesCopy() error {
 	f.places, err = database.NewDB("places",
 		// using the copied places file instead of the original to avoid
 		// sqlite vfs lock errors
-		f.getPathToPlacesCopy(),
+		path.Join(pc.Path(), f.BkFile),
 		database.DBTypeFileDSN, opts).Init()
 
 	if err != nil {
-		return err
+		return pc, err
 	}
 
-	return nil
+	return pc, nil
 }

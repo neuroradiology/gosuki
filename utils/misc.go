@@ -1,6 +1,9 @@
 package utils
 
-import "strings"
+import (
+	"math/rand"
+	"strings"
+)
 
 // Return string from slice of bytes
 func S(value interface{}) string {
@@ -42,4 +45,14 @@ func ReplaceInList(l []string, old string, new string) []string {
         result = append(result, strings.Replace(s, old, new, -1))
     }
     return result
+}
+
+// Generate a unique random string with the specified length
+func GenStringID(n int) string {
+    var letter = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    b := make([]rune, n)
+    for i := range b {
+        b[i] = letter[rand.Intn(len(letter))]
+    }
+    return string(b)
 }
