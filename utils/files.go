@@ -41,14 +41,14 @@ func copyFileToDst(src string, dst string) error {
 }
 
 // Copy files from src glob to dst folder
-func CopyFilesToTmpFolder(srcglob string) error {
+func CopyFilesToTmpFolder(srcglob string, dst string) error {
 	matches, err := filepath.Glob(os.ExpandEnv(srcglob))
 	if err != nil {
 		return err
 	}
 
 	for _, v := range matches {
-		dstFile := path.Join(TMPDIR, path.Base(v))
+		dstFile := path.Join(dst, path.Base(v))
 		err = copyFileToDst(v, dstFile)
 		if err != nil {
 			return err

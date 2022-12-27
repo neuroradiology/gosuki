@@ -1,12 +1,15 @@
 package mozilla
 
 import (
-
+	"os"
+	"path"
 	"time"
+
+	"git.sp4ke.xyz/sp4ke/gomark/utils"
 )
 
 // Constants representing the meaning if IDs defined in the table
-// moz_bookmarks.id 
+// moz_bookmarks.id
  const (
 	_           = iota // 0
 	RootID           // 1
@@ -85,4 +88,44 @@ type MergedPlaceBookmark struct {
 func (pb *MergedPlaceBookmark) Datetime() time.Time {
 	return time.Unix(int64(pb.BkLastModified/(1000*1000)),
 		int64(pb.BkLastModified%(1000*1000))*1000).UTC()
+}
+
+var CopyJobs []PlaceCopyJob
+
+type PlaceCopyJob struct {
+    Id string
+}
+
+func NewPlaceCopyJob() PlaceCopyJob {
+    pc := PlaceCopyJob{
+        Id: utils.GenStringID(5),
+    }
+
+    err := pc.makePath()
+    if err != nil {
+      log.Fatal(err)
+    }
+
+    CopyJobs = append(CopyJobs, pc)
+
+    return pc
+}
+
+func (pc PlaceCopyJob) makePath() error {
+    // make sure TMPDIR is not empty
+    if len(utils.TMPDIR) == 0 {
+        log.Error("missing tmp dir")
+        return nil
+    }
+
+    return os.Mkdir(path.Join(utils.TMPDIR, pc.Id), 0750)
+}
+
+func (pc PlaceCopyJob) Path() string {
+    return path.Join(utils.TMPDIR, pc.Id)
+}
+
+func (pc PlaceCopyJob) Clean() error {
+    log.Debugf("cleaning <%s>", pc.Path())
+    return os.RemoveAll(pc.Path())
 }
