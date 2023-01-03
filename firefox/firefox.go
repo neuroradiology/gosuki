@@ -59,7 +59,7 @@ type FFPlace struct {
 }
 
 
-// TODO!: replace by MergedPlaceBokmark and MozBookmark below
+// TODO!: replace by MergedPlaceBookmark and MozBookmark below
 type FFBookmark struct {
 	btype  sqlid
 	parent sqlid
@@ -324,7 +324,6 @@ func (f *Firefox) Run() {
 		f.lastRunTime.UTC().UnixNano()/1000,
 		f.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
-    return
 
 	queryArgs := map[string]interface{}{
 		"not_root_tags":    []int{mozilla.RootID, mozilla.TagsID},
@@ -476,7 +475,6 @@ func (ff *Firefox) getPathToPlacesCopy() string {
 	return path.Join(utils.TMPDIR, ff.BkFile)
 }
 
-// TEST:
 // HACK: addUrl and addTag share a lot of code, find a way to reuse shared code
 // and only pass extra details about tag/url along in some data structure
 // PROBLEM: tag nodes use IDs and URL nodes use URL as hashes

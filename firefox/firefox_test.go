@@ -542,6 +542,15 @@ func Test_scanFolders(t *testing.T) {
 
 }
 
-func Test_FindChangedBookmarks(t *testing.T) {
+func Test_FindModifiedBookmarks(t *testing.T) {
+    //NOTE: use a separate test places db that includes changes vs the main test db
+    // Test scenarios
+    // 1. Modify an existing bookmark
+    //  a. Add / Remove tag ( find new tags )
+    //  b. Move to folder ( find new folder)
+    //  TODO: c. DELETE bookmark
+    // 2. Find new bookmarks
+    // 2. Find new created tags
+    // 3. Find new created folders
 	t.Error("should find all bookmarks modified/added since last change")
 }
