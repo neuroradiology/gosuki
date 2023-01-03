@@ -12,3 +12,4 @@ _master
 _wt_tmp
 places.sqlite-shm
 places.sqlite-wal
+_maintest.go
