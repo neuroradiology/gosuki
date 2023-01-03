@@ -1,0 +1,15 @@
+.python-version
+gomarks.db
+gomark
+node_modules
+.cache
+dist
+*.log
+_master
+
+.vscode
+.gonvim
+_wt_tmp
+places.sqlite-shm
+places.sqlite-wal
+_maintest.go
