@@ -45,6 +45,7 @@ const (
 
 
 type sqlid = mozilla.Sqlid
+type timestamp = int64
 
 type AutoIncr struct {
 	ID sqlid
@@ -71,92 +72,6 @@ type FFBookmark struct {
 type MozBookmark = mozilla.MozBookmark
 type MozFolder = mozilla.MozFolder
 
-
-// scan all folders from moz_bookmarks and load them into the node tree
-func (ff *Firefox) scanFolders() ([]*MozFolder, error) {
-
-	var folders []*MozFolder
-    ff.folderScanMap =  make(map[sqlid]*MozFolder)
-	err := ff.places.Handle.Select(&folders, mozilla.QFolders)
-
-    // store all folders in a hashmap for easier tree construction
-    for _, folder := range folders {
-        ff.folderScanMap[folder.Id] = folder
-    }
-
-    for _, folder := range folders {
-        // Ignore the `tags` virtual folder
-        if folder.Id != 4 { 
-            ff.addFolderNode(*folder)
-        }
-    }
-
-
-	return folders, err
-}
-
-
-// scans bookmarks from places.sqlite and loads them into the node tree
-func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
-    // scan folders and load them into node tree
-    folders, err := ff.scanFolders()
-    if err != nil {
-      return nil, err
-    }
-    utils.UseVar(folders)
-
-	var bookmarks []*MozBookmark
-
-	dotx, err := database.DotxQueryEmbedFS(mozilla.EmbeddedSqlQueries, mozilla.MozBookmarkQueryFile)
-	if err != nil {
-		return nil, err
-	}
-	err = dotx.Select(ff.places.Handle, &bookmarks, mozilla.MozBookmarkQuery)
-
-
-    // load bookmarks and tags into the node tree 
-    // then attach them to their assigned folder hierarchy
-    for _, bkEntry := range bookmarks {
-        // Create/Update URL node and apply tag node
-        ok, urlNode := ff.addUrlNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
-        if !ok {
-            log.Infof("url <%s> already in url index", bkEntry.Url)
-        }
-        
-		/*
-         * Iterate through bookmark tags and synchronize new tags with 
-         * the node tree.
-		 */
-         for _, tagName := range strings.Split(bkEntry.Tags, ",") {
-            if tagName == "" { continue }
-            seen, tagNode := ff.addTagNode(tagName)
-            if !seen {
-                log.Infof("tag <%s> already in tag map", tagNode.Name)
-            }
-
-            // Add tag name to urlnode tags
-            urlNode.Tags = utils.Extends(urlNode.Tags, tagNode.Name)
-
-            // Add URL node as child of Tag node
-            // Parent will be a folder or nothing?
-            tree.AddChild(ff.tagMap[tagNode.Name], urlNode)
-
-            ff.CurrentUrlCount++
-         }
-
-         // Link this URL node to its corresponding folder node if it exists.
-         //TODO: add all parent folders in the tags list of this url node
-        folderNode, fOk := ff.folderMap[bkEntry.ParentId]
-        if fOk {
-            tree.AddChild(folderNode, urlNode)
-        }
-
-
-    }
-	return bookmarks, err
-}
-
-//WIP
 type Firefox struct {
 	*FirefoxConfig
 
@@ -177,6 +92,143 @@ type Firefox struct {
     folderScanMap map[sqlid]*MozFolder
 
 	lastRunTime time.Time
+}
+
+// scan all folders from moz_bookmarks and load them into the node tree
+// takes a timestamp(int64) parameter to select folders based on last modified date
+func (ff *Firefox) scanFolders(since timestamp) ([]*MozFolder, error) {
+
+	var folders []*MozFolder
+    ff.folderScanMap =  make(map[sqlid]*MozFolder)
+
+    folderQueryArgs := map[string]interface{} {
+        "change_since": since,
+    }
+
+    boundQuery, args, err := ff.places.Handle.BindNamed(mozilla.QFolders, folderQueryArgs)
+    if err != nil {
+      return nil, err
+    }
+
+	err = ff.places.Handle.Select(&folders, boundQuery, args...)
+    if err != nil {
+      return nil, err
+    }
+
+    // store all folders in a hashmap for easier tree construction
+    for _, folder := range folders {
+        ff.folderScanMap[folder.Id] = folder
+    }
+
+    for _, folder := range folders {
+        // Ignore the `tags` virtual folder
+        if folder.Id != 4 { 
+            ff.addFolderNode(*folder)
+        }
+    }
+
+
+	return folders, err
+}
+
+// load bookmarks and tags into the node tree then attach them to
+// their assigned folder hierarchy
+func (ff *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
+
+    for _, bkEntry := range bookmarks {
+        // Create/Update URL node and apply tag node
+        ok, urlNode := ff.addUrlNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
+        if !ok {
+            log.Infof("url <%s> already in url index", bkEntry.Url)
+        }
+
+        /*
+        * Iterate through bookmark tags and synchronize new tags with 
+        * the node tree.
+        */
+        for _, tagName := range strings.Split(bkEntry.Tags, ",") {
+            if tagName == "" { continue }
+            seen, tagNode := ff.addTagNode(tagName)
+            if !seen {
+                log.Infof("tag <%s> already in tag map", tagNode.Name)
+            }
+
+            // Add tag name to urlnode tags
+            urlNode.Tags = utils.Extends(urlNode.Tags, tagNode.Name)
+
+            // Add URL node as child of Tag node
+            // Parent will be a folder or nothing?
+            tree.AddChild(ff.tagMap[tagNode.Name], urlNode)
+
+            ff.CurrentUrlCount++
+        }
+
+        // Link this URL node to its corresponding folder node if it exists.
+        //TODO: add all parent folders in the tags list of this url node
+        folderNode, fOk := ff.folderMap[bkEntry.ParentId]
+        if fOk {
+            tree.AddChild(folderNode, urlNode)
+        }
+    }
+}
+
+// scans bookmarks from places.sqlite and loads them into the node tree
+func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
+
+    // scan folders and load them into node tree
+    _, err := ff.scanFolders(0)
+    if err != nil {
+      return nil, err
+    }
+
+	var bookmarks []*MozBookmark
+
+	dotx, err := database.DotxQueryEmbedFS(mozilla.EmbeddedSqlQueries, mozilla.MozBookmarkQueryFile)
+	if err != nil {
+		return nil, err
+	}
+	err = dotx.Select(ff.places.Handle, &bookmarks, mozilla.MozBookmarkQuery)
+
+
+    // load bookmarks and tags into the node tree 
+    // then attach them to their assigned folder hierarchy
+    
+	return bookmarks, err
+}
+
+func (ff *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error) {
+    // scan new/modifed folders and load them into node tree
+    _, err := ff.scanFolders(since)
+    if err != nil {
+      return nil, err
+    }
+
+    var bookmarks []*MozBookmark
+
+
+    dotx, err := database.DotxQueryEmbedFS(mozilla.EmbeddedSqlQueries,
+                                            mozilla.MozChangedBookmarkQueryFile)
+
+    if err != nil {
+        return nil, err
+	}
+
+	queryArgs := map[string]interface{}{
+        "change_since": since,
+	}
+
+    // query, args, err := dotx.NamedQuery(ff.places.Handle, mozilla.MozChangedBookmarkQuery, queryArgs)
+    boundQuery, args, err := dotx.BindNamed(ff.places.Handle, mozilla.MozChangedBookmarkQuery, queryArgs)
+	if err != nil {
+        return nil, err
+	}
+
+    err = ff.places.Handle.Select(&bookmarks, boundQuery, args...)
+    if err != nil {
+      return nil, err
+    }
+
+    return bookmarks, err
 }
 
 func init() {
@@ -268,7 +320,12 @@ func (f *Firefox) Load() error {
 
 	// load all bookmarks 
 	start := time.Now()
-	f.scanBookmarks()
+    bookmarks, err := f.scanBookmarks()
+    if err != nil {
+      return err
+    }
+    f.loadBookmarksToTree(bookmarks)
+    
 	f.LastFullTreeParseTime = time.Since(start)
 	f.lastRunTime = time.Now().UTC()
 
@@ -309,9 +366,42 @@ func (f *Firefox) Load() error {
 	return err
 }
 
+// Implements browsers.Runner interface
+func (ff *Firefox) Run() {
+    startRun := time.Now()
+
+	pc, err := ff.initPlacesCopy()
+	if err != nil {
+		log.Error(err)
+	}
+    defer pc.Clean()
+
+
+	log.Debugf("Checking changes since <%d> %s",
+		ff.lastRunTime.UTC().UnixNano()/1000,
+		ff.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+    
+    scanSince := ff.lastRunTime.UTC().UnixNano() / 1000
+
+    bookmarks, err := ff.scanModifiedBookmarks(scanSince)
+    if err != nil {
+      log.Error(err)
+    }
+    ff.loadBookmarksToTree(bookmarks)
+	// tree.PrintTree(ff.NodeTree)
+
+    database.SyncURLIndexToBuffer(ff.URLIndexList, ff.URLIndex, ff.BufferDB)
+    ff.BufferDB.SyncTo(database.Cache.DB)
+    database.Cache.DB.SyncToDisk(database.GetDBFullPath())
+
+	ff.LastWatchRunTime = time.Since(startRun)
+	ff.lastRunTime = time.Now().UTC()
+}
+
 // Implement browsers.Runner interface
 // TODO: lock the copied places until the RUN operation is over
-func (f *Firefox) Run() {
+//HACK: remove
+func (f *Firefox) Runn() {
 	startRun := time.Now()
 
 	pc, err := f.initPlacesCopy()
