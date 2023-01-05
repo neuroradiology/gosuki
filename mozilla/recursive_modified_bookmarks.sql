@@ -1,25 +1,25 @@
--- name: recursive-all-bookmarks
--- every bookmark that has a tag and is inside a folder has three entries:
+-- name: recursive-modified-bookmarks
 
 WITH RECURSIVE
 	folder_marks(bid, type, title, folder, parent) 
 	AS (
-		SELECT id, type, title, title as folder, parent FROM moz_bookmarks WHERE fk IS NULL and parent not in (4,0) -- get all folders
+		SELECT id, type, title, title as folder, parent FROM moz_bookmarks 
+			WHERE fk IS NULL AND parent NOT IN (4,0) AND lastModified > :change_since -- get all folders
 		UNION ALL
-		SELECT id, moz_bookmarks.type, moz_bookmarks.title, folder, moz_bookmarks.parent -- get all bookmarks with folder parents
-				FROM  moz_bookmarks JOIN folder_marks ON moz_bookmarks.parent=bid	
-				WHERE id > 12 --ignore native mozilla folders
+		SELECT id, moz_bookmarks.type, moz_bookmarks.title, folder, folder_marks.parent -- get all bookmarks with folder parents
+				FROM  moz_bookmarks JOIN folder_marks ON moz_bookmarks.parent=bid
+				WHERE id > 12 AND lastModified > :change_since --ignore native mozilla folders
 	),
 	
 	bk_in_folders(id, type, fk, title, parent) AS(
 	-- select out all bookmarks inside folders
 			SELECT id, type, fk,  title, parent  FROM moz_bookmarks 
 					WHERE type = 1 
-					AND parent IN (SELECT id FROM moz_bookmarks WHERE fk ISNULL and parent NOT IN (4,0)) -- parent is a folder 
+					AND parent IN (SELECT id FROM moz_bookmarks WHERE fk ISNULL and parent NOT IN (4,0)) -- parent is a folder
 	),
 	
 	tags AS (
-		SELECT id, type, fk, title FROM moz_bookmarks WHERE type = 2 AND parent IN (4,0)
+		SELECT id, type, fk, title FROM moz_bookmarks WHERE type = 2 AND parent IN (4,0) AND lastModified > :change_since
 		),
 	
 	marks(id, type, fk, title, tags, parent, folder)
@@ -28,7 +28,7 @@ WITH RECURSIVE
 
  			UNION
 			-- links between bookmarks and tags
-			SELECT id, type, fk, NULL, NULL, parent, parent FROM moz_bookmarks WHERE type = 1 AND fk IS NOT NULL
+			SELECT id, type, fk, NULL, NULL, parent, parent FROM moz_bookmarks WHERE type = 1 AND fk IS NOT NULL AND lastModified > :change_since
 					
 			UNION
 			-- get all tags which are tags of bookmarks in folders (pre selected)
@@ -68,7 +68,7 @@ WITH RECURSIVE
 				WHERE marks.type = 2
 				GROUP BY placeId
 
-			UNION ALL
+			UNION
 			-- All bookmarks only within folders
 			SELECT
 				fbm.plId as placeId,
@@ -88,7 +88,6 @@ SELECT
  placeId as plId,
  ifnull(title, "") as title,
  ifnull(group_concat(tags), "") as tags,
- parentfolderId,
 (SELECT moz_bookmarks.title FROM moz_bookmarks WHERE id = parentFolderId) as parentFolder,
  group_concat(folders) as folders,
  url,

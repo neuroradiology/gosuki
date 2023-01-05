@@ -15,6 +15,7 @@ func Test_loadQueries(t *testing.T) {
 	queries := map[string]string{
 		"merged-places-bookmarks": "merged_places_bookmarks.sql",
 		"recursive-all-bookmarks": "recursive_all_bookmarks.sql",
+		"recursive-modified-bookmarks": "recursive_modified_bookmarks.sql",
 	}
 
 	loadedQueries := map[string]*dotsqlx.DotSqlx{}
