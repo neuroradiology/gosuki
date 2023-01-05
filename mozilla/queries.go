@@ -8,10 +8,13 @@ import (
 const(
     MozBookmarkQueryFile = "recursive_all_bookmarks.sql"
     MozBookmarkQuery = "recursive-all-bookmarks"
+    MozChangedBookmarkQueryFile = "recursive_modified_bookmarks.sql"
+    MozChangedBookmarkQuery = "recursive-modified-bookmarks"
 ) 
 
 var (
     //go:embed "recursive_all_bookmarks.sql"
+    //go:embed "recursive_modified_bookmarks.sql"
     EmbeddedSqlQueries embed.FS
 )
 
@@ -33,7 +36,7 @@ const (
 
 	QFolders = `
     SELECT id, title, parent FROM moz_bookmarks 
-        WHERE type = 2 AND parent NOT IN (4, 0)
+    WHERE type = 2 AND parent NOT IN (4, 0) AND lastModified > :change_since
     `
 
 	//TEST:
