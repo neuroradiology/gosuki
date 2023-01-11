@@ -94,6 +94,14 @@ type Firefox struct {
 	lastRunTime time.Time
 }
 
+// func (ff *Firefox) updateModifiedFolders(since timestamp) ([]*MozFolder, error) {
+//     // Get list of modified folders
+//     var folders = []*MozFolders
+//     folderChangeQuery := map[string]interface
+//     
+//     return nil, nil
+// }
+
 // scan all folders from moz_bookmarks and load them into the node tree
 // takes a timestamp(int64) parameter to select folders based on last modified date
 func (ff *Firefox) scanFolders(since timestamp) ([]*MozFolder, error) {
@@ -200,6 +208,7 @@ func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
 func (ff *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error) {
     // scan new/modifed folders and load them into node tree
     _, err := ff.scanFolders(since)
+    tree.PrintTree(ff.NodeTree)
     if err != nil {
       return nil, err
     }
@@ -645,12 +654,14 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node){
     folderNode, seen := ff.folderMap[folder.Id]
 
     if seen {
+        // Update folder name if changed
+        if folderNode.Name != folder.Title {
+            log.Debugf("folder node <%s> updated to <%s>", folderNode.Name, folder.Title)
+            folderNode.Name = folder.Title
+        }
+
         return false, folderNode
     }
-
-    // TODO: do not forget to attach children back to their parents after 
-    // finishing to scan all folders.
-
 
     folderNode = &tree.Node{
         // Name: folder.Title,

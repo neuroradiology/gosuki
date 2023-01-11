@@ -199,6 +199,14 @@ func Test_addFolderNode(t *testing.T) {
 		// Name of node should match title of scanned folder
 		assert.Equal(t, folderNode.Name, testFolder.Title, "parsing folder name")
 
+        // If we add the same folder with differnt title it should update the folder name
+        renamedFolder := testFolder
+        renamedFolder.Title = "Dev"
+        folderAdded, renamedFolderNode := ff.addFolderNode(renamedFolder)
+        assert.Equal(t, folderNode, renamedFolderNode) // same folder node
+        assert.False(t, folderAdded) // folder node is not created again
+        assert.NotEqual(t, folderNode.Name, testFolder.Title)
+
 	})
 }
 
