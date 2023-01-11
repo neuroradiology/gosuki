@@ -14,7 +14,6 @@ import (
 
 var log = logging.GetLogger("TREE")
 
-type Bookmark = bookmarks.Bookmark
 
 type NodeType int
 
@@ -248,13 +247,13 @@ func (node *Node) getTags() []string {
     return node.Tags
 }
 
-func (node *Node) GetBookmark() *Bookmark {
+func (node *Node) GetBookmark() *bookmarks.Bookmark {
 
     if node.Type != URLNode {
         return nil
     }
 
-	return &Bookmark{
+	return &bookmarks.Bookmark{
 		URL:      node.URL,
 		Metadata: node.Name,
 		Desc:     node.Desc,
