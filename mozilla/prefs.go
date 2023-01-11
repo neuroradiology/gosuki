@@ -9,7 +9,12 @@ import (
 )
 
 const (
-	PrefsFile = "prefs.js"
+    // Note that user.js will be read every time Firefox starts, so changes made to it will take effect immediately.
+    // Also when Firefox is updated, it may update also the prefs.js file, and your
+    // modification could be lost. Therefore it is better to use user.js to set such
+    // preferences which are not possible to set from the Firefox settings.
+    //TODO!: create file if it does not exist
+	PrefsFile = "user.js"
 
 	// Parses vales in prefs.js under the form:
 	// user_pref("my.pref.option", value);

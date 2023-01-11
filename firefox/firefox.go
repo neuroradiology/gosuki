@@ -655,6 +655,7 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node){
     if seen {
         // Update folder name if changed
         
+        //TODO!: trigger bookmark tag change in gomarks.db
         if folderNode.Name != folder.Title &&
             // Ignore root folders since we use our custom names
             !utils.InList([]int{2,3,5,6}, int(folder.Id)){
