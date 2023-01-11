@@ -66,6 +66,46 @@ func (node *Node) DirectChildOf(parent *Node) bool {
     return found
 }
 
+// Get all parents for node by traversing from leaf to root
+func (node *Node) GetFolderParents() []*Node {
+    var parents []*Node
+
+    if node.Parent == nil {
+        return parents
+    }
+
+    if node.Parent.Type == FolderNode {
+        parents = append(parents, node.Parent)
+    }
+
+    if node.Parent.Type != RootNode {
+        parents = append(parents, node.Parent.GetFolderParents()...)
+    }
+
+    return parents
+}
+
+// Recursively traverse the tree from a root and find all occurences of [url]
+// whose parent is a folder without using url.Parent as a reference
+// Returns a list of nodes that match the criteria
+func FindParentFolders(root *Node, url *Node) []*Node {
+    var folders []*Node
+
+    if root == nil || len(root.Children) <= 0 {
+        return folders
+    }
+
+    if root.Type == FolderNode && FindNode(url, root) {
+        folders = append(folders, root)
+    }
+
+    for _, child := range root.Children {
+        folders = append(folders, FindParentFolders(child, url)...)
+    }
+
+    return folders
+}
+
 
 // Finds a node and the tree starting at root
 func FindNode(node *Node, root *Node) bool {
@@ -80,6 +120,24 @@ func FindNode(node *Node, root *Node) bool {
     }
 
     return false
+}
+
+//Find all occurences of a node in a tree
+func GetNodes(root *Node, url *Node) []*Node {
+    var nodes []*Node
+    if root == nil || url == nil {
+        return nodes
+    }
+
+    if root == url {
+        nodes = append(nodes, root)
+    }
+
+    for _, child := range root.Children {
+        nodes = append(nodes, GetNodes(child, url)...)
+    }
+
+    return nodes
 }
 
 func FindNodeByName(name string, root *Node) bool {

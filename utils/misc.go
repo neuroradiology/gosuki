@@ -11,17 +11,17 @@ func S(value interface{}) string {
 }
 
 // Extends a slice of T with element `in`, like a Set
-func Extends[T comparable](list []T, in T) []T {
-	for _, val := range list {
-		if in == val {
-			return list
-		}
+func Extends[T comparable](list []T, in ...T) []T {
+	for _, val := range in {
+        if !InList(list, val) {
+            list = append(list, val)
+        }
 	}
-	return append(list, in)
+	return list
 }
 
 // Return true if elm in list
-func Inlist[T comparable](list []T, elm T) bool {
+func InList[T comparable](list []T, elm T) bool {
 	for _, v := range list {
 		if elm == v {
 			return true
@@ -55,4 +55,14 @@ func GenStringID(n int) string {
         b[i] = letter[rand.Intn(len(letter))]
     }
     return string(b)
+}
+
+
+// map takes a list and a function and returns a new list
+func Map[T , U comparable](f func(item T) U, list []T) []U {
+    var newList []U
+    for _, v := range list {
+        newList = append(newList, f(v))
+    }
+    return newList
 }

@@ -35,8 +35,8 @@ func globalCommandFlagsManager(c *cli.Context) error {
 	log.Debugf("<%s> registering global flag manager", BrowserName)
 	for _, f := range c.App.Flags {
 
-		if utils.Inlist(f.Names(), "help") ||
-			utils.Inlist(f.Names(), "version") {
+		if utils.InList(f.Names(), "help") ||
+			utils.InList(f.Names(), "version") {
 			continue
 		}
 

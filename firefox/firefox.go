@@ -166,9 +166,10 @@ func (ff *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
         // Link this URL node to its corresponding folder node if it exists.
         //TODO: add all parent folders in the tags list of this url node
         folderNode, fOk := ff.folderMap[bkEntry.ParentId]
+        // If we found the parent folder
         if fOk {
             tree.AddChild(folderNode, urlNode)
-        }
+        } 
     }
 }
 
@@ -660,7 +661,7 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node){
 
     // If this folders' is a Firefox root folder use the appropriate title
     // then add it to the root node
-    if utils.Inlist([]int{2,3,5,6}, int(folder.Id)) {
+    if utils.InList([]int{2,3,5,6}, int(folder.Id)) {
         folderNode.Name = mozilla.RootFolders[folder.Id]
         tree.AddChild(ff.NodeTree, folderNode)
     } else {
