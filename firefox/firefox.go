@@ -208,7 +208,7 @@ func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
 func (ff *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error) {
     // scan new/modifed folders and load them into node tree
     _, err := ff.scanFolders(since)
-    tree.PrintTree(ff.NodeTree)
+    // tree.PrintTree(ff.NodeTree)
     if err != nil {
       return nil, err
     }
@@ -645,7 +645,6 @@ func (ff *Firefox) addTagNode(tagName string) (bool, *tree.Node) {
 
 // add a folder node to the parsed node tree under the specified folder parent
 // returns true if a new folder is created and false if folder already exists
-//TEST: add folder node tests
 func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node){
 
     // use hashmap.RBTree to keep an index of scanned folders pointing
@@ -655,7 +654,10 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node){
 
     if seen {
         // Update folder name if changed
-        if folderNode.Name != folder.Title {
+        
+        if folderNode.Name != folder.Title &&
+            // Ignore root folders since we use our custom names
+            !utils.InList([]int{2,3,5,6}, int(folder.Id)){
             log.Debugf("folder node <%s> updated to <%s>", folderNode.Name, folder.Title)
             folderNode.Name = folder.Title
         }
@@ -673,7 +675,7 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node){
     // If this folders' is a Firefox root folder use the appropriate title
     // then add it to the root node
     if utils.InList([]int{2,3,5,6}, int(folder.Id)) {
-        folderNode.Name = mozilla.RootFolders[folder.Id]
+        folderNode.Name = mozilla.RootFolderNames[folder.Id]
         tree.AddChild(ff.NodeTree, folderNode)
     } else {
         folderNode.Name = folder.Title

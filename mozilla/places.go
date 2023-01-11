@@ -22,13 +22,22 @@ import (
 
 type Sqlid int64
 
-var RootFolders = map[Sqlid]string{
-    RootID: RootName,
+// Represnets the root folder names as shown on Firefox
+var RootFolderTitles = map[Sqlid]string{
     MenuID: "Bookmarks Menu",
     ToolbarID: "Bookmarks Toolbar",
-    TagsID: TagsBranchName,
     OtherID: "Other Bookmarks",
     MobileID: "Mobile Bookmarks",
+}
+
+// Some root folders names in the tree
+var RootFolderNames = map[Sqlid]string{
+    RootID: RootName,
+    TagsID: TagsBranchName,
+    MenuID: "menu",
+    ToolbarID: "toolbar",
+    OtherID: "other",
+    MobileID: "mobile",
 }
 
 const (

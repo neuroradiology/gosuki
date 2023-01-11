@@ -21,6 +21,13 @@ import (
 var ff Firefox
 
 func TestMain(m *testing.M) {
+	setupFirefox()
+
+	exitVal := m.Run()
+	os.Exit(exitVal)
+}
+
+func setupFirefox() {
 	ff = Firefox{
 		FirefoxConfig: &FirefoxConfig{
 			BrowserConfig: &browsers.BrowserConfig{
@@ -37,9 +44,6 @@ func TestMain(m *testing.M) {
 		tagMap:    map[string]*tree.Node{},
 		folderMap: map[sqlid]*tree.Node{},
 	}
-
-	exitVal := m.Run()
-	os.Exit(exitVal)
 }
 
 func runPlacesTest(name string, t *testing.T, test func(t *testing.T)) {
@@ -161,7 +165,7 @@ func Test_addFolderNode(t *testing.T) {
 		assert.True(t, created)
 
 		// root folder should have appropriate title
-		assert.Equal(t, fNode.Name, "Bookmarks Toolbar")
+		assert.Equal(t, fNode.Name, mozilla.RootFolderNames[mozilla.ToolbarID])
 
 		// Should be underneath root folder
 		assert.Equal(t, fNode.Parent, ff.NodeTree)
@@ -211,7 +215,9 @@ func Test_addFolderNode(t *testing.T) {
 }
 
 // TODO: use tag name instead of id inside the map
+//FIX: reset firefox data
 func Test_addTagNode(t *testing.T) {
+    setupFirefox()
 
 	testTag := struct {
 		tagName string
@@ -272,10 +278,6 @@ func Test_addTagNode(t *testing.T) {
 			t.Errorf("[%s] expected %v ,got %v", testName, false, true)
 		}
 	})
-}
-
-func Test_fetchUrlChanges(t *testing.T) {
-	t.Error("split into small units")
 }
 
 func Test_PlaceBookmarkTimeParsing(t *testing.T) {
@@ -477,18 +479,18 @@ func Test_scanBookmarks(t *testing.T) {
 				urlNode, exists := ff.URLIndex.Get(bk.Url)
 				assert.True(t, exists, "url missing in URLIndex")
 
-				// URL node has the right parent folder node
+				// check that url node has the right parent folder node
 
 				// If Parent is nil, it means no folder was assigned to this url node
 				parentFolder := bk.ParentFolder
 				switch parentFolder {
 				case "unfiled":
-					parentFolder = mozilla.RootFolders[mozilla.OtherID]
+					parentFolder = mozilla.RootFolderNames[mozilla.OtherID]
 				case "mobile":
-					parentFolder = mozilla.RootFolders[mozilla.MobileID]
+					parentFolder = mozilla.RootFolderNames[mozilla.MobileID]
 				}
 				if urlNode.(*tree.Node).Parent != nil {
-					assert.Equal(t, urlNode.(*tree.Node).Parent.Name, parentFolder,
+					assert.Equal(t, parentFolder, urlNode.(*tree.Node).Parent.Name, 
 						"wrong folder for <%s>", bk.Url)
 				}
 
@@ -497,8 +499,6 @@ func Test_scanBookmarks(t *testing.T) {
 
 			}
 		})
-
-		tree.PrintTree(ff.NodeTree)
 	})
 }
 
@@ -569,7 +569,7 @@ func Test_FindModifiedBookmarks(t *testing.T) {
     modifiedBookmarks := map[string]bkTestData{
         "https://go.dev/": {
             tags:    []string{"language"},
-            folders: []string{mozilla.RootFolders[mozilla.OtherID]}, // unfiled folder
+            folders: []string{mozilla.RootFolderNames[mozilla.OtherID]}, // unfiled folder
         },
     }
 
@@ -579,14 +579,14 @@ func Test_FindModifiedBookmarks(t *testing.T) {
         tags:    []string{"bitcoin"},
         folders: []string{
             "Cryptocurrencies",
-            mozilla.RootFolders[mozilla.OtherID],
-            mozilla.RootFolders[mozilla.ToolbarID],
+            mozilla.RootFolderNames[mozilla.OtherID],
+            mozilla.RootFolderNames[mozilla.ToolbarID],
         },
 
         },
         "https://lightning.network/": {
         tags:    []string{"bitcoin", "lightning"},
-        folders: []string{mozilla.RootFolders[mozilla.OtherID]},
+        folders: []string{mozilla.RootFolderNames[mozilla.OtherID]},
         },
     }
 
@@ -680,5 +680,5 @@ func Test_FindModifiedBookmarks(t *testing.T) {
 }
 
 func Test_FindModifiedFolders(t *testing.T) {
-   t.Error("find modified folders") 
+   t.Error("modified folder names should change the according bookmark tags") 
 }
