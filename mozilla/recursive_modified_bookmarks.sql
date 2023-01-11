@@ -6,7 +6,7 @@ WITH RECURSIVE
 		SELECT id, type, title, title as folder, parent FROM moz_bookmarks 
 			WHERE fk IS NULL AND parent NOT IN (4,0) AND lastModified > :change_since -- get all folders
 		UNION ALL
-		SELECT id, moz_bookmarks.type, moz_bookmarks.title, folder, folder_marks.parent -- get all bookmarks with folder parents
+		SELECT id, moz_bookmarks.type, moz_bookmarks.title, folder, moz_bookmarks.parent -- get all bookmarks with folder parents
 				FROM  moz_bookmarks JOIN folder_marks ON moz_bookmarks.parent=bid
 				WHERE id > 12 AND lastModified > :change_since --ignore native mozilla folders
 	),
@@ -68,7 +68,7 @@ WITH RECURSIVE
 				WHERE marks.type = 2
 				GROUP BY placeId
 
-			UNION
+			UNION ALL
 			-- All bookmarks only within folders
 			SELECT
 				fbm.plId as placeId,
@@ -87,12 +87,12 @@ WITH RECURSIVE
 SELECT
  placeId as plId,
  ifnull(title, "") as title,
- ifnull(group_concat(tags), "") as tags,
+ ifnull(tags, "") as tags,
+parentFolderId,
 (SELECT moz_bookmarks.title FROM moz_bookmarks WHERE id = parentFolderId) as parentFolder,
- group_concat(folders) as folders,
+ folders,
  url,
  ifnull(plDesc, "") as plDesc,
  (SELECT max(moz_bookmarks.lastModified) FROM moz_bookmarks WHERE fk=placeId ) as lastModified
  FROM all_bookmarks
-GROUP BY placeId
 ORDER BY lastModified

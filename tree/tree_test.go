@@ -2,6 +2,7 @@ package tree
 
 import (
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,6 +61,15 @@ func Test_AddChild(t *testing.T) {
     t.Run("nested url node", func(t *testing.T){
         assert.Equal(t, rootNode, urlNode.Parent.Parent.Parent)
     })
+
+    parents := urlNode.GetParents()
+    var parentFolderNames []string
+    for _, p := range parents {
+        parentFolderNames = append(parentFolderNames, p.Name)
+    }
+
+    assert.ElementsMatch(t, parentFolderNames, []string{"folder child", "sub-folder"})
+
 }
 
 func TestFindNode(t *testing.T){
