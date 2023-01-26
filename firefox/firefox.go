@@ -691,8 +691,12 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node){
 
     // if we never saw this folders' parent
     } else if folder.Parent != 1 { // recursively build the parent of this folder
-        _, newParentNode := ff.addFolderNode(*ff.folderScanMap[folder.Parent])
-        tree.AddChild(newParentNode, folderNode)
+        _, ok := ff.folderScanMap[folder.Parent]
+        if ok {
+            _, newParentNode := ff.addFolderNode(*ff.folderScanMap[folder.Parent])
+            tree.AddChild(newParentNode, folderNode)
+
+        }
     }
 
     // Store a pointer to this folder

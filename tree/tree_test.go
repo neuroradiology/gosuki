@@ -62,7 +62,7 @@ func Test_AddChild(t *testing.T) {
         assert.Equal(t, rootNode, urlNode.Parent.Parent.Parent)
     })
 
-    parents := urlNode.GetParents()
+    parents := urlNode.GetFolderParents()
     var parentFolderNames []string
     for _, p := range parents {
         parentFolderNames = append(parentFolderNames, p.Name)
@@ -121,15 +121,42 @@ func TestGetTags(t *testing.T) {
 	tagNode2 := &Node{Type: TagNode, Name: "tag2"}
     folderNode := &Node{Type: FolderNode, Name: "folder1"}
 
+    // camel case
+    cmFolderNode := &Node{Type: FolderNode, Name: "SomeFolder"}
+
+    // space in folder name
+    spFolderNode := &Node{Type: FolderNode, Name: "Folder With Space"}
+
     AddChild(rootNode, tagNode1)
     AddChild(rootNode, tagNode2)
     AddChild(rootNode, folderNode)
+    AddChild(rootNode, cmFolderNode)
+    AddChild(rootNode, spFolderNode)
 
     AddChild(folderNode, urlNode)
+    AddChild(cmFolderNode, urlNode)
+    AddChild(spFolderNode, urlNode)
 
     AddChild(tagNode1, urlNode)
     AddChild(tagNode2, urlNode)
+
+    PrintTree(rootNode)
+
+
     
     tags := urlNode.getTags()
-    assert.ElementsMatch(t, tags, []string{"tag1", "tag2", "folder1"}, "node tags mismatch")
+    assert.ElementsMatch(t, []string{"tag1", "tag2", "folder1", "SomeFolder", "Folder With Space"}, tags, "node tags mismatch")
+}
+
+func Test_GetRoot(t *testing.T) {
+    root := &Node{Type: RootNode, Name: "root"}   
+    fold := &Node{Type: FolderNode, Name: "folder"}
+    AddChild(root, fold)
+    subfold := &Node{Type:FolderNode, Name: "sub-folder"}
+    AddChild(fold, subfold)
+    url := &Node{Type: URLNode, Name: "url"}
+    AddChild(subfold, url)
+
+    foundRoot := url.GetRoot()
+    assert.Equal(t, root, foundRoot)
 }
