@@ -36,14 +36,17 @@ type Node struct {
 	Children   []*Node
 }
 
+
 func (node *Node) GetRoot() *Node {
-	nodePtr := node
+    var n *Node
+    if node.Type == RootNode {
+        return node
+    } 
 
-	for nodePtr.Name != "root" {
-		nodePtr = nodePtr.Parent
-	}
-
-	return nodePtr
+    if node.Parent != nil  {
+        n = node.Parent.GetRoot()
+    }
+    return n
 }
 
 // Returns the ancestor of this node
@@ -87,22 +90,22 @@ func (node *Node) GetFolderParents() []*Node {
 // Recursively traverse the tree from a root and find all occurences of [url]
 // whose parent is a folder without using url.Parent as a reference
 // Returns a list of nodes that match the criteria
-func FindParentFolders(root *Node, url *Node) []*Node {
-    var folders []*Node
+func FindParents(root *Node, url *Node, nt NodeType) []*Node {
+    var parents []*Node
 
     if root == nil || len(root.Children) <= 0 {
-        return folders
+        return parents
     }
 
-    if root.Type == FolderNode && FindNode(url, root) {
-        folders = append(folders, root)
+    if root.Type == nt && FindNode(url, root) {
+        parents = append(parents, root)
     }
 
     for _, child := range root.Children {
-        folders = append(folders, FindParentFolders(child, url)...)
+        parents = append(parents, FindParents(child, url, nt)...)
     }
 
-    return folders
+    return parents
 }
 
 
@@ -226,22 +229,27 @@ func WalkBuildIndex(node *Node, index index.HashTree) {
 	}
 }
 
-// Get all possible tags for this url node
-// The tags make sense only in the context of a URL node
-// This will traverse the three breadth first to find all Parent folders and 
-// add them as a tag. URL nodes should already be populated with the list of 
-// tags that exist under the TAG tree. So we only need to find the parent folders
-// and turn them into tags.
+// Get all possible tags for this url node The tags make sense only in the
+// context of a URL node This will traverse the three breadth first to find all
+// parent folders and add them as a tag. URL nodes should already be populated
+// with the list of tags that exist under the TAG tree. So we only need to find
+// the parent folders and turn them into tags.
 func (node *Node) getTags() []string {
 
-    if node.Parent.Type ==  RootNode {
+    if node.Type != URLNode {
         return []string{}
     }
 
-    if node.Parent.Type == FolderNode {
-        // clean out the Tag separator from folder names
-        node.Tags = utils.Extends(node.Tags, node.Parent.Name)
-        return append(node.Parent.getTags(), node.Tags...)
+    root := node.GetRoot()
+    parentFolders := FindParents(root, node, FolderNode)
+    parentTags := FindParents(root, node, TagNode)
+
+    for _, f := range parentFolders {
+        node.Tags = utils.Extends(node.Tags, f.Name)
+    }
+
+    for _, t := range parentTags {
+        node.Tags = utils.Extends(node.Tags, t.Name)
     }
 
     return node.Tags

@@ -151,8 +151,6 @@ func Test_addFolderNode(t *testing.T) {
 	// 2. Adding a child folder
 	// 3. Adding a folder that we already saw before
 
-	//TODO: Print the folder tree in the test ?
-
 	t.Run("adding firefox root folder", func(t *testing.T) {
 		testRootFolder := MozFolder{
 			Id:     3,
@@ -214,8 +212,6 @@ func Test_addFolderNode(t *testing.T) {
 	})
 }
 
-// TODO: use tag name instead of id inside the map
-//FIX: reset firefox data
 func Test_addTagNode(t *testing.T) {
     setupFirefox()
 
@@ -542,7 +538,7 @@ func Test_scanFolders(t *testing.T) {
 		for _, f := range ff.folderMap {
 			assert.Equal(t, ff.NodeTree, tree.Ancestor(f), "all folders attached to root")
 
-			//TEST: every folder in folderMap has a corresponding node in the tree
+			//every folder in folderMap has a corresponding node in the tree
 			assert.True(t, tree.FindNode(f, ff.NodeTree), "folder nodes are attached to tree")
 		}
 
@@ -592,6 +588,8 @@ func Test_FindModifiedBookmarks(t *testing.T) {
 
     newFolders := []string{"Cryptocurrencies", "NewFolder"}
 
+    //TODO!: modified folders
+
 	// Setup the appropriate test db
 	ff.BkFile = "places-modified.sqlite"
 
@@ -624,7 +622,7 @@ func Test_FindModifiedBookmarks(t *testing.T) {
 
 
                 // matching folders
-                parentFolders := tree.FindParentFolders(ff.NodeTree, urlNode)
+                parentFolders := tree.FindParents(ff.NodeTree, urlNode, tree.FolderNode)
                 pFolderNames := utils.Map(func(node *tree.Node) string{
                     return node.Name
                 }, parentFolders)
@@ -652,7 +650,7 @@ func Test_FindModifiedBookmarks(t *testing.T) {
                 assert.True(t, found, "missing tag")
 
 
-                parentFolders := tree.FindParentFolders(ff.NodeTree, urlNode)
+                parentFolders := tree.FindParents(ff.NodeTree, urlNode, tree.FolderNode)
                 pFolderNames := utils.Map(func(node *tree.Node) string{
                     return node.Name
                 }, parentFolders)
@@ -680,5 +678,5 @@ func Test_FindModifiedBookmarks(t *testing.T) {
 }
 
 func Test_FindModifiedFolders(t *testing.T) {
-   t.Error("modified folder names should change the according bookmark tags") 
+   t.Error("modified folder names should change the corresponding bookmark tags") 
 }

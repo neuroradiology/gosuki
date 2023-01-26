@@ -56,14 +56,16 @@ func (db *DB) InsertOrUpdateBookmark(bk *Bookmark) {
 		log.Error(err)
 	}
 
-    // make sure to replace the tag separator string before using it to join the tags
-    tagList := strings.Join(utils.ReplaceInList(bk.Tags, TagJoinSep, "--"), TagJoinSep)
+    // clean tags from tag separator
+    tagList := utils.ReplaceInList(bk.Tags, TagJoinSep, "--")
+
+    tagListText := strings.Join(tagList, TagJoinSep)
 
 	// First try to insert the bookmark (assume it's new)
 	_, err = tx.Stmt(tryInsertBk).Exec(
 		bk.URL,
 		bk.Metadata,
-		tagList,
+		tagListText,
 		"", 0,
 	)
 
