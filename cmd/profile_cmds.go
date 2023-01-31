@@ -19,9 +19,8 @@ var ProfileCmds = &cli.Command{
 }
 
 
-//TODO: handle profile manager browsers
-// // profile manager
-
+//TODO: only enable commands when modules which implement profiles interfaces
+// are available
 var listProfilesCmd = &cli.Command{
 	Name: "list",
 	Usage: "list available profiles",
