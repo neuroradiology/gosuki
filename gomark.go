@@ -8,7 +8,7 @@ package main
 import (
 	"os"
 
-	"git.sp4ke.xyz/sp4ke/gomark/browsers"
+	"git.sp4ke.xyz/sp4ke/gomark/modules"
 	"git.sp4ke.xyz/sp4ke/gomark/config"
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
 
@@ -49,7 +49,7 @@ func main() {
 	app.Before = func(c *cli.Context) error {
 
 		// get all registered browser modules
-		modules := browsers.Modules()
+		modules := modules.GetModules()
 		for _, mod := range modules {
 
 			// Run module's before context hooks
@@ -73,10 +73,11 @@ func main() {
 	app.Commands = []*cli.Command{
 		startServerCmd,
 		cmd.ConfigCmds,
+		cmd.ProfileCmds,
 	}
 
 	// Add global flags from registered modules
-	modules := browsers.Modules()
+	modules := modules.GetModules()
 	for _, mod := range modules {
 		modId := string(mod.ModInfo().ID)
 

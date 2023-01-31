@@ -66,7 +66,8 @@ func init() {
 	cmd.RegisterModCommand(BrowserName, FirefoxCmds)
 }
 
-func ffListProfiles(c *cli.Context) error {
+//TODO: #54 define interface for modules to handle and list profiles
+func ffListProfiles(_ *cli.Context) error {
 	profs, err := FirefoxProfileManager.GetProfiles()
 	if err != nil {
 		return err
@@ -79,7 +80,7 @@ func ffListProfiles(c *cli.Context) error {
 	return nil
 }
 
-func ffCheckVFS(c *cli.Context) error {
+func ffCheckVFS(_ *cli.Context) error {
 	err := mozilla.CheckVFSLock("path to profile")
 	if err != nil {
 		return err
@@ -88,7 +89,7 @@ func ffCheckVFS(c *cli.Context) error {
 	return nil
 }
 
-func ffUnlockVFS(c *cli.Context) error {
+func ffUnlockVFS(_ *cli.Context) error {
 	err := mozilla.UnlockPlaces("path to profile")
 	if err != nil {
 		return err

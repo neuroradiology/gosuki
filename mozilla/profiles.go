@@ -44,8 +44,8 @@ type MozProfileManager struct {
 
 func (pm *MozProfileManager) loadProfile() error {
 
-	log.Debugf("loading profile from <%s>", pm.PathGetter.Get())
-	pFile, err := ini.Load(pm.PathGetter.Get())
+	log.Debugf("loading profile from <%s>", pm.PathGetter.GetPath())
+	pFile, err := ini.Load(pm.PathGetter.GetPath())
 	if err != nil {
 		return err
 	}
@@ -75,6 +75,7 @@ func (pm *MozProfileManager) GetProfiles() ([]*profiles.Profile, error) {
 			if err != nil {
 				return nil, err
 			}
+
 
 			result = append(result, p)
 
