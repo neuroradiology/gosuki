@@ -77,6 +77,7 @@ func main() {
 	}
 
 	// Add global flags from registered modules
+	// we use GetModules to handle all types of modules
 	modules := modules.GetModules()
 	for _, mod := range modules {
 		modId := string(mod.ModInfo().ID)

@@ -41,6 +41,9 @@ func RegisterBrowser(browserMod BrowserModule) {
 	}
 
 	registeredBrowsers = append(registeredBrowsers, browserMod)
+	
+	// A browser module is also a module
+	registeredModules = append(registeredModules, browserMod)
 }
 
 func verifyModule(module Module) error {
