@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"git.sp4ke.xyz/sp4ke/gomark/browsers"
+	"git.sp4ke.xyz/sp4ke/gomark/modules"
 	"git.sp4ke.xyz/sp4ke/gomark/config"
 	"git.sp4ke.xyz/sp4ke/gomark/database"
 	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
@@ -30,9 +30,9 @@ var (
 	// This is used alongside cli_flags.go to dynamically register cli flags
 	// that can change this config (struct fields) from command line at runtime
 	FFConfig = &FirefoxConfig{
-		BrowserConfig: &browsers.BrowserConfig{
+		BrowserConfig: &modules.BrowserConfig{
 			Name:         BrowserName,
-			Type:         browsers.TFirefox,
+			Type:         modules.TFirefox,
 			BkDir:        "",
 			BkFile:       mozilla.PlacesFile,
 			WatchedPaths: []string{},
@@ -85,9 +85,9 @@ type FirefoxConfig struct {
     WatchAllProfiles bool
     Profile          string
 
-    //FIX: ignore this field in config.Configurator interface
+    //TEST: ignore this field in config.Configurator interface
 	// Embed base browser config
-    *browsers.BrowserConfig `toml:"-"`
+    *modules.BrowserConfig `toml:"-"`
 }
 
 func (fc *FirefoxConfig) Set(opt string, v interface{}) error {

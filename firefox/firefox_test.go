@@ -6,12 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/database"
 	"git.sp4ke.xyz/sp4ke/gomark/index"
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.sp4ke.xyz/sp4ke/gomark/modules"
 	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
 	"git.sp4ke.xyz/sp4ke/gomark/parsing"
+	"git.sp4ke.xyz/sp4ke/gomark/profiles"
 	"git.sp4ke.xyz/sp4ke/gomark/tree"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
 	"github.com/chenhg5/collection"
@@ -30,9 +31,9 @@ func TestMain(m *testing.M) {
 func setupFirefox() {
 	ff = Firefox{
 		FirefoxConfig: &FirefoxConfig{
-			BrowserConfig: &browsers.BrowserConfig{
+			BrowserConfig: &modules.BrowserConfig{
 				Name:     "firefox",
-				Type:     browsers.TFirefox,
+				Type:     modules.TFirefox,
 				BkFile:   mozilla.PlacesFile,
 				BkDir:    "../mozilla/testdata",
 				BufferDB: &database.DB{},
@@ -679,4 +680,9 @@ func Test_FindModifiedBookmarks(t *testing.T) {
 
 func Test_FindModifiedFolders(t *testing.T) {
    t.Error("modified folder names should change the corresponding bookmark tags") 
+}
+
+
+func TestBrowserImplProfileManager(t *testing.T) {
+	assert.Implements(t, (*profiles.ProfileManager)(nil), NewFirefox())
 }

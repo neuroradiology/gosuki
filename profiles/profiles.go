@@ -1,42 +1,35 @@
-//go:build linux
-// +build linux
-
-//
-
+// Package profiles ...
 package profiles
 
-import "path/filepath"
+
+// go:build linux
+
 
 const (
 	XDG_HOME = "XDG_CONFIG_HOME"
 )
 
+// ProfileManager is any module that can detect or list profiles, usually a browser module. 
 type ProfileManager interface {
-	ListProfiles() ([]string, error)
+	// Get all profile details
 	GetProfiles() ([]*Profile, error)
+
+	// Returns the default profile if no profile is selected
 	GetDefaultProfile() (*Profile, error)
+
+	// Return that absolute path to a profile
+	GetProfilePath(Profile) string
+
 }
 
 type Profile struct {
 	Id   string
 	Name string
+
+	// relative path to profile
 	Path string
 }
 
-func (p *Profile) GetPath() string {
-	return p.Path
-}
-
 type PathGetter interface {
-	Get() string
-}
-
-type INIProfileLoader struct {
-	// The absolute path to the directory where profiles.ini is located
-	BasePath     string
-	ProfilesFile string
-}
-
-func (pg *INIProfileLoader) Get() string {
-	return filepath.Join(pg.BasePath, pg.ProfilesFile)
+	GetPath() string
 }

@@ -1,4 +1,4 @@
-package browsers
+package modules
 
 import (
 	"fmt"
@@ -214,6 +214,8 @@ func SetupWatchersWithReducer(browserConf *BrowserConfig,
 	return true, nil
 
 }
+
+
 
 // Used to store bookmark paths and other
 // data related to a particular browser kind

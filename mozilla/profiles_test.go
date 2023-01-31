@@ -2,11 +2,23 @@ package mozilla
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var OkProfile = &INIProfileLoader{
 	BasePath:     "testdata",
 	ProfilesFile: "profiles_ok.ini",
+}
+
+var okPaths = []string{
+	"path.default",
+	"path.profile1",
+}
+
+var okNames = []string{
+	"default",
+	"profile1",
 }
 
 var BadProfile = &INIProfileLoader{
@@ -51,6 +63,7 @@ func TestListProfiles(t *testing.T) {
 func TestGetProfiles(t *testing.T) {
 	pm := &MozProfileManager{
 		PathGetter: OkProfile,
+
 	}
 
 	profs, err := pm.GetProfiles()
@@ -58,9 +71,18 @@ func TestGetProfiles(t *testing.T) {
 		t.Error(err)
 	}
 
+
+	var pPaths []string 
+	var pNames []string
 	for _, p := range profs {
-		t.Log(p)
+		pPaths = append(pPaths, p.Path)
+		pNames = append(pNames, p.Name)
+
+		//TEST: Test the absolute path
+		
 	}
+	assert.ElementsMatch(t, okPaths, pPaths)
+	assert.ElementsMatch(t, okNames, pNames)
 
 	if profs[0].Name != "default" {
 		t.Error("Expected default profile in profiles.ini")

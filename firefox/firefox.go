@@ -12,10 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"git.sp4ke.xyz/sp4ke/gomark/browsers"
 	"git.sp4ke.xyz/sp4ke/gomark/database"
 	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.sp4ke.xyz/sp4ke/gomark/modules"
 	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
+	"git.sp4ke.xyz/sp4ke/gomark/profiles"
+
+	// "git.sp4ke.xyz/sp4ke/gomark/profiles"
 	"git.sp4ke.xyz/sp4ke/gomark/tree"
 	"git.sp4ke.xyz/sp4ke/gomark/utils"
 	"git.sp4ke.xyz/sp4ke/gomark/watch"
@@ -92,6 +95,7 @@ type Firefox struct {
     folderScanMap map[sqlid]*MozFolder
 
 	lastRunTime time.Time
+
 }
 
 // func (ff *Firefox) updateModifiedFolders(since timestamp) ([]*MozFolder, error) {
@@ -242,7 +246,7 @@ func (ff *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error
 }
 
 func init() {
-	browsers.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
+	modules.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
 	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
 	// 	Name: "test",
 	// })
@@ -261,14 +265,27 @@ func NewFirefox() *Firefox {
 	}
 }
 
-func (f Firefox) ModInfo() browsers.ModInfo {
-	return browsers.ModInfo{
-		ID: browsers.ModID(f.Name),
+func (f Firefox) ModInfo() modules.ModInfo {
+	return modules.ModInfo{
+		ID: modules.ModID(f.Name),
 		//HACK: duplicate instance with init().RegisterBrowser ??
-		New: func() browsers.Module {
+		New: func() modules.Module {
 			return NewFirefox()
 		},
 	}
+}
+
+// Implement the profiles.ProfileManager interface
+func (f *Firefox) GetProfiles() ([]*profiles.Profile, error) {
+	return FirefoxProfileManager.GetProfiles()
+}
+
+func (f *Firefox) GetDefaultProfile() (*profiles.Profile, error) {
+	return FirefoxProfileManager.GetDefaultProfile()
+}
+
+func (f *Firefox) GetProfilePath(p profiles.Profile) string {
+	return filepath.Join(FirefoxProfileManager.ConfigDir, p.Path)
 }
 
 // TEST:
@@ -296,7 +313,7 @@ func (f *Firefox) Init() error {
 		ResetWatch: false,
 	}
 
-	browsers.SetupWatchersWithReducer(f.BrowserConfig, browsers.ReducerChanLen, w)
+	modules.SetupWatchersWithReducer(f.BrowserConfig, modules.ReducerChanLen, w)
 
 	/*
 	 *Run reducer to avoid duplicate jobs when a batch of events is received
@@ -313,13 +330,13 @@ func (f *Firefox) Watcher() *watch.WatchDescriptor {
 	return f.BrowserConfig.Watcher()
 }
 
-func (f Firefox) Config() *browsers.BrowserConfig {
+func (f Firefox) Config() *modules.BrowserConfig {
 	return f.BrowserConfig
 }
 
 
 // Firefox custom logic for preloading the bookmarks when the browser module
-// starts. Implements browsers.Loader interface.
+// starts. Implements modules.Loader interface.
 func (f *Firefox) Load() error {
     pc, err := f.initPlacesCopy()
     if err != nil {
@@ -376,7 +393,7 @@ func (f *Firefox) Load() error {
 	return err
 }
 
-// Implements browsers.Runner interface
+// Implements modules.Runner interface
 func (ff *Firefox) Run() {
     startRun := time.Now()
 
@@ -408,7 +425,7 @@ func (ff *Firefox) Run() {
 	ff.lastRunTime = time.Now().UTC()
 }
 
-// Implement browsers.Runner interface
+// Implement modules.Runner interface
 // TODO: lock the copied places until the RUN operation is over
 //HACK: remove
 func (f *Firefox) Runn() {
@@ -558,7 +575,7 @@ func (f *Firefox) Runn() {
 	f.lastRunTime = time.Now().UTC()
 }
 
-// Implement browsers.Shutdowner
+// Implement modules.Shutdowner
 func (f *Firefox) Shutdown() {
 	log.Debugf("shutting down ... ")
 
