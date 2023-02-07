@@ -1,4 +1,4 @@
-// Modules will allow gomark to be extended in the future.
+// Modules allow gomark to be extended in the future.
 // This file should live on it's own package or on the core pacakge
 // The goal is to allow a generic interface Module that would allow anything to
 // register as a Gomark module.

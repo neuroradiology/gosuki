@@ -1,7 +1,8 @@
 [firefox]
-  WatchAllProfiles = false
-  DefaultProfile = "default-esr"
-  [firefox.PlacesDSN]
-    _journal_mode = "WAL"
+WatchAllProfiles = false
+DefaultProfile = "default-esr"
+
+[firefox.PlacesDSN]
+_journal_mode = "WAL"
 
 [global]
