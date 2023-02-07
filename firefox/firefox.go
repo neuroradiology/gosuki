@@ -24,7 +24,6 @@ import (
 	"git.sp4ke.xyz/sp4ke/gomark/watch"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
@@ -37,15 +36,6 @@ const (
 	WatchMinJobInterval = 1500 * time.Millisecond
     TagsBranchName = mozilla.TagsBranchName // name of the `tags` branch in the node tree
 )
-
-//TODO!: delete 
-// moz_bookmarks.type
-const (
-	_ = iota
-	BkTypeURL
-	BkTypeTagFolder
-)
-
 
 type sqlid = mozilla.Sqlid
 type timestamp = int64
@@ -425,157 +415,7 @@ func (ff *Firefox) Run() {
 	ff.lastRunTime = time.Now().UTC()
 }
 
-// Implement modules.Runner interface
-// TODO: lock the copied places until the RUN operation is over
-//HACK: remove
-func (f *Firefox) Runn() {
-	startRun := time.Now()
-
-	pc, err := f.initPlacesCopy()
-	if err != nil {
-		log.Error(err)
-	}
-    defer pc.Clean()
-
-	log.Debugf("Checking changes since <%d> %s",
-		f.lastRunTime.UTC().UnixNano()/1000,
-		f.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
-
-
-	queryArgs := map[string]interface{}{
-		"not_root_tags":    []int{mozilla.RootID, mozilla.TagsID},
-		"last_runtime_utc": f.lastRunTime.UTC().UnixNano() / 1000,
-	}
-
-	query, args, err := sqlx.Named(
-		mozilla.QBookmarksChanged,
-		queryArgs,
-	)
-	if err != nil {
-		log.Error(err)
-	}
-
-	query, args, err = sqlx.In(query, args...)
-	if err != nil {
-		log.Error(err)
-	}
-
-	query = f.places.Handle.Rebind(query)
-	utils.PrettyPrint(query)
-
-	rows, err := f.places.Handle.Query(query, args...)
-	if err != nil {
-		log.Error(err)
-	}
-
-	// Found new results in places db since last time we had changes
-	// database.DebugPrintRows(rows) // WARN: This will disable reading rows
-	// TEST: implement this in a func and unit test it
-	// NOTE: this looks like a lot of code reuse in fetchUrlChanges()
-	for rows.Next() {
-		// next := rows.Next()
-		// log.Debug("next rows is: ", next)
-		// if !next {
-		//   break
-		// }
-		changedURLS := make([]string, 0)
-
-		log.Debugf("Found changes since: %s",
-			f.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
-
-		// extract bookmarks to this map
-		bookmarks := make(map[sqlid]*FFBookmark)
-
-		// record new places to this map
-		places := make(map[sqlid]*FFPlace)
-
-		// Fetch all changes into bookmarks and places maps
-		f.fetchUrlChanges(rows, bookmarks, places)
-
-		// utils.PrettyPrint(places)
-		// For each url
-		for urlId, place := range places {
-			var urlNode *tree.Node
-			changedURLS = utils.Extends(changedURLS, place.URL)
-
-			ok, urlNode := f.addUrlNode(place.URL, place.Title.String, place.Description.String)
-			if !ok {
-				log.Infof("url <%s> already in url index", place.URL)
-			}
-
-			// First get any new bookmarks
-			for bkId, bk := range bookmarks {
-
-				// if bookmark type is folder or tag
-				if bk.btype == BkTypeTagFolder &&
-
-					// Ignore root directories
-					// NOTE: TagsID change time shows last time bookmark tags
-					// whre changed ?
-					bkId != mozilla.TagsID {
-
-					log.Debugf("adding tag node %s", bk.title)
-					ok, tagNode := f.addTagNode(bk.title)
-					if !ok {
-						log.Infof("tag <%s> already in tag map", tagNode.Name)
-					}
-				}
-			}
-
-			// link tags(moz_bookmark) to urls (moz_places)
-			for _, bk := range bookmarks {
-
-				// This effectively applies the tag to the URL
-				// The tag link should have a parent over 6 and fk->urlId
-				log.Debugf("Bookmark parent %d", bk.parent)
-				if bk.fk == urlId &&
-					bk.parent > mozilla.MobileID {
-
-					// The tag node should have already been created
-					// tagNode, tagNodeExists := f.tagMap[bk.parent]
-					 tagNode, tagNodeExists := f.tagMap["bk.parent"]
-
-					if tagNodeExists && urlNode != nil {
-						log.Debugf("URL has tag %s", tagNode.Name)
-
-						urlNode.Tags = utils.Extends(urlNode.Tags, tagNode.Name)
-
-						tree.AddChild(f.tagMap["bk.parent"], urlNode)
-						//TEST: remove after testing this code section
-						// urlNode.Parent = f.tagMap[bk.parent]
-						// tree.Insert(f.tagMap[bk.parent].Children, urlNode)
-
-						f.CurrentUrlCount++
-					}
-				}
-			}
-
-		}
-
-		database.SyncURLIndexToBuffer(changedURLS, f.URLIndex, f.BufferDB)
-		f.BufferDB.SyncTo(database.Cache.DB)
-		database.Cache.DB.SyncToDisk(database.GetDBFullPath())
-
-	}
-	err = rows.Close()
-	if err != nil {
-		log.Error(err)
-	}
-
-	f.LastWatchRunTime = time.Since(startRun)
-	// log.Debugf("execution time %s", time.Since(startRun))
-
-	// tree.PrintTree(f.NodeTree) // debugging
-
-	err = f.places.Close()
-	if err != nil {
-		log.Error(err)
-	}
-
-	f.lastRunTime = time.Now().UTC()
-}
-
-// Implement modules.Shutdowner
+// Implement moduls.Shutdowner
 func (f *Firefox) Shutdown() {
 	log.Debugf("shutting down ... ")
 
@@ -797,74 +637,6 @@ func loadBookmarks(f *Firefox) {
 	}
 
 	log.Debugf("root tree children len is %d", len(f.NodeTree.Children))
-}
-
-// fetchUrlChanges method  
-// scan rows from a firefox `places.sqlite` db and extract all bookmarks and
-// places (moz_bookmarks, moz_places tables) that changed/are new since the browser.lastRunTime
-// using the QBookmarksChanged query
-func (f *Firefox) fetchUrlChanges(rows *sql.Rows,
-	bookmarks map[sqlid]*FFBookmark,
-	places map[sqlid]*FFPlace,
-) {
-	bk := &FFBookmark{}
-
-	// Get the URL that changed
-	err := rows.Scan(&bk.id, &bk.btype, &bk.fk, &bk.parent, &bk.title)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// database.DebugPrintRow(rows)
-
-	// We found URL change, urls are specified by
-	// type == 1
-	// fk -> id of url in moz_places
-	// parent == tag id
-	//
-	// Each tag on a url generates 2 or 3 entries in moz_bookmarks
-	// 1. If not existing, a (type==2) entry for the tag itself
-	// 2. A (type==1) entry for the bookmakred url with (fk -> moz_places.id)
-	// 3. A (type==1) (fk-> moz_places.id) (parent == idOf(tag))
-
-	if bk.btype == BkTypeURL {
-		var place FFPlace
-
-		// Use unsafe db to ignore non existant columns in
-		// dest field
-		udb := f.places.Handle.Unsafe()
-		err := udb.QueryRowx(mozilla.QGetBookmarkPlace, bk.fk).StructScan(&place)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		log.Debugf("Changed URL: %s", place.URL)
-		log.Debugf("%v", place)
-
-		// put url in the places map
-		places[place.ID] = &place
-	}
-
-	// This is the tag link
-	if bk.btype == BkTypeURL &&
-		// ignore original tags/folder from mozilla
-		bk.parent > mozilla.MobileID {
-
-		bookmarks[bk.id] = bk
-	}
-
-	// Tags are specified by:
-	// type == 2
-	// parent == (Id of root )
-
-	if bk.btype == BkTypeTagFolder {
-		bookmarks[bk.id] = bk
-	}
-
-	for rows.Next() {
-		f.fetchUrlChanges(rows, bookmarks, places)
-	}
-	log.Debugf("fetching changes done !")
 }
 
 // Copies places.sqlite to a tmp dir to read a VFS lock sqlite db
