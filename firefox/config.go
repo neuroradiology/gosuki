@@ -1,3 +1,4 @@
+// The bulk of firefox bookmark management is done here
 package firefox
 
 import (
