@@ -17,6 +17,7 @@ import (
 	"github.com/urfave/cli/v2"
 	// Load firefox browser modules
 	_ "git.sp4ke.xyz/sp4ke/gomark/firefox"
+	_ "git.sp4ke.xyz/sp4ke/gomark/chrome"
 )
 
 func main() {
@@ -79,6 +80,7 @@ func main() {
 	// Add global flags from registered modules
 	// we use GetModules to handle all types of modules
 	modules := modules.GetModules()
+	log.Debugf("loading %d modules", len(modules))
 	for _, mod := range modules {
 		modId := string(mod.ModInfo().ID)
 
