@@ -91,7 +91,12 @@ func (pm *MozProfileManager) GetProfilePath(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(pm.ConfigDir, p.Path), nil
+	rawPath := filepath.Join(pm.ConfigDir, p.Path)
+	fullPath , err := filepath.EvalSymlinks(rawPath)
+
+	return fullPath, err
+	
+	// Eval symlinks
 }
 
 func (pm *MozProfileManager) GetProfileByName(name string) (*profiles.Profile, error) {

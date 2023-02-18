@@ -1,4 +1,4 @@
-.PHONY: all run deps docs build test debug
+.PHONY: all run clean deps docs build test debug
 
 TARGET=gomark
 # CGO_CFLAGS="-g -O2 -Wno-return-local-addr"
