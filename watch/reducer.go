@@ -8,7 +8,7 @@ func ReduceEvents(interval time.Duration,
 	w WatchRunner) {
 	log.Debug("Running reducer")
 
-	eventsIn := w.Watcher().eventsChan
+	eventsIn := w.Watch().eventsChan
 	timer := time.NewTimer(interval)
 	var events []bool
 

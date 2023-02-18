@@ -67,6 +67,7 @@ func init() {
 }
 
 //TODO: #54 define interface for modules to handle and list profiles
+//FIX: Remove since profile listing is implemented at the main module level
 func ffListProfiles(_ *cli.Context) error {
 	profs, err := FirefoxProfileManager.GetProfiles()
 	if err != nil {

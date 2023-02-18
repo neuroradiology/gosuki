@@ -13,15 +13,15 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var startServerCmd = &cli.Command{
-	Name:    "server",
-	Aliases: []string{"s"},
+var startDaemonCmd = &cli.Command{
+	Name:    "daemon",
+	Aliases: []string{"d"},
 	Usage:   "run browser watchers",
 	// Category: "daemon"
-	Action:  startServer,
+	Action:  startDaemon,
 }
 
-func startServer(c *cli.Context) error {
+func startDaemon(c *cli.Context) error {
 	defer utils.CleanFiles()
 	manager := gum.NewManager()
 	manager.ShutdownOn(os.Interrupt)
@@ -41,6 +41,11 @@ func startServer(c *cli.Context) error {
 
 		mod := browserMod.ModInfo()
 
+		// Create context
+		modContext := &modules.Context{
+			Cli: c,
+		}
+
 		//Create a browser instance
 		browser, ok := mod.New().(modules.BrowserModule)
 		if !ok {
@@ -57,13 +62,16 @@ func startServer(c *cli.Context) error {
 		log.Debugf("new browser <%s> instance", browser.Config().Name)
 		h, ok := browser.(modules.HookRunner)
 		if ok {
-			//TODO: document hook running
+			//TODO: document hook running on watch events
 			h.RegisterHooks(parsing.ParseTags)
 		}
 
-		//TODO: call the setup logic for each browser instance
+		//TODO!: Handle multiple profiles for modules who announce it - here ?
+
+
+		// calls the setup logic for each browser instance which
 		// includes the browsers.Initializer and browsers.Loader interfaces
-		err := modules.Setup(browser)
+		err := modules.Setup(browser, modContext)
 		if err != nil {
 			log.Errorf("setting up <%s> %v", browser.Config().Name, err)
 			if isShutdowner {
@@ -78,7 +86,7 @@ func startServer(c *cli.Context) error {
 			continue
 		}
 
-		log.Infof("start watching <%s>", runner.Watcher().ID)
+		log.Infof("start watching <%s>", runner.Watch().ID)
 		watch.SpawnWatcher(runner)
 	}
 

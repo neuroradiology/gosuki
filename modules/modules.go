@@ -6,12 +6,20 @@
 // Browsers would need to register as gomark Module and as Browser interfaces
 package modules
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/urfave/cli/v2"
+)
 
 var (
 	registeredBrowsers []BrowserModule
 	registeredModules []Module
 )
+
+type Context struct {
+	Cli *cli.Context
+}
 
 // Every new module needs to register as a Module using this interface
 type Module interface {
