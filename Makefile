@@ -53,7 +53,7 @@ caddy-dep:
 	@caddy version
 
 docs:
-	@gosukidoc -u ./... > docs/API.md
+	@gomarkdoc -u ./... > docs/API.md
 
 
 test:
