@@ -6,15 +6,15 @@ import (
 	"strings"
 	"testing"
 
-	"git.sp4ke.xyz/sp4ke/gomark/database"
-	"git.sp4ke.xyz/sp4ke/gomark/index"
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/modules"
-	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
-	"git.sp4ke.xyz/sp4ke/gomark/parsing"
-	"git.sp4ke.xyz/sp4ke/gomark/profiles"
-	"git.sp4ke.xyz/sp4ke/gomark/tree"
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
+	"git.blob42.xyz/gomark/gosuki/database"
+	"git.blob42.xyz/gomark/gosuki/index"
+	"git.blob42.xyz/gomark/gosuki/logging"
+	"git.blob42.xyz/gomark/gosuki/modules"
+	"git.blob42.xyz/gomark/gosuki/mozilla"
+	"git.blob42.xyz/gomark/gosuki/parsing"
+	"git.blob42.xyz/gomark/gosuki/profiles"
+	"git.blob42.xyz/gomark/gosuki/tree"
+	"git.blob42.xyz/gomark/gosuki/utils"
 	"github.com/chenhg5/collection"
 	"github.com/stretchr/testify/assert"
 )
@@ -82,7 +82,7 @@ func Test_addUrlNode(t *testing.T) {
 		title string
 		desc  string
 	}{
-		url:   "http://test-url.gomark",
+		url:   "http://test-url.gosuki",
 		id:    24,
 		title: "test url",
 		desc:  "desc of test url",
@@ -328,7 +328,7 @@ func Test_scanBookmarks(t *testing.T) {
 			"cooking",
 			"Travel",
 			"indian",
-			"GomarkMenu",
+			"GosukiMenu",
 		},
 
 		bookmarkTags: map[string][]string{
@@ -336,7 +336,7 @@ func Test_scanBookmarks(t *testing.T) {
 			"https://go.dev/":                                     {"golang", "programming"},
 			"https://www.rust-lang.org/":                          {"programming", "rust", "systems"},
 			"https://www.tasteofhome.com/article/indian-cooking/": {},
-			"http://gomark.io/":                                   {"gomark"},
+			"http://gosuki.io/":                                   {"gosuki"},
 			"https://www.budapestinfo.hu/":                        {"budapest"},
 			"https://www.fsf.org/":                                {"libre"},
 		},
@@ -511,7 +511,7 @@ func Test_scanFolders(t *testing.T) {
 		"cooking",
 		"Travel",
 		"indian",
-		"GomarkMenu",
+		"GosukiMenu",
 	}
 
 	runPlacesTest("scan all folders", t, func(t *testing.T) {

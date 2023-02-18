@@ -1,7 +1,7 @@
 package main
 
 import (
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.blob42.xyz/gomark/gosuki/logging"
 )
 
 var (

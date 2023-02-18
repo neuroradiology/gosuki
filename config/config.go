@@ -5,7 +5,7 @@ package config
 import (
 	"os"
 
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.blob42.xyz/gomark/gosuki/logging"
 
 	"github.com/BurntSushi/toml"
 )

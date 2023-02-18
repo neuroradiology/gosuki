@@ -1,11 +1,12 @@
-module git.sp4ke.xyz/sp4ke/gomark
+module git.blob42.xyz/gomark/gosuki
 
 go 1.18
 
 require (
-	git.sp4ke.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17
+	git.blob42.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17
 	github.com/BurntSushi/toml v1.2.1
 	github.com/OneOfOne/xxhash v1.2.8
+	github.com/chenhg5/collection v0.0.0-20200925143926-f403b87088f9
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gin-gonic/gin v1.8.1
@@ -24,7 +25,6 @@ require (
 )
 
 require (
-	github.com/chenhg5/collection v0.0.0-20200925143926-f403b87088f9 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

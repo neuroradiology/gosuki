@@ -1,8 +1,8 @@
 package main
 
 import (
-	"git.sp4ke.xyz/sp4ke/gomark/config"
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
+	"git.blob42.xyz/gomark/gosuki/config"
+	"git.blob42.xyz/gomark/gosuki/utils"
 )
 
 func initDefaultConfig() {

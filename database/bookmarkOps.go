@@ -3,8 +3,8 @@ package database
 import (
 	"strings"
 
-	"git.sp4ke.xyz/sp4ke/gomark/bookmarks"
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
+	"git.blob42.xyz/gomark/gosuki/bookmarks"
+	"git.blob42.xyz/gomark/gosuki/utils"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
 )

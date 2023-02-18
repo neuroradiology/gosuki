@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	TestDB = "testdata/gomarkdb_test.sqlite"
+	TestDB = "testdata/gosukidb_test.sqlite"
 )
 
 func TestNew(t *testing.T) {
@@ -150,12 +150,12 @@ func TestInitLocked(t *testing.T) {
 
 }
 
-func TestSyncFromGomarkDB(t *testing.T) {
-	t.Error("sync from gomark db")
+func TestSyncFromGosukiDB(t *testing.T) {
+	t.Error("sync from gosuki db")
 }
 
-func TestSyncToGomarkDB(t *testing.T) {
-	t.Error("sync to gomark db")
+func TestSyncToGosukiDB(t *testing.T) {
+	t.Error("sync to gosuki db")
 }
 
 func TestMain(m *testing.M) {

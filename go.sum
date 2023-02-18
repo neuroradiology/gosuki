@@ -1,5 +1,5 @@
-git.sp4ke.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17 h1:PdgZxIZDSe7LzlkOnT7hRyDcm0w0r7e8L6R+jaO0++8=
-git.sp4ke.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17/go.mod h1:BxrdNe2TLgJujV/povcuZrhMNCDBsjvnkOTxGGETBz4=
+git.blob42.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17 h1:3J8q29ZO2DJ2lWJDg3pk+xOoQ4lWbAaPpgHnTIR0Di8=
+git.blob42.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17/go.mod h1:KH0fTf800bIw6glahP/WNDnPlZYfqgdEvRWOPg39CvQ=
 github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak=
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/DusanKasan/hashmap v0.0.0-20170501124128-8d9a00825b33 h1:WT2Ogw/ychz4Lyrgct7i4cgO4FpZ9OkixjIJ/dFmZRg=
@@ -70,6 +70,7 @@ github.com/leodido/go-urn v1.2.1/go.mod h1:zt4jvISO2HfUBqxjfIshjdMTYS56ZS/qv49ic
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.2.0 h1:LXpIM/LZ5xGFhOpXAQUIMM1HdyqzVYM13zNdjCEEcA0=
 github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
+github.com/magiconair/properties v1.8.1 h1:ZC2Vc7/ZFkGmsVC9KvOjumD+G5lXy2RtTKyzRKO2BQ4=
 github.com/magiconair/properties v1.8.1/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/mattn/go-isatty v0.0.16 h1:bq3VjFmv/sOjHtdEhmkEV4x1AJtvUvOJ2PFAZ5+peKQ=
 github.com/mattn/go-isatty v0.0.16/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=

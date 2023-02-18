@@ -5,10 +5,10 @@ package firefox
 import (
 	"fmt"
 
-	"git.sp4ke.xyz/sp4ke/gomark/cmd"
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
+	"git.blob42.xyz/gomark/gosuki/cmd"
+	"git.blob42.xyz/gomark/gosuki/logging"
+	"git.blob42.xyz/gomark/gosuki/mozilla"
+	"git.blob42.xyz/gomark/gosuki/utils"
 
 	"github.com/urfave/cli/v2"
 )
