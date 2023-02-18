@@ -1,6 +1,6 @@
 .PHONY: all run clean deps docs build test debug
 
-TARGET=gomark
+TARGET=gosuki
 # CGO_CFLAGS="-g -O2 -Wno-return-local-addr"
 SRC := .
 NVM_VERSIONS := $(HOME)/.config/nvm/versions/node
@@ -53,7 +53,7 @@ caddy-dep:
 	@caddy version
 
 docs:
-	@gomarkdoc -u ./... > docs/API.md
+	@gosukidoc -u ./... > docs/API.md
 
 
 test:

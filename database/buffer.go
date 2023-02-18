@@ -3,7 +3,7 @@ package database
 import (
 	"fmt"
 
-	"git.sp4ke.xyz/sp4ke/gomark/tree"
+	"git.blob42.xyz/gomark/gosuki/tree"
 )
 
 func NewBuffer(name string) (*DB, error) {

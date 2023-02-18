@@ -12,16 +12,16 @@ import (
 	"strings"
 	"time"
 
-	"git.sp4ke.xyz/sp4ke/gomark/database"
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/modules"
-	"git.sp4ke.xyz/sp4ke/gomark/mozilla"
-	"git.sp4ke.xyz/sp4ke/gomark/profiles"
+	"git.blob42.xyz/gomark/gosuki/database"
+	"git.blob42.xyz/gomark/gosuki/logging"
+	"git.blob42.xyz/gomark/gosuki/modules"
+	"git.blob42.xyz/gomark/gosuki/mozilla"
+	"git.blob42.xyz/gomark/gosuki/profiles"
 
-	// "git.sp4ke.xyz/sp4ke/gomark/profiles"
-	"git.sp4ke.xyz/sp4ke/gomark/tree"
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
-	"git.sp4ke.xyz/sp4ke/gomark/watch"
+	// "git.blob42.xyz/gomark/gosuki/profiles"
+	"git.blob42.xyz/gomark/gosuki/tree"
+	"git.blob42.xyz/gomark/gosuki/utils"
+	"git.blob42.xyz/gomark/gosuki/watch"
 
 	"github.com/fsnotify/fsnotify"
 	sqlite3 "github.com/mattn/go-sqlite3"
@@ -277,7 +277,7 @@ func (f *Firefox) GetProfilePath(p profiles.Profile) string {
 
 // TEST:
 // TODO: implement watching of multiple profiles
-// NOTE: should be done at core gomark level where multiple instances
+// NOTE: should be done at core gosuki level where multiple instances
 //			are spawned for each profile
 // Implements browser.Initializer interface
 func (f *Firefox) Init(ctx *modules.Context) error {
@@ -509,7 +509,7 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
 	if seen {
 		// Update folder name if changed
 
-		//TODO!: trigger bookmark tag change in gomarks.db
+		//TODO!: trigger bookmark tag change in gosuki.db
 		if folderNode.Name != folder.Title &&
 			// Ignore root folders since we use our custom names
 			!utils.InList([]int{2, 3, 5, 6}, int(folder.Id)) {
@@ -562,7 +562,7 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
 
 // TODO: retire this function after scanBookmarks() is implemented
 // load all bookmarks from `places.sqlite` and store them in BaseBrowser.NodeTree
-// this method is used the first time gomark is started or to extract bookmarks
+// this method is used the first time gosuki is started or to extract bookmarks
 // using a command
 func loadBookmarks(f *Firefox) {
 	log.Debugf("root tree children len is %d", len(f.NodeTree.Children))

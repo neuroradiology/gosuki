@@ -3,10 +3,10 @@ package tree
 import (
 	"fmt"
 
-	"git.sp4ke.xyz/sp4ke/gomark/bookmarks"
-	"git.sp4ke.xyz/sp4ke/gomark/index"
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
+	"git.blob42.xyz/gomark/gosuki/bookmarks"
+	"git.blob42.xyz/gomark/gosuki/index"
+	"git.blob42.xyz/gomark/gosuki/logging"
+	"git.blob42.xyz/gomark/gosuki/utils"
 	"github.com/kr/pretty"
 
 	"github.com/xlab/treeprint"

@@ -5,7 +5,7 @@ import (
 	"path"
 	"time"
 
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
+	"git.blob42.xyz/gomark/gosuki/utils"
 )
 
 // Constants representing the meaning if IDs defined in the table

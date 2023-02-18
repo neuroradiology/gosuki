@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/profiles"
+	"git.blob42.xyz/gomark/gosuki/logging"
+	"git.blob42.xyz/gomark/gosuki/profiles"
 
 	"github.com/go-ini/ini"
 )

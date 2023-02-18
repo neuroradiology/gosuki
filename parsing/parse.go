@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"time"
 
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/tree"
+	"git.blob42.xyz/gomark/gosuki/logging"
+	"git.blob42.xyz/gomark/gosuki/tree"
 )
 
 type Node = tree.Node

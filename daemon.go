@@ -3,12 +3,12 @@ package main
 import (
 	"os"
 
-	"git.sp4ke.xyz/sp4ke/gomark/modules"
-	"git.sp4ke.xyz/sp4ke/gomark/parsing"
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
-	"git.sp4ke.xyz/sp4ke/gomark/watch"
+	"git.blob42.xyz/gomark/gosuki/modules"
+	"git.blob42.xyz/gomark/gosuki/parsing"
+	"git.blob42.xyz/gomark/gosuki/utils"
+	"git.blob42.xyz/gomark/gosuki/watch"
 
-	"git.sp4ke.xyz/sp4ke/gum"
+	"git.blob42.xyz/sp4ke/gum"
 
 	"github.com/urfave/cli/v2"
 )

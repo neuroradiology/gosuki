@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"strings"
 
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
-	"git.sp4ke.xyz/sp4ke/gomark/tree"
+	"git.blob42.xyz/gomark/gosuki/logging"
+	"git.blob42.xyz/gomark/gosuki/tree"
 
 	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"
@@ -30,13 +30,13 @@ type Node = tree.Node
 var log = logging.GetLogger("DB")
 
 const (
-	DBFileName = "gomarks.db"
+	DBFileName = "gosuki.db"
 
 	DBTypeFileDSN = "file:%s"
 
 	DriverBackupMode = "sqlite_hook_backup"
 	DriverDefault    = "sqlite3"
-	GomarkMainTable  = "bookmarks"
+	GosukiMainTable  = "bookmarks"
 )
 
 type DBType int
@@ -46,9 +46,9 @@ const (
 	DBTypeRegularFile
 )
 
-// Differentiate between gomarkdb.sqlite and other sqlite DBs
+// Differentiate between gosukidb.sqlite and other sqlite DBs
 const (
-	DBGomark DBType = iota
+	DBGosuki DBType = iota
 	DBForeign
 )
 
@@ -60,7 +60,7 @@ const (
 	// flags: designed to be extended in future using bitwise masks
 	// Masks:
 	//     0b00000001: set title immutable ((do not change title when updating the bookmarks from the web ))
-	QCreateGomarkDBSchema = `
+	QCreateGosukiDBSchema = `
     CREATE TABLE if not exists bookmarks (
 		id integer PRIMARY KEY,
 		URL text NOT NULL UNIQUE,
@@ -218,7 +218,7 @@ func NewDB(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB 
 // TODO: Should check if DB is locked
 // We should export Open() in its own method and wrap
 // with interface so we can mock it and test the lock status in Init()
-// Initialize a sqlite database with Gomark Schema if not already done
+// Initialize a sqlite database with Gosuki Schema if not already done
 func (db *DB) Init() (*DB, error) {
 
 	var err error
@@ -270,7 +270,7 @@ func (db *DB) InitSchema() error {
 		return DBError{DBName: db.Name, Err: err}
 	}
 
-	stmt, err := tx.Prepare(QCreateGomarkDBSchema)
+	stmt, err := tx.Prepare(QCreateGosukiDBSchema)
 	if err != nil {
 		return DBError{DBName: db.Name, Err: err}
 	}

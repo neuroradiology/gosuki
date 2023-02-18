@@ -7,7 +7,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.blob42.xyz/gomark/gosuki/logging"
 )
 
 var (
@@ -70,7 +70,7 @@ func CleanFiles() {
 
 func init() {
 	var err error
-	TMPDIR, err = ioutil.TempDir("", "gomark*")
+	TMPDIR, err = ioutil.TempDir("", "gosuki*")
 	if err != nil {
 		log.Fatal(err)
 	}

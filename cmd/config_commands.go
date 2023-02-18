@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"git.sp4ke.xyz/sp4ke/gomark/config"
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.blob42.xyz/gomark/gosuki/config"
+	"git.blob42.xyz/gomark/gosuki/logging"
 
 	"github.com/kr/pretty"
 	"github.com/urfave/cli/v2"

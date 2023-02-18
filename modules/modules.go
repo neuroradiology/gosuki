@@ -1,9 +1,9 @@
-// Modules allow gomark to be extended in the future.
+// Modules allow gosuki to be extended in the future.
 // This file should live on it's own package or on the core pacakge
 // The goal is to allow a generic interface Module that would allow anything to
-// register as a Gomark module.
+// register as a Gosuki module.
 //
-// Browsers would need to register as gomark Module and as Browser interfaces
+// Browsers would need to register as gosuki Module and as Browser interfaces
 package modules
 
 import (
@@ -36,7 +36,7 @@ type BrowserModule interface {
 type ModInfo struct {
 	ID ModID // Id of this module
 
-	// New returns a pointer to a new instance of a gomark module.
+	// New returns a pointer to a new instance of a gosuki module.
 	// Browser modules MUST implement this method.
 	New func() Module
 }
@@ -59,7 +59,7 @@ func verifyModule(module Module) error {
 
 	mod := module.ModInfo()
 	if mod.ID == "" {
-		err = errors.New("gomark module ID is missing")
+		err = errors.New("gosuki module ID is missing")
 	}
 	if mod.New == nil {
 		err = errors.New("missing ModInfo.New")

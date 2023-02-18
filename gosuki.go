@@ -1,27 +1,27 @@
-// # Gomark documentation
+// # Gosuki documentation
 package main
 
 import (
 	"os"
 
-	"git.sp4ke.xyz/sp4ke/gomark/modules"
-	"git.sp4ke.xyz/sp4ke/gomark/config"
-	"git.sp4ke.xyz/sp4ke/gomark/logging"
+	"git.blob42.xyz/gomark/gosuki/modules"
+	"git.blob42.xyz/gomark/gosuki/config"
+	"git.blob42.xyz/gomark/gosuki/logging"
 
-	"git.sp4ke.xyz/sp4ke/gomark/cmd"
+	"git.blob42.xyz/gomark/gosuki/cmd"
 
 	"github.com/urfave/cli/v2"
 
 	// Load firefox browser modules
-	_ "git.sp4ke.xyz/sp4ke/gomark/firefox"
+	_ "git.blob42.xyz/gomark/gosuki/firefox"
 
 	// Load chrome browser module
-	_ "git.sp4ke.xyz/sp4ke/gomark/chrome"
+	_ "git.blob42.xyz/gomark/gosuki/chrome"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "gomark"
+	app.Name = "gosuki"
 	app.Version = version()
 
 	flags := []cli.Flag{
@@ -35,7 +35,7 @@ func main() {
         &cli.IntFlag{
         	Name:        "debug",
         	Aliases:     []string{"d"},
-        	EnvVars:     []string{logging.EnvGomarkDebug},
+        	EnvVars:     []string{logging.EnvGosukiDebug},
             Action: func (c *cli.Context, val int) error {
                 logging.SetMode(val)
                 return nil

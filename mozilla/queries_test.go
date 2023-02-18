@@ -3,8 +3,8 @@ package mozilla
 import (
 	"testing"
 
-	"git.sp4ke.xyz/sp4ke/gomark/database"
-	"git.sp4ke.xyz/sp4ke/gomark/utils"
+	"git.blob42.xyz/gomark/gosuki/database"
+	"git.blob42.xyz/gomark/gosuki/utils"
 	"github.com/gchaincl/dotsql"
 	_ "github.com/kr/pretty"
 	"github.com/swithek/dotsqlx"

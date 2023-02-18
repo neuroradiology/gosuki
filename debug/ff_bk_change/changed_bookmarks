@@ -1,4 +1,4 @@
-	-- gomark does not scan the title to FFBookmark struct
+	-- gosuki does not scan the title to FFBookmark struct
 	SELECT id,type,IFNULL(fk, -1) AS fk ,parent,IFNULL(title, '') AS title from moz_bookmarks
 	WHERE(lastModified > 1663875146551061
 		AND lastModified < strftime('%s', 'now')*1000*1000

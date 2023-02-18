@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"git.sp4ke.xyz/sp4ke/gomark/bookmarks"
-	"git.sp4ke.xyz/sp4ke/gomark/database"
+	"git.blob42.xyz/gomark/gosuki/bookmarks"
+	"git.blob42.xyz/gomark/gosuki/database"
 
-	"git.sp4ke.xyz/sp4ke/gum"
+	"git.blob42.xyz/sp4ke/gum"
 	"github.com/gin-gonic/gin"
 )
 
