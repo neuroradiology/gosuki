@@ -21,7 +21,7 @@ type ResetWatcher interface {
 // Required interface to be implemented by browsers that want to use the
 // fsnotify event loop and watch changes on bookmark files.
 type Watcher interface {
-	Watcher() *WatchDescriptor
+	Watch() *WatchDescriptor
 }
 
 type Runner interface {
@@ -97,7 +97,7 @@ type Watch struct {
 }
 
 func SpawnWatcher(w WatchRunner) {
-    watcher := w.Watcher()
+    watcher := w.Watch()
     if ! watcher.isWatching {
         go WatcherThread(w)
         watcher.isWatching = true
@@ -112,7 +112,7 @@ func SpawnWatcher(w WatchRunner) {
 // Main thread for watching file changes
 func WatcherThread(w WatchRunner) {
 
-	watcher := w.Watcher()
+	watcher := w.Watch()
 	log.Infof("<%s> Started watcher", watcher.ID)
 	for {
 		// Keep watcher here as it is reset from within

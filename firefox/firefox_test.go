@@ -97,7 +97,7 @@ func Test_addUrlNode(t *testing.T) {
 	testNewUrl := "new urlNode: url is not yet in URLIndex"
 
 	t.Run(testNewUrl, func(t *testing.T) {
-		ok, urlNode := ff.addUrlNode(testUrl.url, testUrl.title, testUrl.desc)
+		ok, urlNode := ff.addURLNode(testUrl.url, testUrl.title, testUrl.desc)
 		if !ok {
 			t.Fatalf("expected %v, got %v", true, false)
 		}
@@ -118,8 +118,8 @@ func Test_addUrlNode(t *testing.T) {
 
 	testUrlExists := "return existing urlNode found in URLIndex"
 	t.Run(testUrlExists, func(t *testing.T) {
-		_, origNode := ff.addUrlNode(testUrl.url, testUrl.title, testUrl.desc)
-		ok, urlNode := ff.addUrlNode(testUrl.url, testUrl.title, testUrl.desc)
+		_, origNode := ff.addURLNode(testUrl.url, testUrl.title, testUrl.desc)
+		ok, urlNode := ff.addURLNode(testUrl.url, testUrl.title, testUrl.desc)
 		if ok {
 			t.Fatalf("expected %v, got %v", false, true)
 		}

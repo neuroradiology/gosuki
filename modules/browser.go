@@ -72,7 +72,7 @@ type BrowserConfig struct {
 	parseHooks []parsing.Hook
 }
 
-func (browserconfig *BrowserConfig) Watcher() *watch.WatchDescriptor {
+func (browserconfig *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
 	return browserconfig.watcher
 }
 
@@ -118,15 +118,15 @@ type Loader interface {
 	Load() error
 }
 
-// Initialize the browser before any data loading or run callbacks
-// If a browser wants to do any preparation and prepare custom state before Loader.Load()
+// Initialize the module before any data loading or callbacks
+// If a module wants to do any preparation and prepare custom state before Loader.Load()
 // is called and before any Watchable.Run() or other callbacks are executed.
 type Initializer interface {
 
 	// Init() is the first method called after a browser instance is created
 	// and registered.
 	// Return ok, error
-	Init() error
+	Init(*Context) error
 }
 
 // Every browser is setup once, the following methods are called in order of
@@ -135,7 +135,7 @@ type Initializer interface {
 // 0- Provision: Sets up and custom configiguration to the browser
 // 1- Init : any variable and state initialization
 // 2- Load: Does the first loading of data (ex first loading of bookmarks )
-func Setup(browser BrowserModule) error {
+func Setup(browser BrowserModule, c *Context) error {
 
 	//TODO!: default init
 	// Init browsers' BufferDB
@@ -155,11 +155,14 @@ func Setup(browser BrowserModule) error {
 	initializer, ok := browser.(Initializer)
 	if ok {
 		log.Debugf("<%s> custom init", browserId)
-		if err := initializer.Init(); err != nil {
+		if err := initializer.Init(c); err != nil {
 			return fmt.Errorf("<%s> initialization error: %v", browserId, err)
 		}
 
+	} else {
+		log.Warningf("<%s> does not implement Initializer, not calling Init()", browserId)
 	}
+
 
 	// Default browser loading logic
 	// Make sure that cache is initialized

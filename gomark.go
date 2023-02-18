@@ -1,8 +1,4 @@
-// ### API Usage:
-// - Init Mode (debug, release) and Logging
-// - Create a Browser object for each browser using `New[BrowserType]()`
-// - Call `Load()` and `Watch()` on every browser
-// - Run the gin server
+// # Gomark documentation
 package main
 
 import (
@@ -15,8 +11,11 @@ import (
 	"git.sp4ke.xyz/sp4ke/gomark/cmd"
 
 	"github.com/urfave/cli/v2"
+
 	// Load firefox browser modules
 	_ "git.sp4ke.xyz/sp4ke/gomark/firefox"
+
+	// Load chrome browser module
 	_ "git.sp4ke.xyz/sp4ke/gomark/chrome"
 )
 
@@ -53,7 +52,7 @@ func main() {
 		modules := modules.GetModules()
 		for _, mod := range modules {
 
-			// Run module's before context hooks
+			// Run module's hooks that should run before context is ready
 			// for example setup flags management
 			err := cmd.BeforeHook(string(mod.ModInfo().ID))(c)
 			if err != nil {
@@ -72,7 +71,7 @@ func main() {
 	// Browser modules can register commands through cmd.RegisterModCommand.
 	// registered commands will be appended here
 	app.Commands = []*cli.Command{
-		startServerCmd,
+		startDaemonCmd,
 		cmd.ConfigCmds,
 		cmd.ProfileCmds,
 	}
@@ -83,6 +82,7 @@ func main() {
 	log.Debugf("loading %d modules", len(modules))
 	for _, mod := range modules {
 		modId := string(mod.ModInfo().ID)
+		log.Debugf("loading module <%s>", modId)
 
 		// for each registered module, register own flag management
 		mod_flags := cmd.GlobalFlags(modId)
