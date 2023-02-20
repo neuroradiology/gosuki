@@ -26,10 +26,7 @@ const (
 
 var (
 
-	// Global Firefox Config state.  it implements the Configurator interface
-	// which allows it to register and set field through the Configurator.
-	// This is used alongside cli_flags.go to dynamically register cli flags
-	// that can change this config (struct fields) from command line at runtime
+	// firefox global config state.  
 	FFConfig = &FirefoxConfig{
 		BrowserConfig: &modules.BrowserConfig{
 			Name:         BrowserName,
@@ -74,12 +71,16 @@ func init() {
 	//BUG: initFirefoxConfig is is called too early
 	config.RegisterConfReadyHooks(initFirefoxConfig)
 }
-
-// Schema for config parameters to pass on to firefox that can be overriden by
-// users. Options defined here will automatically supported in the
-// config.toml file as well as the command line flags.
-// New command line flags or config file options will only be accepted if they
-// are defined here.
+// FirefoxConfig implements the Configurator interface
+// which allows it to register and set field through the Configurator.
+//
+// It is also used alongside cli_flags.go to dynamically register cli flags
+// that can change this config (struct fields) from command line at runtime.
+//
+// The struct schema defines the parameters to pass on to firefox that can be
+// overriden by users. Options defined here will automatically supported in the
+// config.toml file as well as the command line flags. New command line flags or
+// config file options will only be accepted if they are defined here.
 type FirefoxConfig struct {
 	// Default data source name query options for `places.sqlite` db
     PlacesDSN        database.DsnOptions
