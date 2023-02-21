@@ -1,6 +1,4 @@
 .python-version
-gomarks.db
-gomark
 node_modules
 .cache
 dist
@@ -14,3 +12,4 @@ places.sqlite-shm
 places.sqlite-wal
 _maintest.go
 gosuki
+gosuki.db
