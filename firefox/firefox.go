@@ -4,7 +4,6 @@
 package firefox
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"path"
@@ -44,23 +43,6 @@ type AutoIncr struct {
 	ID sqlid
 }
 
-// TODO!: remove
-type FFPlace struct {
-	URL         string         `db:"url"`
-	Description sql.NullString `db:"description"`
-	Title       sql.NullString `db:"title"`
-	AutoIncr
-}
-
-// TODO!: replace by MergedPlaceBookmark and MozBookmark below
-type FFBookmark struct {
-	btype  sqlid
-	parent sqlid
-	fk     sqlid
-	title  string
-	id     sqlid
-}
-
 type MozBookmark = mozilla.MozBookmark
 type MozFolder = mozilla.MozFolder
 
@@ -96,34 +78,34 @@ type Firefox struct {
 
 // scan all folders from moz_bookmarks and load them into the node tree
 // takes a timestamp(int64) parameter to select folders based on last modified date
-func (ff *Firefox) scanFolders(since timestamp) ([]*MozFolder, error) {
+func (f *Firefox) scanFolders(since timestamp) ([]*MozFolder, error) {
 
 	var folders []*MozFolder
-	ff.folderScanMap = make(map[sqlid]*MozFolder)
+	f.folderScanMap = make(map[sqlid]*MozFolder)
 
 	folderQueryArgs := map[string]interface{}{
 		"change_since": since,
 	}
 
-	boundQuery, args, err := ff.places.Handle.BindNamed(mozilla.QFolders, folderQueryArgs)
+	boundQuery, args, err := f.places.Handle.BindNamed(mozilla.QFolders, folderQueryArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ff.places.Handle.Select(&folders, boundQuery, args...)
+	err = f.places.Handle.Select(&folders, boundQuery, args...)
 	if err != nil {
 		return nil, err
 	}
 
 	// store all folders in a hashmap for easier tree construction
 	for _, folder := range folders {
-		ff.folderScanMap[folder.Id] = folder
+		f.folderScanMap[folder.Id] = folder
 	}
 
 	for _, folder := range folders {
 		// Ignore the `tags` virtual folder
 		if folder.Id != 4 {
-			ff.addFolderNode(*folder)
+			f.addFolderNode(*folder)
 		}
 	}
 
@@ -132,11 +114,11 @@ func (ff *Firefox) scanFolders(since timestamp) ([]*MozFolder, error) {
 
 // load bookmarks and tags into the node tree then attach them to
 // their assigned folder hierarchy
-func (ff *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
+func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
 
 	for _, bkEntry := range bookmarks {
 		// Create/Update URL node and apply tag node
-		ok, urlNode := ff.addURLNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
+		ok, urlNode := f.addURLNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
 		if !ok {
 			log.Infof("url <%s> already in url index", bkEntry.Url)
 		}
@@ -149,7 +131,7 @@ func (ff *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
 			if tagName == "" {
 				continue
 			}
-			seen, tagNode := ff.addTagNode(tagName)
+			seen, tagNode := f.addTagNode(tagName)
 			if !seen {
 				log.Infof("tag <%s> already in tag map", tagNode.Name)
 			}
@@ -159,14 +141,14 @@ func (ff *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
 
 			// Add URL node as child of Tag node
 			// Parent will be a folder or nothing?
-			tree.AddChild(ff.tagMap[tagNode.Name], urlNode)
+			tree.AddChild(f.tagMap[tagNode.Name], urlNode)
 
-			ff.CurrentUrlCount++
+			f.CurrentUrlCount++
 		}
 
 		// Link this URL node to its corresponding folder node if it exists.
 		//TODO: add all parent folders in the tags list of this url node
-		folderNode, fOk := ff.folderMap[bkEntry.ParentId]
+		folderNode, fOk := f.folderMap[bkEntry.ParentId]
 		// If we found the parent folder
 		if fOk {
 			tree.AddChild(folderNode, urlNode)
@@ -175,10 +157,10 @@ func (ff *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
 }
 
 // scans bookmarks from places.sqlite and loads them into the node tree
-func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
+func (f *Firefox) scanBookmarks() ([]*MozBookmark, error) {
 
 	// scan folders and load them into node tree
-	_, err := ff.scanFolders(0)
+	_, err := f.scanFolders(0)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +171,7 @@ func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = dotx.Select(ff.places.Handle, &bookmarks, mozilla.MozBookmarkQuery)
+	err = dotx.Select(f.places.Handle, &bookmarks, mozilla.MozBookmarkQuery)
 
 	// load bookmarks and tags into the node tree
 	// then attach them to their assigned folder hierarchy
@@ -197,9 +179,9 @@ func (ff *Firefox) scanBookmarks() ([]*MozBookmark, error) {
 	return bookmarks, err
 }
 
-func (ff *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error) {
+func (f *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error) {
 	// scan new/modifed folders and load them into node tree
-	_, err := ff.scanFolders(since)
+	_, err := f.scanFolders(since)
 	// tree.PrintTree(ff.NodeTree)
 	if err != nil {
 		return nil, err
@@ -219,12 +201,12 @@ func (ff *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error
 	}
 
 	// query, args, err := dotx.NamedQuery(ff.places.Handle, mozilla.MozChangedBookmarkQuery, queryArgs)
-	boundQuery, args, err := dotx.BindNamed(ff.places.Handle, mozilla.MozChangedBookmarkQuery, queryArgs)
+	boundQuery, args, err := dotx.BindNamed(f.places.Handle, mozilla.MozChangedBookmarkQuery, queryArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ff.places.Handle.Select(&bookmarks, boundQuery, args...)
+	err = f.places.Handle.Select(&bookmarks, boundQuery, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -232,6 +214,7 @@ func (ff *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error
 	return bookmarks, err
 }
 
+// init is required to register the module as a plugin when it is imported
 func init() {
 	modules.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
 	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
@@ -425,8 +408,8 @@ func (f *Firefox) Shutdown() {
 	}
 }
 
-func (ff *Firefox) getPathToPlacesCopy() string {
-	return path.Join(utils.TMPDIR, ff.BkFile)
+func (f *Firefox) getPathToPlacesCopy() string {
+	return path.Join(utils.TMPDIR, f.BkFile)
 }
 
 // HACK: addUrl and addTag share a lot of code, find a way to reuse shared code
@@ -460,11 +443,11 @@ func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 // adds a new tagNode if it is not yet in the tagMap
 // returns true if tag added or false if already existing
 // returns the created tagNode
-func (ff *Firefox) addTagNode(tagName string) (bool, *tree.Node) {
+func (f *Firefox) addTagNode(tagName string) (bool, *tree.Node) {
 	// Check if "tags" branch exists or create it
 	var branchOk bool
 	var tagsBranch *tree.Node
-	for _, c := range ff.NodeTree.Children {
+	for _, c := range f.NodeTree.Children {
 		if c.Name == TagsBranchName {
 			branchOk = true
 			tagsBranch = c
@@ -475,11 +458,11 @@ func (ff *Firefox) addTagNode(tagName string) (bool, *tree.Node) {
 		tagsBranch = &tree.Node{
 			Name: TagsBranchName,
 		}
-		tree.AddChild(ff.NodeTree, tagsBranch)
+		tree.AddChild(f.NodeTree, tagsBranch)
 	}
 
 	// node, exists :=
-	node, exists := ff.tagMap[tagName]
+	node, exists := f.tagMap[tagName]
 	if exists {
 		return false, node
 	}
@@ -487,24 +470,24 @@ func (ff *Firefox) addTagNode(tagName string) (bool, *tree.Node) {
 	tagNode := &tree.Node{
 		Name:   tagName,
 		Type:   tree.TagNode,
-		Parent: ff.NodeTree, // root node
+		Parent: f.NodeTree, // root node
 	}
 
 	tree.AddChild(tagsBranch, tagNode)
-	ff.tagMap[tagName] = tagNode
-	ff.CurrentNodeCount++
+	f.tagMap[tagName] = tagNode
+	f.CurrentNodeCount++
 
 	return true, tagNode
 }
 
 // add a folder node to the parsed node tree under the specified folder parent
 // returns true if a new folder is created and false if folder already exists
-func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
+func (f *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
 
 	// use hashmap.RBTree to keep an index of scanned folders pointing
 	// to their corresponding nodes in the tree
 
-	folderNode, seen := ff.folderMap[folder.Id]
+	folderNode, seen := f.folderMap[folder.Id]
 
 	if seen {
 		// Update folder name if changed
@@ -531,13 +514,13 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
 	// then add it to the root node
 	if utils.InList([]int{2, 3, 5, 6}, int(folder.Id)) {
 		folderNode.Name = mozilla.RootFolderNames[folder.Id]
-		tree.AddChild(ff.NodeTree, folderNode)
+		tree.AddChild(f.NodeTree, folderNode)
 	} else {
 		folderNode.Name = folder.Title
 	}
 
 	// check if folder's parent is already in the tree
-	fParent, ok := ff.folderMap[folder.Parent]
+	fParent, ok := f.folderMap[folder.Parent]
 
 	// if we already saw folder's parent add it underneath
 	if ok {
@@ -545,17 +528,17 @@ func (ff *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
 
 		// if we never saw this folders' parent
 	} else if folder.Parent != 1 { // recursively build the parent of this folder
-		_, ok := ff.folderScanMap[folder.Parent]
+		_, ok := f.folderScanMap[folder.Parent]
 		if ok {
-			_, newParentNode := ff.addFolderNode(*ff.folderScanMap[folder.Parent])
+			_, newParentNode := f.addFolderNode(*f.folderScanMap[folder.Parent])
 			tree.AddChild(newParentNode, folderNode)
 
 		}
 	}
 
 	// Store a pointer to this folder
-	ff.folderMap[folder.Id] = folderNode
-	ff.CurrentNodeCount++
+	f.folderMap[folder.Id] = folderNode
+	f.CurrentNodeCount++
 
 	return true, folderNode
 }
