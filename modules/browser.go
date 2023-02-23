@@ -108,9 +108,13 @@ type HookRunner interface {
 	RegisterHooks(...parsing.Hook)
 }
 
-// Browser who want to load data in a different way than the usual method
-// Watchable.Run() method which is auto run on fired watch events should
-// implement this interface.
+// Loader is an interface for modules which is run only once when the module
+// starts. It should have the same effect as  Watchable.Run().
+// Run() is automatically called for watched events, Load() is called once
+// before starting to watch events. 
+//
+// Loader allows modules to do a first pass of Run() logic before the watcher
+// threads is spawned 
 type Loader interface {
 
 	// Load() will be called right after a browser is initialized
