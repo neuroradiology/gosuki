@@ -86,13 +86,13 @@ func NewWatcher(name string, watches ...*Watch) (*WatchDescriptor, error) {
 	return watcher, nil
 }
 
-// Details about the object being watched
+// Watch is a a filesystem object that can be watched for changes.
 type Watch struct {
 	Path       string        // Path to watch for events
 	EventTypes []fsnotify.Op // events to watch for
 	EventNames []string      // event names to watch for (file/dir names)
 
-	// Reset the watcher at each event occurence (useful for create events)
+	// Reset the watcher at each event occurence (useful for `create` events)
 	ResetWatch bool
 }
 
@@ -167,9 +167,6 @@ func WatcherThread(w WatchRunner) {
 				}
 			}
 
-			if resetWatch {
-				break
-			}
 
 			// Firefox keeps the file open and makes changes on it
 			// It needs a debouncer
@@ -184,6 +181,10 @@ func WatcherThread(w WatchRunner) {
 			if err != nil {
 				log.Error(err)
 			}
+		}
+
+		if resetWatch {
+			break
 		}
 	}
 }
