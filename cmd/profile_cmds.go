@@ -12,6 +12,7 @@ import (
 
 var ProfileCmds = &cli.Command{
 	Name: "profile",
+	Aliases: []string{"p"},
 	Usage: "profile commands",
 	Subcommands: []*cli.Command{
 		listProfilesCmd,
