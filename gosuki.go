@@ -59,9 +59,12 @@ func main() {
 
 			// Run module's hooks that should run before context is ready
 			// for example setup flags management
-			err := cmd.BeforeHook(string(mod.ModInfo().ID))(c)
-			if err != nil {
-				return err
+			modinfo := mod.ModInfo()
+			hook := cmd.BeforeHook(string(modinfo.ID))
+			if hook != nil {
+				if err := cmd.BeforeHook(string(modinfo.ID))(c); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -90,17 +93,17 @@ func main() {
 	modules := modules.GetModules()
 	log.Debugf("loading %d modules", len(modules))
 	for _, mod := range modules {
-		modId := string(mod.ModInfo().ID)
-		log.Debugf("loading module <%s>", modId)
+		modID := string(mod.ModInfo().ID)
+		log.Debugf("loading module <%s>", modID)
 
 		// for each registered module, register own flag management
-		mod_flags := cmd.GlobalFlags(modId)
-		if len(mod_flags) != 0 {
-			app.Flags = append(app.Flags, mod_flags...)
+		modFlags := cmd.GlobalFlags(modID)
+		if len(modFlags) != 0 {
+			app.Flags = append(app.Flags, modFlags...)
 		}
 
 		// Add all browser module registered commands
-		cmds := cmd.RegisteredModCommands(modId)
+		cmds := cmd.RegisteredModCommands(modID)
 		for _, cmd := range cmds {
 			app.Commands = append(app.Commands, cmd)
 		}
