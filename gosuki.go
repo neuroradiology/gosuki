@@ -4,9 +4,9 @@ package main
 import (
 	"os"
 
-	"git.blob42.xyz/gomark/gosuki/modules"
 	"git.blob42.xyz/gomark/gosuki/config"
 	"git.blob42.xyz/gomark/gosuki/logging"
+	"git.blob42.xyz/gomark/gosuki/modules"
 
 	"git.blob42.xyz/gomark/gosuki/cmd"
 
@@ -20,7 +20,10 @@ import (
 )
 
 func main() {
+
 	app := cli.NewApp()
+
+
 	app.Name = "gosuki"
 	app.Version = version()
 
@@ -44,9 +47,11 @@ func main() {
         },
 	}
 
-	app.Flags = flags
+	flags = append(flags, config.SetupGlobalFlags()...)
+	app.Flags = append(app.Flags, flags...)
 
 	app.Before = func(c *cli.Context) error {
+
 
 		// get all registered browser modules
 		modules := modules.GetModules()
@@ -62,7 +67,9 @@ func main() {
 
 		// Execute config hooks
 		//TODO: better doc for what are Conf hooks ???
-		config.RunConfHooks()
+		config.RunConfHooks(c)
+
+		initConfig()
 
 		return nil
 	}
@@ -71,6 +78,7 @@ func main() {
 	// Browser modules can register commands through cmd.RegisterModCommand.
 	// registered commands will be appended here
 	app.Commands = []*cli.Command{
+		// main entry point
 		startDaemonCmd,
 		cmd.ConfigCmds,
 		cmd.ProfileCmds,
@@ -103,10 +111,5 @@ func main() {
 }
 
 func init() {
-	//TODO: register global flags as cli flags
-	config.RegisterGlobalOption("myglobal", 1)
-
-	// First load or bootstrap config
-	//TEST: load order of init
-	initConfig()
+	config.RegisterGlobalOption("watch-all-profiles", false)
 }

@@ -25,7 +25,7 @@ var ConfigCmds = &cli.Command{
 	},
 }
 
-func printConfig(c *cli.Context) error {
+func printConfig(_ *cli.Context) error {
 	pretty.Println(config.GetAll())
 
     return nil

@@ -245,7 +245,7 @@ func (f Firefox) ModInfo() modules.ModInfo {
 	}
 }
 
-// Implement the profiles.ProfileManager interface
+// Implements the profiles.ProfileManager interface
 func (f *Firefox) GetProfiles() ([]*profiles.Profile, error) {
 	return FirefoxProfileManager.GetProfiles()
 }
@@ -258,21 +258,22 @@ func (f *Firefox) GetProfilePath(p profiles.Profile) string {
 	return filepath.Join(FirefoxProfileManager.ConfigDir, p.Path)
 }
 
+// Set the default profile
+func (f *Firefox) SetDefaultProfile(profile profiles.Profile) {
+	f.Profile = profile.Name
+}
+
+
 // TEST:
-// TODO: implement watching of multiple profiles
-// NOTE: should be done at core gosuki level where multiple instances
-//			are spawned for each profile
+// TODO: implement watching of multiple profiles.
+// NOTE: should be done at core gosuki level where multiple instances are spawned for each profile
+//
 // Implements browser.Initializer interface
 func (f *Firefox) Init(ctx *modules.Context) error {
 	log.Infof("initializing <%s>", f.Name)
-	bookmarkPath, err := f.BookmarkPath()
-	if err != nil {
-		return err
-	}
-
-	log.Debugf("bookmark path is: %s", bookmarkPath)
 
 	watchedPath, err := filepath.EvalSymlinks(f.BkDir)
+	log.Debugf("Watching path: %s", watchedPath)
 	if err != nil {
 		return err
 	}
@@ -406,10 +407,6 @@ func (f *Firefox) Shutdown() {
 			log.Critical(err)
 		}
 	}
-}
-
-func (f *Firefox) getPathToPlacesCopy() string {
-	return path.Join(utils.TMPDIR, f.BkFile)
 }
 
 // HACK: addUrl and addTag share a lot of code, find a way to reuse shared code

@@ -20,6 +20,9 @@ type ProfileManager interface {
 
 	// Return that absolute path to a profile and follow symlinks
 	GetProfilePath(Profile) (string)
+
+	// Set the default profile
+	SetDefaultProfile(Profile)
 }
 
 type Profile struct {

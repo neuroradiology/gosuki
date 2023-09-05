@@ -8,11 +8,14 @@ import (
 	"git.blob42.xyz/gomark/gosuki/logging"
 
 	"github.com/BurntSushi/toml"
+	"github.com/urfave/cli/v2"
 )
+
+type Hook func(c *cli.Context) error
 
 var (
 	log            = logging.GetLogger("CONF")
-	ConfReadyHooks []func()
+	ConfReadyHooks []Hook
 	configs        = make(map[string]Configurator)
 )
 
@@ -22,7 +25,7 @@ const (
 )
 
 // A Configurator allows multiple packages and modules to set and access configs
-// which can be mapped to any output backend (toml, cli flags, env variables ...)
+// which can be mapped to any output format (toml, cli flags, env variables ...)
 type Configurator interface {
 	Set(opt string, v interface{}) error
 	Get(opt string) (interface{}, error)
@@ -57,8 +60,46 @@ func RegisterGlobalOption(key string, val interface{}) {
 	configs[GlobalConfigName].Set(key, val)
 }
 
+// Setup cli flag for global options
+func SetupGlobalFlags() []cli.Flag {
+	log.Debugf("Setting up global flags")
+	flags := []cli.Flag{}
+	for k, v := range configs[GlobalConfigName].Dump() {
+		log.Debugf("Registering global flag %s = %v", k, v)
+
+		// Register the option as a cli flag
+		switch val := v.(type) {
+			case string:
+				flags = append(flags, &cli.StringFlag{
+					Category: "_",
+					Name:  k,
+					Value: val,
+				})
+
+			case int:
+				flags = append(flags, &cli.IntFlag{
+					Category: "_",
+					Name: k,
+					Value: val,
+				})
+
+			case bool:
+				flags = append(flags, &cli.BoolFlag{
+					Category: "_",
+					Name: k,
+					Value: val,
+				})
+
+			default:
+				log.Fatalf("unsupported type for global option %s", k)
+		}
+	}
+
+	return flags
+}
+
 func RegisterModuleOpt(module string, opt string, val interface{}) error {
-	log.Debugf("Setting option for module <%s>: %s = %s", module, opt, val)
+	log.Debugf("Setting option for module <%s>: %s = %v", module, opt, val)
 	dest := configs[module]
 	return dest.Set(opt, val)
 }
@@ -106,17 +147,21 @@ func LoadFromTomlFile() error {
 	return err
 }
 
+
 // Hooks registered here will be executed after the config package has finished
 // loading the conf
-func RegisterConfReadyHooks(hooks ...func()) {
+func RegisterConfReadyHooks(hooks ...Hook) {
 	ConfReadyHooks = append(ConfReadyHooks, hooks...)
 }
 
 // A call to this func will run all registered config hooks
-func RunConfHooks() {
+func RunConfHooks(c *cli.Context) {
 	log.Debug("running config hooks")
 	for _, f := range ConfReadyHooks {
-		f()
+		err := f(c)
+		if err != nil {
+		  log.Fatalf("error running config hook: %v", err)
+		}
 	}
 }
 

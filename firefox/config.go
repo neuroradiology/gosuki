@@ -1,4 +1,4 @@
-// The bulk of firefox bookmark management is done here
+// Configuration
 package firefox
 
 import (
@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"git.blob42.xyz/gomark/gosuki/modules"
 	"git.blob42.xyz/gomark/gosuki/config"
 	"git.blob42.xyz/gomark/gosuki/database"
+	"git.blob42.xyz/gomark/gosuki/modules"
 	"git.blob42.xyz/gomark/gosuki/mozilla"
 	"git.blob42.xyz/gomark/gosuki/parsing"
 	"git.blob42.xyz/gomark/gosuki/tree"
@@ -16,6 +16,7 @@ import (
 
 	"github.com/fatih/structs"
 	"github.com/mitchellh/mapstructure"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -48,10 +49,9 @@ var (
 			"_journal_mode": "WAL",
 		},
 
-		// default profile to use
+		// default profile to use, can be selected as cli argument
 		Profile: DefaultProfile,
 
-		WatchAllProfiles: false,
 	}
 
 	ffProfileLoader = &mozilla.INIProfileLoader{
@@ -84,8 +84,9 @@ func init() {
 type FirefoxConfig struct {
 	// Default data source name query options for `places.sqlite` db
     PlacesDSN        database.DsnOptions
-    WatchAllProfiles bool
     Profile          string
+
+	modules.BrowserProfilePrefs `toml:"profile_options"`
 
     //TEST: ignore this field in config.Configurator interface
 	// Embed base browser config
@@ -127,13 +128,17 @@ func (fc *FirefoxConfig) MapFrom(src interface{}) error {
 	return mapstructure.Decode(src, fc)
 }
 
-func initFirefoxConfig() {
+//REFACT: 
+// Hook called when the config is ready
+func initFirefoxConfig(c *cli.Context) error {
 	log.Debugf("<firefox> initializing config")
 
-	// expand env variables to config dir
+	// The following code is executed before the cli context is ready
+	// so we cannot use cli flags here
+
 	pm := FirefoxProfileManager
 
-	// build the config directory
+	// expand path to config dir
 	pm.ConfigDir = filepath.Join(os.ExpandEnv(FirefoxConfigDir))
 
 	// Check if base folder exists
@@ -143,16 +148,16 @@ func initFirefoxConfig() {
 	}
 
 	if err != nil {
-		log.Critical(err)
+		log.Fatal(err)
+		return err
 	}
 
+	// The next part prepares the default profile using the profile manager
 	ffProfileLoader.BasePath = pm.ConfigDir
 
-	//_TODO: allow override with flag --firefox-profile-dir (rename pref default-profile)
-
-	// set global firefox bookmark dir
 	//FIX: bookmarkDir is used in created instance of FF before it is setup in config
 
+	// use default profile
 	bookmarkDir, err := FirefoxProfileManager.GetProfilePath(FFConfig.Profile)
 	if err != nil {
 		log.Fatal(err)
@@ -161,6 +166,6 @@ func initFirefoxConfig() {
 	// update bookmark dir in firefox config
 	//TEST: verify that bookmark dir is set before browser is started
 	FFConfig.BkDir = bookmarkDir
-
-	log.Debugf("Using default profile %s", bookmarkDir)
+	log.Debugf("Using profile %s", bookmarkDir)
+	return nil
 }

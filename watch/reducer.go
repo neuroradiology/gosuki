@@ -6,7 +6,7 @@ import "time"
 // It receives a struct{event, func} and runs the func only once in the interval
 func ReduceEvents(interval time.Duration,
 	w WatchRunner) {
-	log.Debug("Running reducer")
+	log.Debug("starting reducer service ...")
 
 	eventsIn := w.Watch().eventsChan
 	timer := time.NewTimer(interval)

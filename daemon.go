@@ -5,6 +5,7 @@ import (
 
 	"git.blob42.xyz/gomark/gosuki/modules"
 	"git.blob42.xyz/gomark/gosuki/parsing"
+	"git.blob42.xyz/gomark/gosuki/profiles"
 	"git.blob42.xyz/gomark/gosuki/utils"
 	"git.blob42.xyz/gomark/gosuki/watch"
 
@@ -66,7 +67,25 @@ func startDaemon(c *cli.Context) error {
 			h.RegisterHooks(parsing.ParseTags)
 		}
 
-		//TODO!: Handle multiple profiles for modules who announce it - here ?
+		//WIP: Handle multiple profiles for modules who announce it - here ?
+		// Check if browser implements ProfileManager
+		//TODO: global flag for watch all
+		// if watch-all then for each profile setup the browser
+		bpm, ok := browser.(profiles.ProfileManager)
+		if ok {
+			//TODO : for each profile spawn a watcher
+			// list profiles
+			profs, err := bpm.GetProfiles()
+			if err != nil {
+				log.Critical("could not get profiles")
+			}
+			for _, p := range profs {
+				log.Debugf("profile: <%s>", p.Name)
+			}
+		} else {
+			log.Debugf("<%s> does not implement profiles.ProfileManager",
+			browser.Config().Name)
+		}
 
 
 		// calls the setup logic for each browser instance which
