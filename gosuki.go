@@ -82,6 +82,7 @@ func main() {
 		startDaemonCmd,
 		cmd.ConfigCmds,
 		cmd.ProfileCmds,
+		cmd.ModuleCmds,
 	}
 
 	// Add global flags from registered modules
@@ -99,7 +100,7 @@ func main() {
 		}
 
 		// Add all browser module registered commands
-		cmds := cmd.ModCommands(modId)
+		cmds := cmd.RegisteredModCommands(modId)
 		for _, cmd := range cmds {
 			app.Commands = append(app.Commands, cmd)
 		}
