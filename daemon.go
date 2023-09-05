@@ -43,6 +43,8 @@ func RunModule(c *cli.Context,
 		s, isShutdowner := browser.(modules.Shutdowner)
 		if isShutdowner {
 			defer handleShutdown(browser.Config().Name, s)
+		} else {
+			log.Warningf("browser <%s> does not implement modules.Shutdowner", browser.Config().Name)
 		}
 
 		log.Debugf("new browser <%s> instance", browser.Config().Name)
@@ -53,8 +55,6 @@ func RunModule(c *cli.Context,
 		}
 
 
-		// calls the setup logic for each browser instance which
-		// includes the browsers.Initializer and browsers.Loader interfaces
 
 		//TODO!: call with custom profile
 		if p != nil {
@@ -72,6 +72,8 @@ func RunModule(c *cli.Context,
 		}
 
 
+		// calls the setup logic for each browser instance which
+		// includes the browsers.Initializer and browsers.Loader interfaces
 		err := modules.Setup(browser, modContext)
 		if err != nil {
 			log.Errorf("setting up <%s> %v", browser.Config().Name, err)
@@ -120,12 +122,8 @@ func startDaemon(c *cli.Context) error {
 			log.Criticalf("module <%s> is not a BrowserModule", mod.ID)
 		}
 
-		//WIP: Handle multiple profiles for modules who announce it - here ?
-		// Check if browser implements ProfileManager
-		//WIP: global flag for watch all
-
-		// Check if watch all profiles is defined
-		// if defined then spawn a new browser module for each profile
+		// if the module is a profile manager and is watching all profiles
+		// call RunModule for each profile
 		bpm, ok := browser.(profiles.ProfileManager)
 		if ok {
 			if bpm.WatchAllProfiles() {
@@ -150,6 +148,9 @@ func startDaemon(c *cli.Context) error {
 		} else {
 			log.Warningf("module <%s> does not implement profiles.ProfileManager",
 			browser.Config().Name)
+			if err := RunModule(c, browserMod, nil); err != nil {
+				continue
+			}
 		}
 	}
 
