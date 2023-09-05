@@ -6,21 +6,23 @@ import (
 
 var modFlags = map[string][]cli.Flag{}
 
-// Register global flags to pass on to the browser module
-func RegGlobalFlag(modId string, flag cli.Flag) {
+// RegGlobalModFlag registers global flags to pass on to the browser module
+func RegGlobalModFlag(modID string, flag cli.Flag) {
 	if flag == nil {
 		log.Panic("registering nil flag")
 	}
 
-	log.Debugf("<%s> registering global flag: %s=(%v)", modId, flag)
-	if _, ok := modFlags[modId]; !ok {
-		modFlags[modId] = []cli.Flag{flag}
+	log.Debugf("<%s> registering global flag: %s",
+				modID,
+				flag.Names())
+	if _, ok := modFlags[modID]; !ok {
+		modFlags[modID] = []cli.Flag{flag}
 	} else {
-		modFlags[modId] = append(modFlags[modId], flag)
+		modFlags[modID] = append(modFlags[modID], flag)
 	}
 }
 
-// return registered global flags for module
-func GlobalFlags(modId string) []cli.Flag {
-	return modFlags[modId]
+// GlobalFlags returns the registered global flags for a given registered module
+func GlobalFlags(modID string) []cli.Flag {
+	return modFlags[modID]
 }

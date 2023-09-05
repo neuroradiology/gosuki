@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	FirefoxProfileFlag = "firefox-profile"
+	FirefoxProfileFlag = "ff-profile"
 )
 
 var globalFirefoxFlags = []cli.Flag{
@@ -21,12 +21,15 @@ var globalFirefoxFlags = []cli.Flag{
     // The flag must be given a name in the form `--firefox-<flag>`.
 	&cli.StringFlag{
 		Name:  FirefoxProfileFlag,
+		Category: "firefox",
 		Usage: "Set the default firefox `PROFILE` to use",
 	},
-    // &cli.StringFlag{
-    //     Name: "firefox-default-dir",
-    //     Usage: "test",
-    // },
+	// &cli.BoolFlag{
+	// 	Name:        "ff-watch-all-profiles",
+	// 	Category:	 "firefox",
+	// 	Usage:       "Watch all detected firefox profiles at the same time.",
+	// 	Aliases:     []string{"ff-watch-all"},
+	// },
 }
 
 // Firefox global flags must start with --firefox-<flag name here>
@@ -50,12 +53,16 @@ func globalCommandFlagsManager(c *cli.Context) error {
 			continue
 		}
 
-		if sp[0] != "firefox" {
+		// TEST:
+		// TODO: add doc
+		// Firefox flags must start with --firefox-<flag name here>
+		// or -ff-<flag name here>
+		if !utils.InList([]string{"firefox", "ff"}, sp[0]) {
 			continue
 		}
 
 		//TODO: document this feature
-        // extract global options that start with --firefox-*
+        // extracts global options that start with --firefox-*
 		optionName := flect.Pascalize(strings.Join(sp[1:], " "))
 		var destVal interface{}
 
@@ -68,23 +75,29 @@ func globalCommandFlagsManager(c *cli.Context) error {
 
 				case *cli.StringFlag:
 					destVal = c.String(f.Names()[0])
+
+				case *cli.BoolFlag:
+					destVal = c.Bool(f.Names()[0])
 				}
+
 			}
 		}
 
 		err := config.RegisterModuleOpt(BrowserName,
 			optionName, destVal)
+
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 	}
 	return nil
 }
 
 func init() {
+	// register dynamic flag manager for firefox
 	cmd.RegBeforeHook(BrowserName, globalCommandFlagsManager)
 
     for _, flag := range globalFirefoxFlags {
-        cmd.RegGlobalFlag(BrowserName, flag)
+        cmd.RegGlobalModFlag(BrowserName, flag)
     }
 }

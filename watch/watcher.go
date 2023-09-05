@@ -96,10 +96,10 @@ type Watch struct {
 	ResetWatch bool
 }
 
-func SpawnWatcher(w WatchRunner) {
-    watcher := w.Watch()
+func SpawnWatcher(wr WatchRunner) {
+    watcher := wr.Watch()
     if ! watcher.isWatching {
-        go WatcherThread(w)
+        go WatcherThread(wr)
         watcher.isWatching = true
 
 		for watched := range watcher.Watched{

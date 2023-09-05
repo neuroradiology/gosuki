@@ -13,6 +13,7 @@ import (
 	"github.com/go-ini/ini"
 )
 
+// ProfileManager interface
 type ProfileManager = profiles.ProfileManager
 type INIProfileLoader = profiles.INIProfileLoader
 type PathGetter = profiles.PathGetter

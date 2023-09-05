@@ -19,7 +19,7 @@ func initDefaultConfig() {
 // HACK: this section is called well before module options/config parameters are
 // initialized
 func initConfig() {
-	log.Debugf("initializing config")
+	log.Debugf("gosuki init config")
 
 	// Check if config file exists
 	exists, err := utils.CheckFileExists(config.ConfigFile)

@@ -40,17 +40,28 @@ type Browser interface {
 	Config() *BrowserConfig
 }
 
+// The profile preferences for modules with builtin profile management.
+type BrowserProfilePrefs struct {
+
+	// Whether to watch all the profiles for multi-profile modules
+	WatchAllProfiles bool `toml:"watch_all_profiles"`
+}
+
+// BrowserConfig is the main browser configuration shared by all browser modules.
 type BrowserConfig struct {
 	Name string
 	Type BrowserType
 
-	// Directory where the bookmark file is stored
+	// Absolute path to the browser's bookmark directory
 	BkDir string
 
 	// Name of bookmarks file
 	BkFile string
 
 	WatchedPaths []string
+
+
+	BrowserProfilePrefs
 
 	// In memory sqlite db (named `memcache`).
 	// Used to keep a browser's state of bookmarks across jobs.

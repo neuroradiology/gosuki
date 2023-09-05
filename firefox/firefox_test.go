@@ -6,6 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/chenhg5/collection"
+	"github.com/stretchr/testify/assert"
+
 	"git.blob42.xyz/gomark/gosuki/database"
 	"git.blob42.xyz/gomark/gosuki/index"
 	"git.blob42.xyz/gomark/gosuki/logging"
@@ -15,8 +18,6 @@ import (
 	"git.blob42.xyz/gomark/gosuki/profiles"
 	"git.blob42.xyz/gomark/gosuki/tree"
 	"git.blob42.xyz/gomark/gosuki/utils"
-	"github.com/chenhg5/collection"
-	"github.com/stretchr/testify/assert"
 )
 
 var ff Firefox
