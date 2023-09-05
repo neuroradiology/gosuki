@@ -21,7 +21,7 @@ import (
 
 const (
 	BrowserName      = "firefox"
-	FirefoxConfigDir = "$HOME/.mozilla/firefox"
+	FirefoxBaseDir = "$HOME/.mozilla/firefox"
 	DefaultProfile   = "default"
 )
 
@@ -65,12 +65,6 @@ var (
 	}
 )
 
-func init() {
-	config.RegisterConfigurator(BrowserName, FFConfig)
-
-	//BUG: initFirefoxConfig is is called too early
-	config.RegisterConfReadyHooks(initFirefoxConfig)
-}
 // FirefoxConfig implements the Configurator interface
 // which allows it to register and set field through the Configurator.
 //
@@ -139,7 +133,7 @@ func initFirefoxConfig(c *cli.Context) error {
 	pm := FirefoxProfileManager
 
 	// expand path to config dir
-	pm.ConfigDir = filepath.Join(os.ExpandEnv(FirefoxConfigDir))
+	pm.ConfigDir = filepath.Join(os.ExpandEnv(FirefoxBaseDir))
 
 	// Check if base folder exists
 	configFolderExists, err := utils.CheckDirExists(pm.ConfigDir)
@@ -169,4 +163,11 @@ func initFirefoxConfig(c *cli.Context) error {
 	FFConfig.BkDir = bookmarkDir
 	log.Debugf("Using profile %s", bookmarkDir)
 	return nil
+}
+
+func init() {
+	config.RegisterConfigurator(BrowserName, FFConfig)
+
+	//BUG: initFirefoxConfig is is called too early
+	config.RegisterConfReadyHooks(initFirefoxConfig)
 }

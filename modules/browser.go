@@ -164,34 +164,34 @@ func Setup(browser BrowserModule, c *Context) error {
     bConf.URLIndex = index.NewIndex()
 
 	log.Infof("setting up browser <%s>", browser.ModInfo().ID)
-	browserId := browser.ModInfo().ID
+	browserID := browser.ModInfo().ID
 
 	// Handle Initializers custom Init from Browser module
 	initializer, ok := browser.(Initializer)
 	if ok {
-		log.Debugf("<%s> custom init", browserId)
+		log.Debugf("<%s> custom init", browserID)
 		if err := initializer.Init(c); err != nil {
-			return fmt.Errorf("<%s> initialization error: %v", browserId, err)
+			return fmt.Errorf("<%s> initialization error: %v", browserID, err)
 		}
 
 	} else {
-		log.Warningf("<%s> does not implement Initializer, not calling Init()", browserId)
+		log.Warningf("<%s> does not implement Initializer, not calling Init()", browserID)
 	}
 
 
 	// Default browser loading logic
 	// Make sure that cache is initialized
 	if !database.Cache.IsInitialized() {
-		return fmt.Errorf("<%s> Loading bookmarks while cache not yet initialized", browserId)
+		return fmt.Errorf("<%s> Loading bookmarks while cache not yet initialized", browserID)
 	}
 
 	//handle Loader interface
 	loader, ok := browser.(Loader)
 	if ok {
-		log.Debugf("<%s> custom loading", browserId)
+		log.Debugf("<%s> custom loading", browserID)
 		err := loader.Load()
 		if err != nil {
-			return fmt.Errorf("loading error <%s>: %v", browserId, err)
+			return fmt.Errorf("loading error <%s>: %v", browserID, err)
 			// continue
 		}
 	}
