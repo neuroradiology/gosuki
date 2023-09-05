@@ -24,12 +24,12 @@ var globalFirefoxFlags = []cli.Flag{
 		Category: "firefox",
 		Usage: "Set the default firefox `PROFILE` to use",
 	},
-	// &cli.BoolFlag{
-	// 	Name:        "ff-watch-all-profiles",
-	// 	Category:	 "firefox",
-	// 	Usage:       "Watch all detected firefox profiles at the same time.",
-	// 	Aliases:     []string{"ff-watch-all"},
-	// },
+	&cli.BoolFlag{
+		Name:        "ff-watch-all-profiles",
+		Category:	 "firefox",
+		Usage:       "Watch all detected firefox profiles at the same time.",
+		Aliases:     []string{"ff-watch-all"},
+	},
 }
 
 // Firefox global flags must start with --firefox-<flag name here>

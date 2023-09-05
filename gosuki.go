@@ -111,5 +111,7 @@ func main() {
 }
 
 func init() {
-	config.RegisterGlobalOption("watch-all-profiles", false)
+
+	//TODO: watch all profiles (handled at browser level for now)
+	// config.RegisterGlobalOption("all-profiles", false)
 }

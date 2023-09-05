@@ -68,6 +68,8 @@ type Firefox struct {
 	lastRunTime time.Time
 }
 
+
+
 // func (ff *Firefox) updateModifiedFolders(since timestamp) ([]*MozFolder, error) {
 //     // Get list of modified folders
 //     var folders = []*MozFolders
@@ -258,11 +260,25 @@ func (f *Firefox) GetProfilePath(p profiles.Profile) string {
 	return filepath.Join(FirefoxProfileManager.ConfigDir, p.Path)
 }
 
-// Set the default profile
-func (f *Firefox) SetDefaultProfile(profile profiles.Profile) {
-	f.Profile = profile.Name
+// If should watch all profiles
+func (f *Firefox) WatchAllProfiles() bool {
+	return f.FirefoxConfig.WatchAllProfiles
 }
 
+// Use custom profile
+func (f *Firefox) UseProfile(p profiles.Profile) error {
+	// update instance profile name
+	f.Profile = p.Name
+
+	// setup the bookmark dir
+	bookmarkDir, err := FirefoxProfileManager.GetProfilePath(p.Name)
+	if err != nil {
+		return err
+	}
+
+	f.BkDir = bookmarkDir
+	return nil
+}
 
 // TEST:
 // TODO: implement watching of multiple profiles.

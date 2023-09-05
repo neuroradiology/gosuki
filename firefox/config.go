@@ -86,7 +86,7 @@ type FirefoxConfig struct {
     PlacesDSN        database.DsnOptions
     Profile          string
 
-	modules.BrowserProfilePrefs `toml:"profile_options"`
+	modules.ProfilePrefs `toml:"profile_options"`
 
     //TEST: ignore this field in config.Configurator interface
 	// Embed base browser config
@@ -155,9 +155,10 @@ func initFirefoxConfig(c *cli.Context) error {
 	// The next part prepares the default profile using the profile manager
 	ffProfileLoader.BasePath = pm.ConfigDir
 
-	//FIX: bookmarkDir is used in created instance of FF before it is setup in config
+
 
 	// use default profile
+	// WIP: calling multiple profiles uses the following logic
 	bookmarkDir, err := FirefoxProfileManager.GetProfilePath(FFConfig.Profile)
 	if err != nil {
 		log.Fatal(err)

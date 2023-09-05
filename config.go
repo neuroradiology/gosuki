@@ -7,7 +7,7 @@ import (
 
 func initDefaultConfig() {
 	//TODO: handle chrome
-	log.Debug("Creating default config on config.toml")
+	println("Creating default config: config.toml")
 
 	err := config.InitConfigFile()
 	if err != nil {
