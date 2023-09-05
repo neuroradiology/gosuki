@@ -21,12 +21,18 @@ type ProfileManager interface {
 	// Return that absolute path to a profile and follow symlinks
 	GetProfilePath(Profile) (string)
 
-	// Set the default profile
-	SetDefaultProfile(Profile)
+	// If should watch all profiles
+	WatchAllProfiles() bool
+
+	// Use custom profile
+	UseProfile(p Profile) error
 }
 
 type Profile struct {
+	// Unique identifier for the profile
 	Id   string
+
+	// Name of the profile
 	Name string
 
 	// relative path to profile

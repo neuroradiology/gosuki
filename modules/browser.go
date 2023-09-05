@@ -41,7 +41,7 @@ type Browser interface {
 }
 
 // The profile preferences for modules with builtin profile management.
-type BrowserProfilePrefs struct {
+type ProfilePrefs struct {
 
 	// Whether to watch all the profiles for multi-profile modules
 	WatchAllProfiles bool `toml:"watch_all_profiles"`
@@ -61,7 +61,7 @@ type BrowserConfig struct {
 	WatchedPaths []string
 
 
-	BrowserProfilePrefs
+	ProfilePrefs
 
 	// In memory sqlite db (named `memcache`).
 	// Used to keep a browser's state of bookmarks across jobs.
