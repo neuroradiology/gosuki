@@ -65,7 +65,7 @@ type Firefox struct {
 	// internal folder map used for scanning
 	folderScanMap map[sqlid]*MozFolder
 
-	lastRunTime time.Time
+	lastRunAt time.Time
 }
 
 
@@ -216,16 +216,6 @@ func (f *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error)
 	return bookmarks, err
 }
 
-// init is required to register the module as a plugin when it is imported
-func init() {
-	modules.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
-	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
-	// 	Name: "test",
-	// })
-	// cmd.RegisterModCommand(BrowserName, &cli.Command{
-	// 	Name: "test2",
-	// })
-}
 
 func NewFirefox() *Firefox {
 	return &Firefox{
@@ -342,7 +332,7 @@ func (f *Firefox) Load() error {
 	f.loadBookmarksToTree(bookmarks)
 
 	f.LastFullTreeParseTime = time.Since(start)
-	f.lastRunTime = time.Now().UTC()
+	f.lastRunAt = time.Now().UTC()
 
 	log.Debugf("parsed %d bookmarks and %d nodes in %s",
 		f.CurrentUrlCount,
@@ -392,10 +382,10 @@ func (ff *Firefox) Run() {
 	defer pc.Clean()
 
 	log.Debugf("Checking changes since <%d> %s",
-		ff.lastRunTime.UTC().UnixNano()/1000,
-		ff.lastRunTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+		ff.lastRunAt.UTC().UnixNano()/1000,
+		ff.lastRunAt.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
-	scanSince := ff.lastRunTime.UTC().UnixNano() / 1000
+	scanSince := ff.lastRunAt.UTC().UnixNano() / 1000
 
 	bookmarks, err := ff.scanModifiedBookmarks(scanSince)
 	if err != nil {
@@ -408,8 +398,9 @@ func (ff *Firefox) Run() {
 	ff.BufferDB.SyncTo(database.Cache.DB)
 	database.Cache.DB.SyncToDisk(database.GetDBFullPath())
 
+	//TODO!: is LastWatchRunTime alone enough ?
 	ff.LastWatchRunTime = time.Since(startRun)
-	ff.lastRunTime = time.Now().UTC()
+	ff.lastRunAt = time.Now().UTC()
 }
 
 // Implement moduls.Shutdowner
@@ -654,4 +645,15 @@ func (f *Firefox) initPlacesCopy() (mozilla.PlaceCopyJob, error) {
 	}
 
 	return pc, nil
+}
+
+// init is required to register the module as a plugin when it is imported
+func init() {
+	modules.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
+	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
+	// 	Name: "test",
+	// })
+	// cmd.RegisterModCommand(BrowserName, &cli.Command{
+	// 	Name: "test2",
+	// })
 }

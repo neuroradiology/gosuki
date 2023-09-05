@@ -120,12 +120,8 @@ func startDaemon(c *cli.Context) error {
 			log.Criticalf("module <%s> is not a BrowserModule", mod.ID)
 		}
 
-		//WIP: Handle multiple profiles for modules who announce it - here ?
-		// Check if browser implements ProfileManager
-		//WIP: global flag for watch all
-
-		// Check if watch all profiles is defined
-		// if defined then spawn a new browser module for each profile
+		// if the module is a profile manager and is watching all profiles
+		// call RunModule for each profile
 		bpm, ok := browser.(profiles.ProfileManager)
 		if ok {
 			if bpm.WatchAllProfiles() {
