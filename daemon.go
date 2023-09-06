@@ -26,7 +26,7 @@ var startDaemonCmd = &cli.Command{
 // Runs the module by calling the setup 
 func RunModule(c *cli.Context,
 				browserMod modules.BrowserModule,
-				p *profiles.Profile) error {
+				p *profiles.Profile) (error) {
 		mod := browserMod.ModInfo()
 		// Create context
 		modContext := &modules.Context{
@@ -41,9 +41,7 @@ func RunModule(c *cli.Context,
 
 		// shutdown logic
 		s, isShutdowner := browser.(modules.Shutdowner)
-		if isShutdowner {
-			defer handleShutdown(browser.Config().Name, s)
-		} else {
+		if !isShutdowner {
 			log.Warningf("browser <%s> does not implement modules.Shutdowner", browser.Config().Name)
 		}
 
@@ -152,6 +150,12 @@ func startDaemon(c *cli.Context) error {
 				continue
 			}
 		}
+
+		// register defer shutdown logic
+		s, isShutdowner := browser.(modules.Shutdowner)
+		if isShutdowner {
+			defer handleShutdown(browser.Config().Name, s)
+		}
 	}
 
 	<-manager.Quit
@@ -162,6 +166,6 @@ func startDaemon(c *cli.Context) error {
 func handleShutdown(id string, s modules.Shutdowner) {
 	err := s.Shutdown()
 	if err != nil {
-		log.Panicf("could not shutdown browser <%s>", id)
+		log.Panicf("<%s> could not shutdown: %s", id, err)
 	}
 }
