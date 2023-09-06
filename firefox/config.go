@@ -34,7 +34,6 @@ var (
 			Type:         modules.TFirefox,
 			BkDir:        "",
 			BkFile:       mozilla.PlacesFile,
-			WatchedPaths: []string{},
 			NodeTree: &tree.Node{
 				Name: mozilla.RootName,
 				Parent: nil,
@@ -132,12 +131,12 @@ func initFirefoxConfig(c *cli.Context) error {
 
 	pm := FirefoxProfileManager
 
-	// expand path to config dir
+	// expand environment variables in path
 	pm.ConfigDir = filepath.Join(os.ExpandEnv(FirefoxBaseDir))
 
 	// Check if base folder exists
-	configFolderExists, err := utils.CheckDirExists(pm.ConfigDir)
-	if !configFolderExists {
+	exists, err := utils.CheckDirExists(pm.ConfigDir)
+	if !exists {
 		log.Criticalf("the base firefox folder <%s> does not exist", pm.ConfigDir)
 	}
 
