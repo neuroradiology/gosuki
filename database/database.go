@@ -306,7 +306,7 @@ func (db *DB) Close() error {
 	log.Debugf("Closing DB <%s>", db.Name)
 
 	if db.Handle == nil {
-		log.Warningf("<%s> handle is nil", db.Name)
+		log.Debugf("<%s> db handle is nil,  already closed ?", db.Name)
 		return nil
 	}
 
