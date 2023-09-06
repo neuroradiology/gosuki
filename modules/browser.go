@@ -58,8 +58,6 @@ type BrowserConfig struct {
 	// Name of bookmarks file
 	BkFile string
 
-	WatchedPaths []string
-
 
 	ProfilePrefs
 
@@ -87,8 +85,31 @@ func (browserconfig *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
 	return browserconfig.watcher
 }
 
+func (c BrowserConfig) BookmarkDir() (string, error) {
+	var err error
+ 	bDir, err := filepath.EvalSymlinks(utils.ExpandPath(c.BkDir))
+	if err != nil {
+		return "", err
+	}
+
+	exists, err := utils.CheckDirExists(bDir)
+	if err != nil {
+		return "", err
+	}
+
+	if !exists {
+		return "", fmt.Errorf("not a bookmark dir: %s ", bDir)
+	}
+
+	return bDir, nil
+}
+
+//TODO!: use this method instead of manually building bookmark path
+// full abosulte path to the bookmark file
+// note: this could be non relevant to some browsers
 func (c BrowserConfig) BookmarkPath() (string, error) {
-	bPath, err := filepath.EvalSymlinks(path.Join(c.BkDir, c.BkFile))
+	bPath, err := filepath.EvalSymlinks(path.Join(utils.ExpandPath(c.BkDir),
+													c.BkFile))
 	if err != nil {
 		log.Error(err)
 	}
@@ -204,6 +225,7 @@ func Setup(browser BrowserModule, c *Context) error {
 func SetupWatchers(browserConf *BrowserConfig, watches ...*watch.Watch) (bool, error) {
 	var err error
 	if !browserConf.UseFileWatcher {
+		log.Warningf("<%s> does not use file watcher but asked for it", browserConf.Name)
 		return false, nil
 	}
 
