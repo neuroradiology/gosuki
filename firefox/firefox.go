@@ -27,7 +27,6 @@ import (
 )
 
 var (
-	ErrInitFirefox = errors.New("could not start Firefox watcher")
 	log            = logging.GetLogger("FF")
 )
 
@@ -278,7 +277,7 @@ func (f *Firefox) UseProfile(p profiles.Profile) error {
 func (f *Firefox) Init(ctx *modules.Context) error {
 	log.Infof("initializing <%s>", f.Name)
 
-	watchedPath, err := filepath.EvalSymlinks(f.BkDir)
+	watchedPath, err := f.BookmarkDir()
 	log.Debugf("Watching path: %s", watchedPath)
 	if err != nil {
 		return err
@@ -292,7 +291,15 @@ func (f *Firefox) Init(ctx *modules.Context) error {
 		ResetWatch: false,
 	}
 
-	modules.SetupWatchersWithReducer(f.BrowserConfig, modules.ReducerChanLen, w)
+	ok, err := modules.SetupWatchersWithReducer(f.BrowserConfig, modules.ReducerChanLen, w)
+	if err != nil {
+		return fmt.Errorf("could not setup watcher: %s", err)
+	}
+
+	if !ok {
+		return errors.New("could not setup watcher")
+	}
+	
 
 	/*
 	 *Run reducer to avoid duplicate jobs when a batch of events is received
@@ -404,16 +411,14 @@ func (ff *Firefox) Run() {
 }
 
 // Implement moduls.Shutdowner
-func (f *Firefox) Shutdown() {
+func (f *Firefox) Shutdown() error {
+	var err error
 	log.Debugf("shutting down ... ")
 
 	if f.places != nil {
-
-		err := f.places.Close()
-		if err != nil {
-			log.Critical(err)
-		}
+		err = f.places.Close()
 	}
+	return err
 }
 
 // HACK: addUrl and addTag share a lot of code, find a way to reuse shared code
