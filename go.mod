@@ -36,6 +36,7 @@ require (
 require (
 	github.com/DusanKasan/hashmap v0.0.0-20170501124128-8d9a00825b33 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
+	github.com/buger/jsonparser v1.1.1
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/gchaincl/dotsql v1.0.0
 	github.com/gin-contrib/sse v0.1.0 // indirect
