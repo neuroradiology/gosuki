@@ -30,14 +30,14 @@ func SyncURLIndexToBuffer(urls []string, index Index, buffer *DB) {
 		}
 		node := iNode.(*Node)
 		bk := node.GetBookmark()
-		buffer.InsertOrUpdateBookmark(bk)
+		buffer.UpsertBookmark(bk)
 	}
 }
 
 func SyncTreeToBuffer(node *Node, buffer *DB) {
 	if node.Type == tree.URLNode {
 		bk := node.GetBookmark()
-		buffer.InsertOrUpdateBookmark(bk)
+		buffer.UpsertBookmark(bk)
 	}
 
 	if len(node.Children) > 0 {
