@@ -1,7 +1,6 @@
 package parsing
 
 import (
-	"regexp"
 	"time"
 
 	"git.blob42.xyz/gomark/gosuki/logging"
@@ -43,36 +42,5 @@ func (s *Stats) Reset() {
 	s.CurrentNodeCount = 0
 	s.CurrentURLCount = 0
 }
-
-
-// ParseTags is a Hook that extracts tags like #tag from the bookmark name.
-// It is stored as a tag in the bookmark metadata.
-func ParseTags(node *Node) error {
-	log.Debugf("running ParseTags hook on node: %s", node.Name)
-
-    var regex = regexp.MustCompile(ReTags)
-
-	matches := regex.FindAllStringSubmatch(node.Name, -1)
-	for _, m := range matches {
-		node.Tags = append(node.Tags, m[1])
-	}
-	//res := regex.FindAllStringSubmatch(bk.Metadata, -1)
-
-	if len(node.Tags) > 0 {
-		log.Debugf("[in title] found following tags: %s", node.Tags)
-	}
-
-	return nil
-}
-
-
-var Hooks = map[string]Hook{
-	"tags_from_name": { 
-		Name: "tags_from_name",
-		Func: ParseTags,
-	},
-}
-
-
 
 

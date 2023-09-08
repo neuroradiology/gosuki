@@ -10,6 +10,7 @@ import (
 	"git.blob42.xyz/gomark/gosuki/index"
 	"git.blob42.xyz/gomark/gosuki/logging"
 	"git.blob42.xyz/gomark/gosuki/parsing"
+	"git.blob42.xyz/gomark/gosuki/hooks"
 	"git.blob42.xyz/gomark/gosuki/tree"
 	"git.blob42.xyz/gomark/gosuki/utils"
 	"git.blob42.xyz/gomark/gosuki/watch"
@@ -82,7 +83,7 @@ type BrowserConfig struct {
 	UseHooks   []string
 
 	// Registered hooks
-	hooks map[string]parsing.Hook
+	hooks map[string]hooks.Hook
 }
 
 func (b *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
@@ -122,14 +123,14 @@ func (b BrowserConfig) CallHooks(node *tree.Node) error {
 }
 
 // Registers hooks for this browser. Hooks are identified by their name.
-func (b BrowserConfig) AddHooks(hooks ...parsing.Hook) {
+func (b BrowserConfig) AddHooks(hooks ...hooks.Hook) {
  	for _, hook := range hooks {
 		b.hooks[hook.Name] = hook
 	}
 }
 
 
-func (b BrowserConfig) HasHook(hook parsing.Hook) bool {
+func (b BrowserConfig) HasHook(hook hooks.Hook) bool {
 	_, ok := b.hooks[hook.Name]
 	return ok
 }
@@ -169,8 +170,8 @@ func (b BrowserConfig) RebuildIndex() {
 
 func (b BrowserConfig) ResetStats() {
 	log.Debugf("<%s> resetting stats", b.Name)
-	b.LastURLCount = b.Stats.CurrentURLCount
-	b.LastNodeCount = b.Stats.CurrentNodeCount
+	b.LastURLCount = b.CurrentURLCount
+	b.LastNodeCount = b.CurrentNodeCount
 	b.CurrentNodeCount = 0
 	b.CurrentURLCount = 0
 }
@@ -220,9 +221,9 @@ func Setup(browser BrowserModule, c *Context) error {
     bConf := browser.Config()
 
 	// Setup registered hooks
-	bConf.hooks = make(map[string]parsing.Hook)
+	bConf.hooks = make(map[string]hooks.Hook)
 	for _, hookName := range bConf.UseHooks {
-		hook, ok := parsing.Hooks[hookName]
+		hook, ok := hooks.Predefined[hookName]
 		if !ok {
 			return fmt.Errorf("hook <%s> not defined", hookName)
 		}
