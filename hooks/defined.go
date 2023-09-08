@@ -10,3 +10,8 @@ var Predefined = map[string]Hook{
 	},
 }
 
+
+
+func regHook(hook Hook) {
+	Predefined[hook.Name] = hook
+}

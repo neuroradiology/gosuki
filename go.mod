@@ -34,6 +34,7 @@ require (
 )
 
 require (
+	github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557
 	github.com/DusanKasan/hashmap v0.0.0-20170501124128-8d9a00825b33 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/buger/jsonparser v1.1.1
