@@ -34,6 +34,7 @@ var (
 			},
 			Stats:          &parsing.Stats{},
 			UseFileWatcher: true,
+			UseHooks:       []string{"tags_from_name"},
 		},
 		//TODO: profile
 	}
