@@ -195,7 +195,6 @@ type Shutdowner interface {
 type Loader interface {
 
 	// Load() will be called right after a browser is initialized
-	// Return ok, error
 	Load() error
 }
 
