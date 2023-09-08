@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"time"
 
 	"git.blob42.xyz/gomark/gosuki/database"
 	"git.blob42.xyz/gomark/gosuki/index"
@@ -12,7 +13,6 @@ import (
 	"git.blob42.xyz/gomark/gosuki/tree"
 	"git.blob42.xyz/gomark/gosuki/utils"
 	"git.blob42.xyz/gomark/gosuki/watch"
-	"github.com/sp4ke/hashmap"
 )
 
 type BrowserType uint8
@@ -67,7 +67,7 @@ type BrowserConfig struct {
 
 	// Fast query db using an RB-Tree hashmap.
 	// It represents a URL index of the last running job
-	URLIndex *hashmap.RBTree
+	URLIndex index.HashTree
 
 	// Pointer to the root of the node tree
 	// The node tree is built again for every Run job on a browser
@@ -78,16 +78,20 @@ type BrowserConfig struct {
 	watcher        *watch.WatchDescriptor
 	UseFileWatcher bool
 
-	parseHooks []parsing.Hook
+	// Hooks registered by the browser module identified by name
+	UseHooks   []string
+
+	// Registered hooks
+	hooks map[string]parsing.Hook
 }
 
-func (browserconfig *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
-	return browserconfig.watcher
+func (b *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
+	return b.watcher
 }
 
-func (c BrowserConfig) BookmarkDir() (string, error) {
+func (b BrowserConfig) BookmarkDir() (string, error) {
 	var err error
- 	bDir, err := filepath.EvalSymlinks(utils.ExpandPath(c.BkDir))
+ 	bDir, err := filepath.EvalSymlinks(utils.ExpandPath(b.BkDir))
 	if err != nil {
 		return "", err
 	}
@@ -104,12 +108,39 @@ func (c BrowserConfig) BookmarkDir() (string, error) {
 	return bDir, nil
 }
 
+// CallHooks calls all registered hooks for this browser for the given
+// *tree.Node. The hooks are called in the order they were registered. This is
+// usually done within the parsing logic of a browser module, typically in the
+// Run() method.
+func (b BrowserConfig) CallHooks(node *tree.Node) error {
+	for _, hook := range b.hooks {
+		if err := hook.Func(node); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Registers hooks for this browser. Hooks are identified by their name.
+func (b BrowserConfig) AddHooks(hooks ...parsing.Hook) {
+ 	for _, hook := range hooks {
+		b.hooks[hook.Name] = hook
+	}
+}
+
+
+func (b BrowserConfig) HasHook(hook parsing.Hook) bool {
+	_, ok := b.hooks[hook.Name]
+	return ok
+}
+
+
 //TODO!: use this method instead of manually building bookmark path
 // full abosulte path to the bookmark file
 // note: this could be non relevant to some browsers
-func (c BrowserConfig) BookmarkPath() (string, error) {
-	bPath, err := filepath.EvalSymlinks(path.Join(utils.ExpandPath(c.BkDir),
-													c.BkFile))
+func (b BrowserConfig) BookmarkPath() (string, error) {
+	bPath, err := filepath.EvalSymlinks(path.Join(utils.ExpandPath(b.BkDir),
+													b.BkFile))
 	if err != nil {
 		log.Error(err)
 	}
@@ -126,18 +157,30 @@ func (c BrowserConfig) BookmarkPath() (string, error) {
 	return bPath, nil
 }
 
+// Rebuilds the memory url index after parsing all bookmarks.
+// Keeps the memory url index in sync with last known state of browser bookmarks
+func (b BrowserConfig) RebuildIndex() {
+	start := time.Now()
+	log.Debugf("<%s> rebuilding index based on current nodeTree", b.Name)
+	b.URLIndex = index.NewIndex()
+	tree.WalkBuildIndex(b.NodeTree, b.URLIndex)
+	log.Debugf("<%s> index rebuilt in %s", b.Name, time.Since(start))
+}
+
+func (b BrowserConfig) ResetStats() {
+	log.Debugf("<%s> resetting stats", b.Name)
+	b.LastURLCount = b.Stats.CurrentURLCount
+	b.LastNodeCount = b.Stats.CurrentNodeCount
+	b.CurrentNodeCount = 0
+	b.CurrentURLCount = 0
+}
+
+
 // Browser who implement this interface need to handle all shuttind down and
 // cleanup logic in the defined methods. This is usually called at the end of
 // the browser instance lifetime
 type Shutdowner interface {
 	Shutdown() error
-}
-
-// Browser who implement this interface will be able to register custom
-// hooks which are called during the main Run() to handle commands and
-// messages found in tags and parsed data from browsers
-type HookRunner interface {
-	RegisterHooks(...parsing.Hook)
 }
 
 // Loader is an interface for modules which is run only once when the module
@@ -174,8 +217,21 @@ type Initializer interface {
 func Setup(browser BrowserModule, c *Context) error {
 
 	//TODO!: default init
-	// Init browsers' BufferDB
     bConf := browser.Config()
+
+	// Setup registered hooks
+	bConf.hooks = make(map[string]parsing.Hook)
+	for _, hookName := range bConf.UseHooks {
+		hook, ok := parsing.Hooks[hookName]
+		if !ok {
+			return fmt.Errorf("hook <%s> not defined", hookName)
+		}
+		bConf.AddHooks(hook)
+	}
+
+
+
+	// Init browsers' BufferDB
 	buffer, err := database.NewBuffer(bConf.Name)
 	if err != nil {
 		return err
