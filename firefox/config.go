@@ -41,6 +41,9 @@ var (
 			},
 			Stats:          &parsing.Stats{},
 			UseFileWatcher: true,
+			// NOTE: see parsing.Hook to add custom parsing logic for each
+			// parsed node
+			// UseHooks:   []string,
 		},
 
 		// Default data source name query options for `places.sqlite` db

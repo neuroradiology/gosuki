@@ -7,7 +7,6 @@ import (
 	"github.com/sp4ke/hashmap"
 )
 
-type Index = *hashmap.RBTree
 type HashTree = *hashmap.RBTree
 
 // In memory index used for fast lookup of url->node pairs
