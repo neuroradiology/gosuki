@@ -423,6 +423,13 @@ func (ch *Chrome) Run() {
 
 }
 
+
+// Load() will be called right after a browser is initialized
+func (ch *Chrome) Load() error {
+	go ch.Run()
+	return nil
+}
+
 func NewChrome() *Chrome {
 	return &Chrome{
 		ChromeConfig: ChromeCfg,
