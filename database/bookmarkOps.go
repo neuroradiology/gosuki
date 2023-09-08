@@ -16,7 +16,7 @@ type Bookmark = bookmarks.Bookmark
 // Inserts or updates a bookmarks to the passed DB
 // In case of a conflict for a UNIQUE URL constraint,
 // update the existing bookmark
-func (db *DB) InsertOrUpdateBookmark(bk *Bookmark) {
+func (db *DB) UpsertBookmark(bk *Bookmark) {
 	var sqlite3Err sqlite3.Error
 	var scannedTags string
 
