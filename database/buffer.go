@@ -3,12 +3,20 @@ package database
 import (
 	"fmt"
 
+	"github.com/teris-io/shortid"
+
 	"git.blob42.xyz/gomark/gosuki/tree"
 )
 
+
+
 func NewBuffer(name string) (*DB, error) {
-	bufferName := fmt.Sprintf("buffer_%s", name)
-	buffer, err := NewDB(bufferName, "", DBTypeInMemoryDSN).Init()
+	// add random id to buf name
+	randID := shortid.MustGenerate()
+	bufName := fmt.Sprintf("buffer_%s_%s", name, randID)
+	// bufName := fmt.Sprintf("buffer_%s", name)
+	log.Debugf("creating buffer %s", bufName)
+	buffer, err := NewDB(bufName, "", DBTypeInMemoryDSN).Init()
 	if err != nil {
 		return nil, fmt.Errorf("could not create buffer %w", err)
 	}
