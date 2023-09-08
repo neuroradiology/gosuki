@@ -138,6 +138,9 @@ func WatcherThread(w WatchRunner) {
 			 * need to destroy and create a new watcher. The ResetWatcher() and
 			 * `break` statement ensure we get out of the `select` block and catch
 			 * the newly created watcher to catch events even after rename/create
+			 * 
+			 * NOTE: this does not seem to be an issue anymore. More testing
+			 * and user feedback is needed. Leaving this comment here for now.
 			 */
 
 			for _, watched := range watcher.Watches {
@@ -193,6 +196,7 @@ func WatcherThread(w WatchRunner) {
 		}
 
 		if resetWatch {
+			log.Debug("breaking out of watch loop")
 			break
 		}
 	}

@@ -115,6 +115,7 @@ func (b BrowserConfig) BookmarkDir() (string, error) {
 // Run() method.
 func (b BrowserConfig) CallHooks(node *tree.Node) error {
 	for _, hook := range b.hooks {
+		log.Debugf("calling hook <%s> on node", hook.Name)
 		if err := hook.Func(node); err != nil {
 			return err
 		}
