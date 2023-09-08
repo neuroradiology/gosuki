@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"git.blob42.xyz/gomark/gosuki/modules"
-	"git.blob42.xyz/gomark/gosuki/parsing"
 	"git.blob42.xyz/gomark/gosuki/profiles"
 	"git.blob42.xyz/gomark/gosuki/utils"
 	"git.blob42.xyz/gomark/gosuki/watch"
@@ -46,12 +45,6 @@ func RunModule(c *cli.Context,
 		}
 
 		log.Debugf("new browser <%s> instance", browser.Config().Name)
-		h, ok := browser.(modules.HookRunner)
-		if ok {
-			//TODO: document hook running on watch events
-			h.RegisterHooks(parsing.ParseTags)
-		}
-
 
 
 		//TODO!: call with custom profile

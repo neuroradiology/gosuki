@@ -44,11 +44,11 @@ func (s *Stats) Reset() {
 	s.CurrentUrlCount = 0
 }
 
-type Hook func(node *Node)
 
-// Browser.Run hook function that extracts
-// tags from url titles and descriptions
-func ParseTags(node *Node) {
+// ParseTags is a Hook that extracts tags like #tag from the bookmark name.
+// It is stored as a tag in the bookmark metadata.
+func ParseTags(node *Node) error {
+	log.Debugf("running ParseTags hook on node: %s", node.Name)
 
     var regex = regexp.MustCompile(ReTags)
 
@@ -61,8 +61,17 @@ func ParseTags(node *Node) {
 	if len(node.Tags) > 0 {
 		log.Debugf("[in title] found following tags: %s", node.Tags)
 	}
+
+	return nil
 }
 
 func S(value interface{}) string {
 	return string(value.([]byte))
+
+var Hooks = map[string]Hook{
+	"tags_from_name": { 
+		Name: "tags_from_name",
+		Func: ParseTags,
+	},
 }
+
