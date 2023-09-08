@@ -115,7 +115,14 @@ func (ch *Chrome) setupWatchers() error {
 		Path:       bookmarkDir,
 		EventTypes: []fsnotify.Op{fsnotify.Create},
 		EventNames: []string{bookmarkPath},
-		ResetWatch: true,
+
+
+		// NOTE: it used to be that chrome watcher would go stale after the
+		// first event, this is because the bookmark file is created after the
+		// browser is started, so we need to reset the watcher after the first
+		// event. This is not needed anymore as we are using the watcher to
+		// watch the bookmark dir and not the file itself.
+		ResetWatch: false,
 	}
 
 	ok, err := modules.SetupWatchers(ch.BrowserConfig, w)
@@ -134,7 +141,12 @@ func (ch *Chrome) ResetWatcher() error {
 	if err := w.W.Close(); err != nil {
 		return err
 	}
-	return ch.setupWatchers()
+	if err := ch.setupWatchers(); err != nil {
+		return err
+	}
+
+	go watch.WatcherThread(ch)
+	return nil
 }
 
 // Returns a pointer to an initialized browser config
