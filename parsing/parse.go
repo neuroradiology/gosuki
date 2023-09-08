@@ -34,14 +34,14 @@ type Stats struct {
 	LastNodeCount         int
 	LastURLCount          int
 	CurrentNodeCount      int
-	CurrentUrlCount       int
+	CurrentURLCount       int
 }
 
 func (s *Stats) Reset() {
-    s.LastURLCount = s.CurrentUrlCount
+    s.LastURLCount = s.CurrentURLCount
 	s.LastNodeCount = s.CurrentNodeCount
 	s.CurrentNodeCount = 0
-	s.CurrentUrlCount = 0
+	s.CurrentURLCount = 0
 }
 
 
@@ -65,8 +65,6 @@ func ParseTags(node *Node) error {
 	return nil
 }
 
-func S(value interface{}) string {
-	return string(value.([]byte))
 
 var Hooks = map[string]Hook{
 	"tags_from_name": { 
@@ -74,4 +72,7 @@ var Hooks = map[string]Hook{
 		Func: ParseTags,
 	},
 }
+
+
+
 
