@@ -144,7 +144,7 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
 			// Parent will be a folder or nothing?
 			tree.AddChild(f.tagMap[tagNode.Name], urlNode)
 
-			f.CurrentUrlCount++
+			f.CurrentURLCount++
 		}
 
 		// Link this URL node to its corresponding folder node if it exists.
@@ -342,7 +342,7 @@ func (f *Firefox) Load() error {
 	f.lastRunAt = time.Now().UTC()
 
 	log.Debugf("parsed %d bookmarks and %d nodes in %s",
-		f.CurrentUrlCount,
+		f.CurrentURLCount,
 		f.CurrentNodeCount,
 		f.LastFullTreeParseTime)
 	f.Reset()
@@ -401,6 +401,10 @@ func (ff *Firefox) Run() {
 	ff.loadBookmarksToTree(bookmarks)
 	// tree.PrintTree(ff.NodeTree)
 
+	//NOTE: we don't rebuild the index from the tree here as the source of
+	// truth is the URLIndex and not the tree. The tree is only used for
+	// reprensenting the bookmark hierarchy in a conveniant way.
+
 	database.SyncURLIndexToBuffer(ff.URLIndexList, ff.URLIndex, ff.BufferDB)
 	ff.BufferDB.SyncTo(database.Cache.DB)
 	database.Cache.DB.SyncToDisk(database.GetDBFullPath())
@@ -421,7 +425,7 @@ func (f *Firefox) Shutdown() error {
 	return err
 }
 
-// HACK: addUrl and addTag share a lot of code, find a way to reuse shared code
+// TODO: addUrl and addTag share a lot of code, find a way to reuse shared code
 // and only pass extra details about tag/url along in some data structure
 // PROBLEM: tag nodes use IDs and URL nodes use URL as hashes
 func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
@@ -440,6 +444,14 @@ func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 		f.URLIndex.Insert(url, urlNode)
 		f.URLIndexList = append(f.URLIndexList, url)
 		f.CurrentNodeCount++
+
+		// Call hooks
+		//TEST:
+		err := f.CallHooks(urlNode)
+		if err != nil {
+			log.Errorf("error calling hooks for <%s>: %s", url, err)
+		}
+		
 
 		return true, urlNode
 	} else {
@@ -621,7 +633,7 @@ func loadBookmarks(f *Firefox) {
 		// Set tag as parent to urlnode
 		tree.AddChild(f.tagMap[tagTitle], urlNode)
 
-		f.CurrentUrlCount++
+		f.CurrentURLCount++
 	}
 
 	log.Debugf("root tree children len is %d", len(f.NodeTree.Children))
@@ -654,7 +666,7 @@ func (f *Firefox) initPlacesCopy() (mozilla.PlaceCopyJob, error) {
 
 // init is required to register the module as a plugin when it is imported
 func init() {
-	modules.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
+	// modules.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
 	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
 	// 	Name: "test",
 	// })
