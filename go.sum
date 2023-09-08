@@ -1,5 +1,7 @@
 git.blob42.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17 h1:3J8q29ZO2DJ2lWJDg3pk+xOoQ4lWbAaPpgHnTIR0Di8=
 git.blob42.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17/go.mod h1:KH0fTf800bIw6glahP/WNDnPlZYfqgdEvRWOPg39CvQ=
+github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557 h1:l6surSnJ3RP4qA1qmKJ+hQn3UjytosdoG27WGjrDlVs=
+github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557/go.mod h1:sTrmvD/TxuypdOERsDOS7SndZg0rzzcCi1b6wQMXUYM=
 github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak=
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/DusanKasan/hashmap v0.0.0-20170501124128-8d9a00825b33 h1:WT2Ogw/ychz4Lyrgct7i4cgO4FpZ9OkixjIJ/dFmZRg=
