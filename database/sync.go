@@ -191,6 +191,12 @@ func (src *DB) SyncTo(dst *DB) {
 func (src *DB) SyncToDisk(dbpath string) error {
 	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
 
+	defer func() {
+		if r := recover(); r != nil {
+			log.Critical("Recovered in SyncToDisk", r)
+		}
+	}()
+
 	//log.Debugf("[flush] openeing <%s>", src.path)
 	srcDB, err := sqlx.Open(DriverBackupMode, src.Path)
 	defer flushSqliteCon(srcDB)
@@ -213,17 +219,18 @@ func (src *DB) SyncToDisk(dbpath string) error {
 		return err
 	}
 
-	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
+	bkp, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
 	if err != nil {
 		return err
 	}
 
-	_, err = bk.Step(-1)
+
+	_, err = bkp.Step(-1)
 	if err != nil {
 		return err
 	}
 
-	bk.Finish()
+	bkp.Finish()
 
 	return nil
 }
