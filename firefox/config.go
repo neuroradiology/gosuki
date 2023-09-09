@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"git.blob42.xyz/gomark/gosuki/config"
-	"git.blob42.xyz/gomark/gosuki/database"
+	"git.blob42.xyz/gomark/gosuki/internal/database"
 	"git.blob42.xyz/gomark/gosuki/modules"
 	"git.blob42.xyz/gomark/gosuki/mozilla"
 	"git.blob42.xyz/gomark/gosuki/parsing"

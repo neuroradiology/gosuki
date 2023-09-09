@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"git.blob42.xyz/gomark/gosuki/database"
+	"git.blob42.xyz/gomark/gosuki/internal/database"
 	"git.blob42.xyz/gomark/gosuki/hooks"
 	"git.blob42.xyz/gomark/gosuki/logging"
 	"git.blob42.xyz/gomark/gosuki/modules"

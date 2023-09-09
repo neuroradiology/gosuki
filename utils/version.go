@@ -1,6 +1,6 @@
 // TODO: get runtime build/git info  see:
 // https://github.com/lightningnetwork/lnd/blob/master/build/version.go#L66
-package main
+package utils
 
 import "fmt"
 
@@ -15,6 +15,6 @@ const (
 	AppPatch uint = 0
 )
 
-func version() string {
+func Version() string {
 	return fmt.Sprintf("%d.%d.%d", AppMajor, AppMinor, AppPatch)
 }

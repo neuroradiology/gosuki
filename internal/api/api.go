@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"io"
@@ -7,11 +7,14 @@ import (
 	"strings"
 
 	"git.blob42.xyz/gomark/gosuki/bookmarks"
-	"git.blob42.xyz/gomark/gosuki/database"
+	"git.blob42.xyz/gomark/gosuki/internal/database"
+	"git.blob42.xyz/gomark/gosuki/logging"
 
 	"git.blob42.xyz/sp4ke/gum"
 	"github.com/gin-gonic/gin"
 )
+
+var log = logging.GetLogger("API")
 
 type Bookmark = bookmarks.Bookmark
 
