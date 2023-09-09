@@ -32,7 +32,11 @@ func ParseTags(node *Node) error {
 
 	matches := regex.FindAllStringSubmatch(node.Name, -1)
 	for _, m := range matches {
-		node.Tags = append(node.Tags, m[1])
+		if node.Tags == nil {
+			node.Tags = []string{m[1]}
+		} else {
+			node.Tags = append(node.Tags, m[1])
+		}
 	}
 	//res := regex.FindAllStringSubmatch(bk.Metadata, -1)
 
