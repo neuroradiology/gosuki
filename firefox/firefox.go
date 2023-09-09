@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"git.blob42.xyz/gomark/gosuki/database"
+	"git.blob42.xyz/gomark/gosuki/hooks"
 	"git.blob42.xyz/gomark/gosuki/logging"
 	"git.blob42.xyz/gomark/gosuki/modules"
 	"git.blob42.xyz/gomark/gosuki/mozilla"
@@ -329,7 +330,11 @@ func (f *Firefox) Load() error {
 		return err
 	}
 
-	defer pc.Clean()
+	defer func(){
+		if err := pc.Clean(); err != nil {
+			log.Errorf("error cleaning tmp places file: %s", err)
+		}
+	}()
 
 	// load all bookmarks
 	start := time.Now()
@@ -677,6 +682,9 @@ func (f *Firefox) initPlacesCopy() (mozilla.PlaceCopyJob, error) {
 // init is required to register the module as a plugin when it is imported
 func init() {
 	modules.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
+
+
+	// Exaple for registering a command under the browser name
 	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
 	// 	Name: "test",
 	// })
@@ -684,3 +692,14 @@ func init() {
 	// 	Name: "test2",
 	// })
 }
+
+// interface guards
+
+var _ modules.BrowserModule = (*Firefox)(nil)
+var _ modules.Initializer = (*Firefox)(nil)
+var _ modules.Loader = (*Firefox)(nil)
+var _ modules.Shutdowner = (*Firefox)(nil)
+var _ watch.WatchRunner = (*Firefox)(nil)
+var _ hooks.HookRunner = (*Firefox)(nil)
+var _ watch.Stats = (*Firefox)(nil)
+var _ profiles.ProfileManager = (*Firefox)(nil)
