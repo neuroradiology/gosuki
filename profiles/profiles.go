@@ -6,7 +6,7 @@ package profiles
 
 
 const (
-	XDG_HOME = "XDG_CONFIG_HOME"
+	XDGHome = "XDG_CONFIG_HOME"
 )
 
 // ProfileManager is any module that can detect or list profiles, usually a browser module. 
