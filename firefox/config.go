@@ -43,7 +43,7 @@ var (
 			UseFileWatcher: true,
 			// NOTE: see parsing.Hook to add custom parsing logic for each
 			// parsed node
-			// UseHooks:   []string,
+			UseHooks:   []string{"notify-send"},
 		},
 
 		// Default data source name query options for `places.sqlite` db
