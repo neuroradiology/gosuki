@@ -140,12 +140,12 @@ type DB struct {
 
 func (db *DB) open() error {
 	var err error
-	err = db.SQLXOpener.Open(db.EngineMode, db.Path)
+	err = db.Open(db.EngineMode, db.Path)
 	if err != nil {
 		return err
 	}
 
-	db.Handle = db.SQLXOpener.Get()
+	db.Handle = db.Get()
 	err = db.Handle.Ping()
 	if err != nil {
 		return err
@@ -306,7 +306,7 @@ func (db *DB) Close() error {
 	log.Debugf("Closing DB <%s>", db.Name)
 
 	if db.Handle == nil {
-		log.Warningf("<%s> handle is nil", db.Name)
+		log.Debugf("<%s> db handle is nil,  already closed ?", db.Name)
 		return nil
 	}
 
@@ -350,7 +350,7 @@ func (db *DB) CountRows(table string) int {
 // The order in the struct respects the columns order
 type SBookmark struct {
 	id       int
-	Url      string
+	URL      string
 	metadata string
 	tags     string
 	desc     string
@@ -363,7 +363,7 @@ func ScanBookmarkRow(row *sql.Rows) (*SBookmark, error) {
 	scan := new(SBookmark)
 	err := row.Scan(
 		&scan.id,
-		&scan.Url,
+		&scan.URL,
 		&scan.metadata,
 		&scan.tags,
 		&scan.desc,

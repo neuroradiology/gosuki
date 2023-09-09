@@ -4,7 +4,7 @@ WITH RECURSIVE
 	folder_marks(bid, type, title, folder, parent) 
 	AS (
 		SELECT id, type, title, title as folder, parent FROM moz_bookmarks 
-			WHERE fk IS NULL AND parent NOT IN (4,0) AND lastModified > :change_since -- get all folders
+			WHERE fk IS NULL AND parent NOT IN (4,0)  -- get all folders
 		UNION ALL
 		SELECT id, moz_bookmarks.type, moz_bookmarks.title, folder, moz_bookmarks.parent -- get all bookmarks with folder parents
 				FROM  moz_bookmarks JOIN folder_marks ON moz_bookmarks.parent=bid

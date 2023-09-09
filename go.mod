@@ -34,8 +34,10 @@ require (
 )
 
 require (
+	github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557
 	github.com/DusanKasan/hashmap v0.0.0-20170501124128-8d9a00825b33 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
+	github.com/buger/jsonparser v1.1.1
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/gchaincl/dotsql v1.0.0
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -55,6 +57,7 @@ require (
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/stretchr/testify v1.8.1
+	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.1.0 // indirect

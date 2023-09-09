@@ -3,7 +3,7 @@ package mozilla
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"regexp"
 )
@@ -29,7 +29,7 @@ var (
 // Finds and returns a prefernce definition.
 // Returns empty string ("") if no pref found
 func FindPref(path string, name string) (string, error) {
-	text, err := ioutil.ReadFile(path)
+	text, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -104,7 +104,7 @@ func SetPrefBool(path string, name string, val bool) error {
 
 		re := regexp.MustCompile(fmt.Sprintf(REFirefoxPrefs, name))
 		template := []byte(fmt.Sprintf("user_pref(\"$option\", %t) ;\n", val))
-		text, err := ioutil.ReadAll(f)
+		text, err := io.ReadAll(f)
 		if err != nil {
 			return err
 		}
