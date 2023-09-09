@@ -389,13 +389,17 @@ func (ff *Firefox) Run() {
 	}
 	defer pc.Clean()
 
+
+	// go one step back in time to avoid missing changes
+	scanSince := ff.lastRunAt.Add(-1 * time.Second)
+	scanSinceSQL := scanSince.UTC().UnixNano() / 1000
+
+
 	log.Debugf("Checking changes since <%d> %s",
-		ff.lastRunAt.UTC().UnixNano()/1000,
-		ff.lastRunAt.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+		scanSinceSQL,
+		scanSince.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
-	scanSince := ff.lastRunAt.UTC().UnixNano() / 1000
-
-	bookmarks, err := ff.scanModifiedBookmarks(scanSince)
+	bookmarks, err := ff.scanModifiedBookmarks(scanSinceSQL)
 	if err != nil {
 		log.Error(err)
 	}
