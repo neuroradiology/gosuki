@@ -1,22 +1,19 @@
-package main
+package database
 
 import (
 	"path/filepath"
 
-	"git.blob42.xyz/gomark/gosuki/database"
 	"git.blob42.xyz/gomark/gosuki/utils"
 )
 
-type DB = database.DB
-
-func initDB() {
+func InitDB() {
 	var err error
 
 	// Check and initialize local db as last step
 	// browser bookmarks should already be in cache
 
 	dbdir := utils.GetDefaultDBPath()
-	dbpath := filepath.Join(dbdir, database.DBFileName)
+	dbpath := filepath.Join(dbdir, DBFileName)
 	// Verifiy that local db directory path is writeable
 	err = utils.CheckWriteable(dbdir)
 	if err != nil {
@@ -30,7 +27,7 @@ func initDB() {
 			log.Warning(err)
 		}
 		log.Infof("<%s> exists, preloading to cache", dbpath)
-		er := database.Cache.DB.SyncFromDisk(dbpath)
+		er := Cache.DB.SyncFromDisk(dbpath)
 		if er != nil {
 			log.Critical(er)
 		}
@@ -40,7 +37,7 @@ func initDB() {
 		}
 
 		// Else initialize it
-		initLocalDB(database.Cache.DB, dbpath)
+		initLocalDB(Cache.DB, dbpath)
 	}
 
 }

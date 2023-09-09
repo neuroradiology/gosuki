@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"git.blob42.xyz/gomark/gosuki/database"
+	"git.blob42.xyz/gomark/gosuki/internal/database"
 	"git.blob42.xyz/gomark/gosuki/index"
 	"git.blob42.xyz/gomark/gosuki/logging"
 	"git.blob42.xyz/gomark/gosuki/parsing"
