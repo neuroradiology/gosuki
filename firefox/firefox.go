@@ -154,6 +154,7 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
 		if fOk {
 			tree.AddChild(folderNode, urlNode)
 		}
+
 	}
 }
 
@@ -431,9 +432,11 @@ func (f *Firefox) Shutdown() error {
 func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 
 	var urlNode *tree.Node
-	iUrlNode, exists := f.URLIndex.Get(url)
+	var created bool
+
+	iURLNode, exists := f.URLIndex.Get(url)
 	if !exists {
-		urlNode := &tree.Node{
+		urlNode = &tree.Node{
 			Name: title,
 			Type: tree.URLNode,
 			URL:  url,
@@ -445,20 +448,23 @@ func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 		f.URLIndexList = append(f.URLIndexList, url)
 		f.CurrentNodeCount++
 
-		// Call hooks
-		//TEST:
-		err := f.CallHooks(urlNode)
-		if err != nil {
-			log.Errorf("error calling hooks for <%s>: %s", url, err)
-		}
-		
+		created = true
 
-		return true, urlNode
 	} else {
-		urlNode = iUrlNode.(*tree.Node)
+		urlNode = iURLNode.(*tree.Node)
+		//TEST:
+		// update title and desc
+		urlNode.Name = title
+		urlNode.Desc = desc
 	}
 
-	return false, urlNode
+	// Call hooks
+	err := f.CallHooks(urlNode)
+	if err != nil {
+		log.Errorf("error calling hooks for <%s>: %s", url, err)
+	}
+
+	return created, urlNode
 }
 
 // adds a new tagNode if it is not yet in the tagMap
@@ -603,9 +609,9 @@ func loadBookmarks(f *Firefox) {
 	 */
 	for rows.Next() {
 		var url, title, tagTitle, desc string
-		var tagId sqlid
+		var tagID sqlid
 
-		err = rows.Scan(&url, &title, &desc, &tagId, &tagTitle)
+		err = rows.Scan(&url, &title, &desc, &tagID, &tagTitle)
 		// log.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
 		if err != nil {
 			log.Error(err)
@@ -666,7 +672,7 @@ func (f *Firefox) initPlacesCopy() (mozilla.PlaceCopyJob, error) {
 
 // init is required to register the module as a plugin when it is imported
 func init() {
-	// modules.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
+	modules.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
 	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
 	// 	Name: "test",
 	// })

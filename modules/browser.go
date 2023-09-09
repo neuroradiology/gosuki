@@ -114,8 +114,13 @@ func (b BrowserConfig) BookmarkDir() (string, error) {
 // usually done within the parsing logic of a browser module, typically in the
 // Run() method.
 func (b BrowserConfig) CallHooks(node *tree.Node) error {
+
+	if node == nil {
+		return fmt.Errorf("hook node is nil")
+	}
+
 	for _, hook := range b.hooks {
-		log.Debugf("calling hook <%s> on node", hook.Name)
+		log.Debugf("<%s> calling hook <%s> on node <%s>",b.Name, hook.Name, node.URL)
 		if err := hook.Func(node); err != nil {
 			return err
 		}
