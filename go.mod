@@ -1,6 +1,6 @@
 module git.blob42.xyz/gomark/gosuki
 
-go 1.18
+go 1.21.0
 
 require (
 	git.blob42.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17
