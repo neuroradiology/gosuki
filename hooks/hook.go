@@ -10,7 +10,7 @@
 package hooks
 
 import (
-	"git.blob42.xyz/gomark/gosuki/tree"
+	"git.blob42.xyz/gomark/gosuki/pkg/tree"
 )
 
 // A Hook is a function that takes a *Node as input and is called on a bookmark

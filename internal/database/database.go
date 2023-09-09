@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"strings"
 
-	"git.blob42.xyz/gomark/gosuki/logging"
-	"git.blob42.xyz/gomark/gosuki/tree"
+	"git.blob42.xyz/gomark/gosuki/internal/logging"
+	"git.blob42.xyz/gomark/gosuki/pkg/tree"
 
 	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"

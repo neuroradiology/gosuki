@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"git.blob42.xyz/gomark/gosuki/bookmarks"
+	"git.blob42.xyz/gomark/gosuki/pkg/bookmarks"
 	"git.blob42.xyz/gomark/gosuki/internal/database"
-	"git.blob42.xyz/gomark/gosuki/logging"
+	"git.blob42.xyz/gomark/gosuki/internal/logging"
 
 	"git.blob42.xyz/sp4ke/gum"
 	"github.com/gin-gonic/gin"
