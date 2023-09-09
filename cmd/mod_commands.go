@@ -6,7 +6,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"git.blob42.xyz/gomark/gosuki/modules"
+	"git.blob42.xyz/gomark/gosuki/pkg/modules"
 )
 
 // map cmd Name to *cli.Command

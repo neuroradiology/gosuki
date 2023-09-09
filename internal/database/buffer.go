@@ -5,7 +5,7 @@ import (
 
 	"github.com/teris-io/shortid"
 
-	"git.blob42.xyz/gomark/gosuki/tree"
+	"git.blob42.xyz/gomark/gosuki/pkg/tree"
 )
 
 

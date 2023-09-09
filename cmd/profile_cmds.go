@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"git.blob42.xyz/gomark/gosuki/modules"
-	"git.blob42.xyz/gomark/gosuki/profiles"
+	"git.blob42.xyz/gomark/gosuki/pkg/modules"
+	"git.blob42.xyz/gomark/gosuki/pkg/profiles"
 	"github.com/urfave/cli/v2"
 )
 
