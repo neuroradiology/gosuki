@@ -143,8 +143,9 @@ func (b BrowserConfig) HasHook(hook hooks.Hook) bool {
 
 
 //TODO!: use this method instead of manually building bookmark path
-// full abosulte path to the bookmark file
-// note: this could be non relevant to some browsers
+// BookmarkPath returns the absolute path to the bookmark file.
+// It expands the path by concatenating the base directory and bookmarks file, 
+// then checks if it exists.
 func (b BrowserConfig) BookmarkPath() (string, error) {
 	bPath, err := filepath.EvalSymlinks(path.Join(utils.ExpandPath(b.BkDir),
 													b.BkFile))

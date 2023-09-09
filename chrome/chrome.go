@@ -13,6 +13,7 @@ import (
 	"github.com/buger/jsonparser"
 
 	"git.blob42.xyz/gomark/gosuki/database"
+	"git.blob42.xyz/gomark/gosuki/hooks"
 	"git.blob42.xyz/gomark/gosuki/logging"
 	"git.blob42.xyz/gomark/gosuki/modules"
 	"git.blob42.xyz/gomark/gosuki/tree"
@@ -439,3 +440,12 @@ func NewChrome() *Chrome {
 func init() {
 	modules.RegisterBrowser(Chrome{ChromeConfig: ChromeCfg})
 }
+
+// interface guards
+
+var _ modules.BrowserModule = (*Chrome)(nil)
+var _ modules.Initializer = (*Chrome)(nil)
+var _ modules.Loader = (*Chrome)(nil)
+var _ watch.WatchRunner = (*Chrome)(nil)
+var _ hooks.HookRunner = (*Chrome)(nil)
+var _ watch.Stats = (*Chrome)(nil)

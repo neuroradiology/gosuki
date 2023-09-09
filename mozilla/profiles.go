@@ -86,6 +86,7 @@ func (pm *MozProfileManager) GetProfiles() ([]*profiles.Profile, error) {
 	return result, nil
 }
 
+// GetProfilePath returns the absolute path to a mozilla profile.
 func (pm *MozProfileManager) GetProfilePath(name string) (string, error) {
 	log.Debugf("using config dir %s", pm.ConfigDir)
 	p, err := pm.GetProfileByName(name)
