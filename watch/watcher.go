@@ -155,10 +155,12 @@ func WatcherThread(w WatchRunner) {
 								ch := watcher.eventsChan
 								ch <- event
 							} else {
-								w.Run()
-								if stats, ok := w.(Stats); ok {
-									stats.ResetStats()
-								}
+								go func(){
+									w.Run()
+									if stats, ok := w.(Stats); ok {
+										stats.ResetStats()
+									}
+								}()
 							}
 
 							//log.Warningf("event: %v | eventName: %v", event.Op, event.Name)
