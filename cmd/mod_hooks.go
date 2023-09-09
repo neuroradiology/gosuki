@@ -23,5 +23,8 @@ func RegBeforeHook(modId string, hook Hook) {
 
 // Return all registered Before hooks for module
 func BeforeHook(modId string) Hook {
-	return modCmdBeforeHooks[modId]
+	if hook := modCmdBeforeHooks[modId]; hook != nil {
+		return hook
+	}
+	return nil
 }

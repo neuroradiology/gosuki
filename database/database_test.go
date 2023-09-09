@@ -151,11 +151,11 @@ func TestInitLocked(t *testing.T) {
 }
 
 func TestSyncFromGosukiDB(t *testing.T) {
-	t.Error("sync from gosuki db")
+	t.Skip("TODO: sync from gosuki db")
 }
 
 func TestSyncToGosukiDB(t *testing.T) {
-	t.Error("sync to gosuki db")
+	t.Skip("TODO: sync to gosuki db")
 }
 
 func TestMain(m *testing.M) {

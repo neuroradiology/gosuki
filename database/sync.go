@@ -99,7 +99,7 @@ func (src *DB) SyncTo(dst *DB) {
 
 		// Try to insert to row in dst table
 		_, err = dstTx.Stmt(tryInsertDstRow).Exec(
-			scan.Url,
+			scan.URL,
 			scan.metadata,
 			scan.tags,
 			scan.desc,
@@ -139,7 +139,7 @@ func (src *DB) SyncTo(dst *DB) {
 		//log.Debugf("updating existing %s", scan.Url)
 
 		row := getDstTags.QueryRow(
-			scan.Url,
+			scan.URL,
 		)
 		row.Scan(&tags)
 
@@ -165,11 +165,11 @@ func (src *DB) SyncTo(dst *DB) {
 			strings.Join(newTags, TagJoinSep),
 			scan.desc,
 			0, //flags
-			scan.Url,
+			scan.URL,
 		)
 
 		if err != nil {
-			log.Errorf("%s: %s", err, scan.Url)
+			log.Errorf("%s: %s", err, scan.URL)
 		}
 
 	}
@@ -191,39 +191,46 @@ func (src *DB) SyncTo(dst *DB) {
 func (src *DB) SyncToDisk(dbpath string) error {
 	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
 
+	defer func() {
+		if r := recover(); r != nil {
+			log.Critical("Recovered in SyncToDisk", r)
+		}
+	}()
+
 	//log.Debugf("[flush] openeing <%s>", src.path)
-	srcDb, err := sqlx.Open(DriverBackupMode, src.Path)
-	defer flushSqliteCon(srcDb)
+	srcDB, err := sqlx.Open(DriverBackupMode, src.Path)
+	defer flushSqliteCon(srcDB)
 	if err != nil {
 		return err
 	}
-	srcDb.Ping()
+	srcDB.Ping()
 
 	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
 
-	dbUri := fmt.Sprintf("file:%s", dbpath)
-	bkDb, err := sqlx.Open(DriverBackupMode, dbUri)
-	defer flushSqliteCon(bkDb)
+	dbURI := fmt.Sprintf("file:%s", dbpath)
+	bkDB, err := sqlx.Open(DriverBackupMode, dbURI)
+	defer flushSqliteCon(bkDB)
 	if err != nil {
 		return err
 	}
 
-	err = bkDb.Ping()
+	err = bkDB.Ping()
 	if err != nil {
 		return err
 	}
 
-	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
+	bkp, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
 	if err != nil {
 		return err
 	}
 
-	_, err = bk.Step(-1)
+
+	_, err = bkp.Step(-1)
 	if err != nil {
 		return err
 	}
 
-	bk.Finish()
+	bkp.Finish()
 
 	return nil
 }

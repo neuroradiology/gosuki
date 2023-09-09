@@ -27,7 +27,6 @@ import (
 )
 
 var (
-	ErrInitFirefox = errors.New("could not start Firefox watcher")
 	log            = logging.GetLogger("FF")
 )
 
@@ -145,7 +144,7 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
 			// Parent will be a folder or nothing?
 			tree.AddChild(f.tagMap[tagNode.Name], urlNode)
 
-			f.CurrentUrlCount++
+			f.CurrentURLCount++
 		}
 
 		// Link this URL node to its corresponding folder node if it exists.
@@ -155,6 +154,7 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
 		if fOk {
 			tree.AddChild(folderNode, urlNode)
 		}
+
 	}
 }
 
@@ -278,7 +278,7 @@ func (f *Firefox) UseProfile(p profiles.Profile) error {
 func (f *Firefox) Init(ctx *modules.Context) error {
 	log.Infof("initializing <%s>", f.Name)
 
-	watchedPath, err := filepath.EvalSymlinks(f.BkDir)
+	watchedPath, err := f.BookmarkDir()
 	log.Debugf("Watching path: %s", watchedPath)
 	if err != nil {
 		return err
@@ -292,7 +292,15 @@ func (f *Firefox) Init(ctx *modules.Context) error {
 		ResetWatch: false,
 	}
 
-	modules.SetupWatchersWithReducer(f.BrowserConfig, modules.ReducerChanLen, w)
+	ok, err := modules.SetupWatchersWithReducer(f.BrowserConfig, modules.ReducerChanLen, w)
+	if err != nil {
+		return fmt.Errorf("could not setup watcher: %s", err)
+	}
+
+	if !ok {
+		return errors.New("could not setup watcher")
+	}
+	
 
 	/*
 	 *Run reducer to avoid duplicate jobs when a batch of events is received
@@ -335,7 +343,7 @@ func (f *Firefox) Load() error {
 	f.lastRunAt = time.Now().UTC()
 
 	log.Debugf("parsed %d bookmarks and %d nodes in %s",
-		f.CurrentUrlCount,
+		f.CurrentURLCount,
 		f.CurrentNodeCount,
 		f.LastFullTreeParseTime)
 	f.Reset()
@@ -381,18 +389,26 @@ func (ff *Firefox) Run() {
 	}
 	defer pc.Clean()
 
+
+	// go one step back in time to avoid missing changes
+	scanSince := ff.lastRunAt.Add(-1 * time.Second)
+	scanSinceSQL := scanSince.UTC().UnixNano() / 1000
+
+
 	log.Debugf("Checking changes since <%d> %s",
-		ff.lastRunAt.UTC().UnixNano()/1000,
-		ff.lastRunAt.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
+		scanSinceSQL,
+		scanSince.Local().Format("Mon Jan 2 15:04:05 MST 2006"))
 
-	scanSince := ff.lastRunAt.UTC().UnixNano() / 1000
-
-	bookmarks, err := ff.scanModifiedBookmarks(scanSince)
+	bookmarks, err := ff.scanModifiedBookmarks(scanSinceSQL)
 	if err != nil {
 		log.Error(err)
 	}
 	ff.loadBookmarksToTree(bookmarks)
 	// tree.PrintTree(ff.NodeTree)
+
+	//NOTE: we don't rebuild the index from the tree here as the source of
+	// truth is the URLIndex and not the tree. The tree is only used for
+	// reprensenting the bookmark hierarchy in a conveniant way.
 
 	database.SyncURLIndexToBuffer(ff.URLIndexList, ff.URLIndex, ff.BufferDB)
 	ff.BufferDB.SyncTo(database.Cache.DB)
@@ -404,27 +420,27 @@ func (ff *Firefox) Run() {
 }
 
 // Implement moduls.Shutdowner
-func (f *Firefox) Shutdown() {
+func (f *Firefox) Shutdown() error {
+	var err error
 	log.Debugf("shutting down ... ")
 
 	if f.places != nil {
-
-		err := f.places.Close()
-		if err != nil {
-			log.Critical(err)
-		}
+		err = f.places.Close()
 	}
+	return err
 }
 
-// HACK: addUrl and addTag share a lot of code, find a way to reuse shared code
+// TODO: addUrl and addTag share a lot of code, find a way to reuse shared code
 // and only pass extra details about tag/url along in some data structure
 // PROBLEM: tag nodes use IDs and URL nodes use URL as hashes
 func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 
 	var urlNode *tree.Node
-	iUrlNode, exists := f.URLIndex.Get(url)
+	var created bool
+
+	iURLNode, exists := f.URLIndex.Get(url)
 	if !exists {
-		urlNode := &tree.Node{
+		urlNode = &tree.Node{
 			Name: title,
 			Type: tree.URLNode,
 			URL:  url,
@@ -436,12 +452,23 @@ func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 		f.URLIndexList = append(f.URLIndexList, url)
 		f.CurrentNodeCount++
 
-		return true, urlNode
+		created = true
+
 	} else {
-		urlNode = iUrlNode.(*tree.Node)
+		urlNode = iURLNode.(*tree.Node)
+		//TEST:
+		// update title and desc
+		urlNode.Name = title
+		urlNode.Desc = desc
 	}
 
-	return false, urlNode
+	// Call hooks
+	err := f.CallHooks(urlNode)
+	if err != nil {
+		log.Errorf("error calling hooks for <%s>: %s", url, err)
+	}
+
+	return created, urlNode
 }
 
 // adds a new tagNode if it is not yet in the tagMap
@@ -586,9 +613,9 @@ func loadBookmarks(f *Firefox) {
 	 */
 	for rows.Next() {
 		var url, title, tagTitle, desc string
-		var tagId sqlid
+		var tagID sqlid
 
-		err = rows.Scan(&url, &title, &desc, &tagId, &tagTitle)
+		err = rows.Scan(&url, &title, &desc, &tagID, &tagTitle)
 		// log.Debugf("%s|%s|%s|%d|%s", url, title, desc, tagId, tagTitle)
 		if err != nil {
 			log.Error(err)
@@ -616,7 +643,7 @@ func loadBookmarks(f *Firefox) {
 		// Set tag as parent to urlnode
 		tree.AddChild(f.tagMap[tagTitle], urlNode)
 
-		f.CurrentUrlCount++
+		f.CurrentURLCount++
 	}
 
 	log.Debugf("root tree children len is %d", len(f.NodeTree.Children))

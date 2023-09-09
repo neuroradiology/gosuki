@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"git.blob42.xyz/gomark/gosuki/modules"
-	"git.blob42.xyz/gomark/gosuki/parsing"
 	"git.blob42.xyz/gomark/gosuki/profiles"
 	"git.blob42.xyz/gomark/gosuki/utils"
 	"git.blob42.xyz/gomark/gosuki/watch"
@@ -26,7 +25,7 @@ var startDaemonCmd = &cli.Command{
 // Runs the module by calling the setup 
 func RunModule(c *cli.Context,
 				browserMod modules.BrowserModule,
-				p *profiles.Profile) error {
+				p *profiles.Profile) (error) {
 		mod := browserMod.ModInfo()
 		// Create context
 		modContext := &modules.Context{
@@ -41,20 +40,12 @@ func RunModule(c *cli.Context,
 
 		// shutdown logic
 		s, isShutdowner := browser.(modules.Shutdowner)
-		if isShutdowner {
-			defer handleShutdown(browser.Config().Name, s)
+		if !isShutdowner {
+			log.Warningf("browser <%s> does not implement modules.Shutdowner", browser.Config().Name)
 		}
 
 		log.Debugf("new browser <%s> instance", browser.Config().Name)
-		h, ok := browser.(modules.HookRunner)
-		if ok {
-			//TODO: document hook running on watch events
-			h.RegisterHooks(parsing.ParseTags)
-		}
 
-
-		// calls the setup logic for each browser instance which
-		// includes the browsers.Initializer and browsers.Loader interfaces
 
 		//TODO!: call with custom profile
 		if p != nil {
@@ -72,6 +63,8 @@ func RunModule(c *cli.Context,
 		}
 
 
+		// calls the setup logic for each browser instance which
+		// includes the browsers.Initializer and browsers.Loader interfaces
 		err := modules.Setup(browser, modContext)
 		if err != nil {
 			log.Errorf("setting up <%s> %v", browser.Config().Name, err)
@@ -146,6 +139,15 @@ func startDaemon(c *cli.Context) error {
 		} else {
 			log.Warningf("module <%s> does not implement profiles.ProfileManager",
 			browser.Config().Name)
+			if err := RunModule(c, browserMod, nil); err != nil {
+				continue
+			}
+		}
+
+		// register defer shutdown logic
+		s, isShutdowner := browser.(modules.Shutdowner)
+		if isShutdowner {
+			defer handleShutdown(browser.Config().Name, s)
 		}
 	}
 
@@ -157,6 +159,6 @@ func startDaemon(c *cli.Context) error {
 func handleShutdown(id string, s modules.Shutdowner) {
 	err := s.Shutdown()
 	if err != nil {
-		log.Panicf("could not shutdown browser <%s>", id)
+		log.Panicf("<%s> could not shutdown: %s", id, err)
 	}
 }

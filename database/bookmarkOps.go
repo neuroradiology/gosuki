@@ -9,43 +9,51 @@ import (
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
+// Default separator used to join tags in the DB
 const TagJoinSep = ","
 
 type Bookmark = bookmarks.Bookmark
 
+func cleanup(f func() error) {
+	if err := f(); err != nil {
+		log.Error(err)
+	}
+}
+
 // Inserts or updates a bookmarks to the passed DB
 // In case of a conflict for a UNIQUE URL constraint,
 // update the existing bookmark
-func (db *DB) InsertOrUpdateBookmark(bk *Bookmark) {
+func (db *DB) UpsertBookmark(bk *Bookmark) {
 	var sqlite3Err sqlite3.Error
+	var isSqlite3Err bool
 	var scannedTags string
 
 	_db := db.Handle
 
+	//TODO: use UPSERT stmt
 	// Prepare statement that does a pure insert only
 	tryInsertBk, err := _db.Prepare(
-		`INSERT INTO
-			bookmarks(URL, metadata, tags, desc, flags)
+		`INSERT INTO bookmarks(URL, metadata, tags, desc, flags)
 			VALUES (?, ?, ?, ?, ?)`,
 	)
-	defer tryInsertBk.Close()
 	if err != nil {
 		log.Errorf("%s: %s", err, bk.URL)
 	}
+	defer cleanup(tryInsertBk.Close)
 
 	// Prepare statement that updates an existing bookmark in db
 	updateBk, err := _db.Prepare(
 		`UPDATE bookmarks SET metadata=?, tags=?, modified=strftime('%s')
 		WHERE url=?`,
 	)
-	defer updateBk.Close()
+	defer cleanup(updateBk.Close)
 	if err != nil {
 		log.Errorf("%s: %s", err, bk.URL)
 	}
 
 	// Stmt to fetch existing bookmark and tags in db
 	getTags, err := _db.Prepare(`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`)
-	defer getTags.Close()
+	defer cleanup(getTags.Close)
 	if err != nil {
 		log.Errorf("%s: %s", err, bk.URL)
 	}
@@ -59,8 +67,8 @@ func (db *DB) InsertOrUpdateBookmark(bk *Bookmark) {
     // clean tags from tag separator
     tagList := utils.ReplaceInList(bk.Tags, TagJoinSep, "--")
 
-    tagListText := strings.Join(tagList, TagJoinSep)
-
+    tagListText := strings.Trim(strings.Join(tagList, TagJoinSep), TagJoinSep)
+	log.Debugf("inserting tags <%s>", tagListText)
 	// First try to insert the bookmark (assume it's new)
 	_, err = tx.Stmt(tryInsertBk).Exec(
 		bk.URL,
@@ -70,10 +78,13 @@ func (db *DB) InsertOrUpdateBookmark(bk *Bookmark) {
 	)
 
 	if err != nil {
-		sqlite3Err = err.(sqlite3.Error)
+		sqlite3Err, isSqlite3Err = err.(sqlite3.Error)
+		if !isSqlite3Err {
+			log.Errorf("%s: %s", err, bk.URL)
+		}
 	}
 
-	if err != nil && sqlite3Err.Code != sqlite3.ErrConstraint {
+	if err != nil && isSqlite3Err && sqlite3Err.Code != sqlite3.ErrConstraint {
 		log.Errorf("%s: %s", err, bk.URL)
 	}
 	// We will handle ErrConstraint ourselves
@@ -103,13 +114,15 @@ func (db *DB) InsertOrUpdateBookmark(bk *Bookmark) {
 		var newTags []string // merged tags
 
 		// Merge in a single slice
-		for k, _ := range tagMap {
+		for k := range tagMap {
 			newTags = append(newTags, k)
 		}
 
+		tagListText := strings.Trim(strings.Join(newTags, TagJoinSep), TagJoinSep)
+		// log.Debugf("Updating bookmark %s with tags <%s>", bk.URL, tagListText)
 		_, err = tx.Stmt(updateBk).Exec(
 			bk.Metadata,
-			strings.Join(newTags, TagJoinSep), // Join tags with a `|`
+			tagListText,
 			bk.URL,
 		)
 
@@ -152,3 +165,9 @@ func (db *DB) InsertBookmark(bk *Bookmark) {
 		log.Error(err)
 	}
 }
+
+// CleanTags sanitize the tags strings stored in the gosuki database.
+// The input is a string of tags separated by [TagJoinSep].
+// func CleanTags(tags string) string {
+// 	
+// }
