@@ -11,5 +11,5 @@ _wt_tmp
 places.sqlite-shm
 places.sqlite-wal
 _maintest.go
-gosuki
+./gosuki
 gosuki.db
