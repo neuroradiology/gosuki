@@ -11,7 +11,7 @@ import (
 	"git.blob42.xyz/gomark/gosuki/internal/utils"
 	"git.blob42.xyz/gomark/gosuki/pkg/watch"
 
-	"git.blob42.xyz/sp4ke/gum"
+	"git.blob42.xyz/blob42/gum"
 
 	"github.com/urfave/cli/v2"
 )

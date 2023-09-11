@@ -1,9 +1,9 @@
 module git.blob42.xyz/gomark/gosuki
 
-go 1.21.0
+go 1.21.1
 
 require (
-	git.blob42.xyz/sp4ke/gum v0.0.0-20190304130815-31be968b7b17
+	git.blob42.xyz/blob42/gum v0.0.0-20230911120836-6c924ec8bc62
 	github.com/BurntSushi/toml v1.2.1
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/chenhg5/collection v0.0.0-20200925143926-f403b87088f9
