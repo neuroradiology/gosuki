@@ -1,6 +1,8 @@
 package watch
 
 import (
+	"git.blob42.xyz/blob42/gum"
+
 	"git.blob42.xyz/gomark/gosuki/internal/logging"
 
 	"github.com/fsnotify/fsnotify"
@@ -26,6 +28,10 @@ type Watcher interface {
 
 type Runner interface {
 	Run()
+}
+
+type Shutdowner interface {
+	Shutdown() error
 }
 
 // interface for modules that keep stats
@@ -101,21 +107,39 @@ type Watch struct {
 	ResetWatch bool
 }
 
-func SpawnWatcher(wr WatchRunner) {
-    watcher := wr.Watch()
-    if ! watcher.isWatching {
-        go WatcherThread(wr)
-        watcher.isWatching = true
+// Implement work unit for watchers
+type WatcherWork struct {
+	wr WatchRunner
+}
+
+func Worker(wr WatchRunner) *WatcherWork {
+	return &WatcherWork{wr}
+}
+
+func (w *WatcherWork) Run(m gum.UnitManager) {
+	watcher := w.wr.Watch()
+	if ! watcher.isWatching {
+		go WatchLoop(w.wr)
+		watcher.isWatching = true
 
 		for watched := range watcher.Watched{
 			log.Infof("Watching %s", watched)
 		}
-    }
+	}
 
+	// wait for stop signal
+	<-m.ShouldStop()
+	sht, ok := w.wr.(Shutdowner)
+	if ok {
+		if err := sht.Shutdown(); err != nil {
+			m.Panic(err)
+		}
+	}
+	m.Done()
 }
 
 // Main thread for watching file changes
-func WatcherThread(w WatchRunner) {
+func WatchLoop(w WatchRunner) {
 
 	watcher := w.Watch()
 	log.Infof("<%s> Started watcher", watcher.ID)

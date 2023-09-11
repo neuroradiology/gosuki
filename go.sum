@@ -1,5 +1,7 @@
-git.blob42.xyz/blob42/gum v0.0.0-20230911120836-6c924ec8bc62 h1:fPT5sIoMSDtfBz+rfbr3+R1YKmYCUY75j02sfHNgMJ8=
-git.blob42.xyz/blob42/gum v0.0.0-20230911120836-6c924ec8bc62/go.mod h1:zek0PsDQ57lse6YYLgY4kxYmKq/E4OyHo4ywoA9zZIE=
+git.blob42.xyz/blob42/gum v0.0.0-20230911125330-f57e69d1a6fd h1:WKHLfwlWRcXQ83b239K5KTWS0cpfCU/wEfzCYvwc0k8=
+git.blob42.xyz/blob42/gum v0.0.0-20230911125330-f57e69d1a6fd/go.mod h1:zek0PsDQ57lse6YYLgY4kxYmKq/E4OyHo4ywoA9zZIE=
+git.blob42.xyz/blob42/gum v0.0.0-20230911134418-d5a782249822 h1:j+KjkzflGmJBqTOmgxZUJmg7uMM/e5jHha5wTr3VYbY=
+git.blob42.xyz/blob42/gum v0.0.0-20230911134418-d5a782249822/go.mod h1:zek0PsDQ57lse6YYLgY4kxYmKq/E4OyHo4ywoA9zZIE=
 github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557 h1:l6surSnJ3RP4qA1qmKJ+hQn3UjytosdoG27WGjrDlVs=
 github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557/go.mod h1:sTrmvD/TxuypdOERsDOS7SndZg0rzzcCi1b6wQMXUYM=
 github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak=

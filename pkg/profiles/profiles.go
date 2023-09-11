@@ -24,7 +24,7 @@ type ProfileManager interface {
 	// If should watch all profiles
 	WatchAllProfiles() bool
 
-	// Use custom profile
+	// Notifies the module to use a custom profile
 	UseProfile(p Profile) error
 }
 

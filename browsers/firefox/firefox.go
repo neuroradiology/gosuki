@@ -427,8 +427,6 @@ func (ff *Firefox) Run() {
 // Implement moduls.Shutdowner
 func (f *Firefox) Shutdown() error {
 	var err error
-	log.Debugf("shutting down ... ")
-
 	if f.places != nil {
 		err = f.places.Close()
 	}
