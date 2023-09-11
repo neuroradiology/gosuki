@@ -38,9 +38,8 @@ func runModule(m *gum.Manager,
 		}
 		//Create a browser instance
 		browser, ok := mod.New().(modules.BrowserModule)
-		//TODO: handle browser vs simple modules
 		if !ok {
-			log.Warningf("module <%s> is not a BrowserModule", mod.ID)
+			return fmt.Errorf("module <%s> is not a BrowserModule", mod.ID)
 		}
 		log.Debugf("created browser instance <%s>", browser.Config().Name)
 
@@ -53,7 +52,6 @@ func runModule(m *gum.Manager,
 		log.Debugf("new browser <%s> instance", browser.Config().Name)
 
 
-		//TODO!: call with custom profile
 		if p != nil {
 			bpm, ok := browser.(profiles.ProfileManager)
 			if !ok {
@@ -72,6 +70,7 @@ func runModule(m *gum.Manager,
 
 		// calls the setup logic for each browser instance which
 		// includes the browsers.Initializer and browsers.Loader interfaces
+		//PERF:
 		err := modules.Setup(browser, modContext)
 		if err != nil {
 			log.Errorf("setting up <%s> %v", browser.Config().Name, err)
