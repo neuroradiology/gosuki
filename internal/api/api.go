@@ -62,7 +62,7 @@ func (api *API) Run(m gum.UnitManager) {
 	go func() {
 		err := api.engine.Run(":4444")
 		if err != nil {
-			panic(err)
+			m.Panic(err)
 		}
 
 	}()
