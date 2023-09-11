@@ -6,9 +6,9 @@ import (
 
 	"git.blob42.xyz/gomark/gosuki/internal/api"
 	db "git.blob42.xyz/gomark/gosuki/internal/database"
+	"git.blob42.xyz/gomark/gosuki/internal/utils"
 	"git.blob42.xyz/gomark/gosuki/pkg/modules"
 	"git.blob42.xyz/gomark/gosuki/pkg/profiles"
-	"git.blob42.xyz/gomark/gosuki/internal/utils"
 	"git.blob42.xyz/gomark/gosuki/pkg/watch"
 
 	"git.blob42.xyz/blob42/gum"
@@ -26,9 +26,11 @@ var startDaemonCmd = &cli.Command{
 }
 
 // Runs the module by calling the setup 
-func runModule(c *cli.Context,
+func runModule(m *gum.Manager,
+				c *cli.Context,
 				browserMod modules.BrowserModule,
 				p *profiles.Profile) (error) {
+		var profileName string
 		mod := browserMod.ModInfo()
 		// Create context
 		modContext := &modules.Context{
@@ -36,13 +38,14 @@ func runModule(c *cli.Context,
 		}
 		//Create a browser instance
 		browser, ok := mod.New().(modules.BrowserModule)
+		//TODO: handle browser vs simple modules
 		if !ok {
-			log.Criticalf("module <%s> is not a BrowserModule", mod.ID)
+			log.Warningf("module <%s> is not a BrowserModule", mod.ID)
 		}
 		log.Debugf("created browser instance <%s>", browser.Config().Name)
 
 		// shutdown logic
-		s, isShutdowner := browser.(modules.Shutdowner)
+		_, isShutdowner := browser.(modules.Shutdowner)
 		if !isShutdowner {
 			log.Warningf("browser <%s> does not implement modules.Shutdowner", browser.Config().Name)
 		}
@@ -63,6 +66,7 @@ func runModule(c *cli.Context,
 				log.Criticalf("could not use profile <%s>", p.Name)
 				return err
 			}
+			profileName = p.Name
 		}
 
 
@@ -71,9 +75,6 @@ func runModule(c *cli.Context,
 		err := modules.Setup(browser, modContext)
 		if err != nil {
 			log.Errorf("setting up <%s> %v", browser.Config().Name, err)
-			if isShutdowner {
-				handleShutdown(browser.Config().Name, s)
-			}
 			return err
 		}
 
@@ -85,7 +86,15 @@ func runModule(c *cli.Context,
 		}
 
 		log.Infof("start watching <%s>", runner.Watch().ID)
-		watch.SpawnWatcher(runner)
+
+		// create the worker name
+		unitName := browser.Config().Name
+		if len(profileName) > 0 {
+			unitName = fmt.Sprintf("%s(%s)", unitName, profileName)
+		}
+
+
+		m.AddUnit(watch.Worker(runner), unitName)
 		return nil
 }
 
@@ -95,9 +104,8 @@ func startDaemon(c *cli.Context) error {
 	manager.ShutdownOn(os.Interrupt)
 
 	api := api.NewApi()
-	manager.AddUnit(api)
+	manager.AddUnit(api, "")
 
-	go manager.Run()
 
 	// Initialize sqlite database available in global `cacheDB` variable
 	db.InitDB()
@@ -128,13 +136,13 @@ func startDaemon(c *cli.Context) error {
 				}
 				for _, p := range profs {
 					log.Debugf("profile: <%s>", p.Name)
-					err = runModule(c, browserMod, p)
+					err = runModule(manager, c, browserMod, p)
 					if err != nil {
 					  continue
 					}
 				}
 			} else {
-				err := runModule(c, browserMod, nil)
+				err := runModule(manager, c, browserMod, nil)
 				if err != nil {
 				  continue
 				}
@@ -142,26 +150,16 @@ func startDaemon(c *cli.Context) error {
 		} else {
 			log.Warningf("module <%s> does not implement profiles.ProfileManager",
 			browser.Config().Name)
-			if err := runModule(c, browserMod, nil); err != nil {
+			if err := runModule(manager, c, browserMod, nil); err != nil {
 				continue
 			}
 		}
 
-		// register defer shutdown logic
-		s, isShutdowner := browser.(modules.Shutdowner)
-		if isShutdowner {
-			defer handleShutdown(browser.Config().Name, s)
-		}
 	}
+
+	go manager.Run()
 
 	<-manager.Quit
 
 	return nil
-}
-
-func handleShutdown(id string, s modules.Shutdowner) {
-	err := s.Shutdown()
-	if err != nil {
-		log.Panicf("<%s> could not shutdown: %s", id, err)
-	}
 }

@@ -52,8 +52,6 @@ type API struct {
 	router *gin.RouterGroup
 }
 
-func (api *API) Shutdown() {}
-
 func (api *API) Run(m gum.UnitManager) {
 	api.router.GET("/urls", getBookmarks)
 
@@ -69,8 +67,6 @@ func (api *API) Run(m gum.UnitManager) {
 
 	// Wait for stop signal
 	<-m.ShouldStop()
-
-	api.Shutdown()
 	m.Done()
 }
 

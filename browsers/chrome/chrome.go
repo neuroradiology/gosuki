@@ -155,7 +155,7 @@ func (ch *Chrome) ResetWatcher() error {
 		return err
 	}
 
-	go watch.WatcherThread(ch)
+	go watch.WatchLoop(ch)
 	return nil
 }
 
