@@ -510,6 +510,7 @@ func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 // returns the created tagNode
 func (f *Firefox) addTagNode(tagName string) (bool, *tree.Node) {
 	// Check if "tags" branch exists or create it
+	log.Debugf("<%s> adding tag <%s>", f.fullId(), tagName)
 	var branchOk bool
 	var tagsBranch *tree.Node
 	for _, c := range f.NodeTree.Children {

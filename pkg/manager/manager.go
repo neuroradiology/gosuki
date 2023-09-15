@@ -70,7 +70,6 @@ func (m *Manager) Run() {
 	log.Info("Starting manager ...")
 
 	for unitName, w := range m.workers {
-		log.Debugf("---> %p", w)
 		log.Infof("Starting <%s>\n", unitName)
 		go w.unit.Run(w)
 	}
@@ -169,8 +168,7 @@ func (m *Manager) AddUnit(unit WorkUnit, name string) {
 	unitID := idGenerator(unitName)
 	unitName = fmt.Sprintf("%s#%d]", unitName, unitID)
 
-	log.Info("Adding unit ", unitName)
-
+	log.Debug("Adding unit ", unitName)
 	m.workers[unitName] = workUnitManager
 }
 
