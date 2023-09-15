@@ -1,8 +1,8 @@
 package database
 
 import (
-    _ "io"
-    "embed"
+	"embed"
+	_ "io"
 	"path/filepath"
 
 	"github.com/gchaincl/dotsql"
@@ -45,3 +45,5 @@ func DotxQueryEmbedFS(fs embed.FS, filename string) (*dotsqlx.DotSqlx, error){
 
     return dotsqlx.Wrap(dot), nil
 }
+
+

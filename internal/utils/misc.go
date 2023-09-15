@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-
 // Extends a slice of T with element `in`, like a Set
 func Extends[T comparable](list []T, in ...T) []T {
 	for _, val := range in {
@@ -33,10 +32,11 @@ func UseVar(any interface{}) {}
 
 // function that iterates through the list of string, for each element it 
 // replaces the occurence of old with new, and returns the updated list 
-func ReplaceInList(l []string, old string, new string) []string {
-    var result []string
-    for _, s := range l {
-        result = append(result, strings.ReplaceAll(s, old, new, ))
+func ReplaceInList(src []string, old string, new string) []string {
+	lenSrc := len(src)
+	result := make([]string, lenSrc)
+    for i, s := range src {
+        result[i] = strings.ReplaceAll(s, old, new)
     }
     return result
 }

@@ -26,7 +26,7 @@ func DebugPrintRows(rows *sql.Rows) {
 	fmt.Fprintf(w, "\n")
 
 	for rows.Next() {
-		for i, _ := range cols {
+		for i := range cols {
 			valuesPtrs[i] = &values[i]
 		}
 		rows.Scan(valuesPtrs...)

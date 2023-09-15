@@ -2,7 +2,6 @@ package database
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"
@@ -123,7 +122,6 @@ func (src *DB) SyncTo(dst *DB) {
 		}
 	}
 
-	log.Debugf("commit")
 	err = dstTx.Commit()
 	if err != nil {
 		log.Error(err)
@@ -148,24 +146,27 @@ func (src *DB) SyncTo(dst *DB) {
 
 		//log.Debugf("src tags: %v", scan.tags)
 		//log.Debugf("dst tags: %v", dstTags)
-		srcTags := strings.Split(scan.tags, TagSep)
-		dstTags := strings.Split(tags, TagSep)
+		srcTags := TagsFromString(scan.tags, TagSep)
+
+		dstTags := TagsFromString(tags, TagSep)
+
 		tagMap := make(map[string]bool)
-		for _, v := range srcTags {
+		for _, v := range srcTags.tags {
 			tagMap[v] = true
 		}
-		for _, v := range dstTags {
+		for _, v := range dstTags.tags {
 			tagMap[v] = true
 		}
 
-		var newTags []string //merged tags
+		newTags := &Tags{delim: TagSep}//merged tags
 		for k := range tagMap {
-			newTags = append(newTags, k)
+			newTags.Add(k)
 		}
+		newTagsStr := newTags.StringWrap()
 
 		_, err = dstTx.Stmt(updateDstRow).Exec(
 			scan.metadata,
-			strings.Join(newTags, TagSep),
+			newTagsStr,
 			scan.desc,
 			0, //flags
 			scan.URL,
@@ -206,7 +207,9 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	if err != nil {
 		return err
 	}
-	srcDB.Ping()
+	if err = srcDB.Ping(); err != nil {
+		return err
+	}
 
 	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
 
@@ -220,6 +223,10 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	err = bkDB.Ping()
 	if err != nil {
 		return err
+	}
+
+	if len(_sql3conns) < 2 {
+		return fmt.Errorf("not enough sql connections for backup")
 	}
 
 	bkp, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
