@@ -8,7 +8,6 @@ import (
 
 	"git.blob42.xyz/gomark/gosuki/internal/config"
 	"git.blob42.xyz/gomark/gosuki/internal/database"
-	"git.blob42.xyz/gomark/gosuki/internal/index"
 	"git.blob42.xyz/gomark/gosuki/internal/utils"
 	"git.blob42.xyz/gomark/gosuki/pkg/browsers/mozilla"
 	"git.blob42.xyz/gomark/gosuki/pkg/modules"
@@ -114,8 +113,6 @@ func NewFirefoxConfig() *FirefoxConfig {
 			// parsed node
 			UseHooks:   []string{"notify-send"},
 
-			// Creates in memory Index (RB-Tree)
-			URLIndex: index.NewIndex(),
 		},
 
 		// Default data source name query options for `places.sqlite` db
