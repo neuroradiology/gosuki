@@ -60,6 +60,8 @@ func CopyFilesToTmpFolder(srcglob string, dst string) error {
 
 }
 
+//FIX: this is not always working as expected
+//TEST:
 func CleanFiles() {
 	log.Debugf("Cleaning files <%s>", TMPDIR)
 	err := os.RemoveAll(TMPDIR)

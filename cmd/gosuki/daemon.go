@@ -11,7 +11,7 @@ import (
 	"git.blob42.xyz/gomark/gosuki/pkg/profiles"
 	"git.blob42.xyz/gomark/gosuki/pkg/watch"
 
-	"git.blob42.xyz/blob42/gum"
+	"git.blob42.xyz/gomark/gosuki/pkg/manager"
 
 	"github.com/urfave/cli/v2"
 )
@@ -26,7 +26,7 @@ var startDaemonCmd = &cli.Command{
 }
 
 // Runs the module by calling the setup 
-func runModule(m *gum.Manager,
+func runModule(m *manager.Manager,
 				c *cli.Context,
 				browserMod modules.BrowserModule,
 				p *profiles.Profile) (error) {
@@ -49,8 +49,6 @@ func runModule(m *gum.Manager,
 			log.Warningf("browser <%s> does not implement modules.Shutdowner", browser.Config().Name)
 		}
 
-		log.Debugf("new browser <%s> instance", browser.Config().Name)
-
 
 		if p != nil {
 			bpm, ok := browser.(profiles.ProfileManager)
@@ -71,7 +69,7 @@ func runModule(m *gum.Manager,
 		// calls the setup logic for each browser instance which
 		// includes the browsers.Initializer and browsers.Loader interfaces
 		//PERF:
-		err := modules.Setup(browser, modContext)
+		err := modules.Setup(browser, modContext, p)
 		if err != nil {
 			log.Errorf("setting up <%s> %v", browser.Config().Name, err)
 			return err
@@ -84,7 +82,13 @@ func runModule(m *gum.Manager,
 			return err
 		}
 
-		log.Infof("start watching <%s>", runner.Watch().ID)
+		w := runner.Watch()
+		if w == nil {
+			err = fmt.Errorf("<%s> must return a valid watch descriptor", browser.Config().Name)
+			log.Critical(err)
+			return err
+		}
+		log.Infof("adding watch runner <%s>", runner.Watch().ID)
 
 		// create the worker name
 		unitName := browser.Config().Name
@@ -93,17 +97,21 @@ func runModule(m *gum.Manager,
 		}
 
 
-		m.AddUnit(watch.Worker(runner), unitName)
+		//BUG: last worker is the only instance that is run
+		worker := watch.Worker(runner)
+
+		m.AddUnit(worker, unitName)
+
 		return nil
 }
 
 func startDaemon(c *cli.Context) error {
 	defer utils.CleanFiles()
-	manager := gum.NewManager()
+	manager := manager.NewManager()
 	manager.ShutdownOn(os.Interrupt)
 
 	api := api.NewApi()
-	manager.AddUnit(api, "")
+	manager.AddUnit(api, "api")
 
 
 	// Initialize sqlite database available in global `cacheDB` variable
@@ -113,14 +121,13 @@ func startDaemon(c *cli.Context) error {
 
 	// instanciate all browsers
 	for _, browserMod := range registeredBrowsers {
-
 		mod := browserMod.ModInfo()
 
 		//Create a temporary browser instance to check if it implements
 		// the ProfileManager interface
 		browser, ok := mod.New().(modules.BrowserModule)
 		if !ok {
-			log.Criticalf("module <%s> is not a BrowserModule", mod.ID)
+			log.Criticalf("TODO: module <%s> is not a BrowserModule", mod.ID)
 		}
 
 		// if the module is a profile manager and is watching all profiles
@@ -137,23 +144,27 @@ func startDaemon(c *cli.Context) error {
 					log.Debugf("profile: <%s>", p.Name)
 					err = runModule(manager, c, browserMod, p)
 					if err != nil {
-					  continue
+						log.Critical(err)
+						continue
 					}
 				}
 			} else {
+				log.Debugf("profile manager <%s> not watching all profiles",
+				browser.Config().Name)
 				err := runModule(manager, c, browserMod, nil)
 				if err != nil {
-				  continue
+					log.Error(err)
+					continue
 				}
 			}
 		} else {
 			log.Warningf("module <%s> does not implement profiles.ProfileManager",
 			browser.Config().Name)
 			if err := runModule(manager, c, browserMod, nil); err != nil {
+				log.Error(err)
 				continue
 			}
 		}
-
 	}
 
 	go manager.Run()

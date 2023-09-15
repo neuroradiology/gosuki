@@ -11,16 +11,16 @@ import (
 	"strings"
 	"time"
 
-	"git.blob42.xyz/gomark/gosuki/internal/database"
 	"git.blob42.xyz/gomark/gosuki/hooks"
+	"git.blob42.xyz/gomark/gosuki/internal/database"
 	"git.blob42.xyz/gomark/gosuki/internal/logging"
-	"git.blob42.xyz/gomark/gosuki/pkg/modules"
 	"git.blob42.xyz/gomark/gosuki/pkg/browsers/mozilla"
+	"git.blob42.xyz/gomark/gosuki/pkg/modules"
 	"git.blob42.xyz/gomark/gosuki/pkg/profiles"
 
 	// "git.blob42.xyz/gomark/gosuki/pkg/profiles"
-	"git.blob42.xyz/gomark/gosuki/pkg/tree"
 	"git.blob42.xyz/gomark/gosuki/internal/utils"
+	"git.blob42.xyz/gomark/gosuki/pkg/tree"
 	"git.blob42.xyz/gomark/gosuki/pkg/watch"
 
 	"github.com/fsnotify/fsnotify"
@@ -230,12 +230,17 @@ func NewFirefox() *Firefox {
 
 func (f Firefox) ModInfo() modules.ModInfo {
 	return modules.ModInfo{
+		// identify this type of browser
 		ID: modules.ModID(f.Name),
 		//HACK: duplicate instance with init().RegisterBrowser ??
 		New: func() modules.Module {
 			return NewFirefox()
 		},
 	}
+}
+
+func (f Firefox) fullId() string {
+	return fmt.Sprintf("%s_%s", f.Name, f.Profile)
 }
 
 // Implements the profiles.ProfileManager interface
@@ -271,13 +276,37 @@ func (f *Firefox) UseProfile(p profiles.Profile) error {
 	return nil
 }
 
+func (f *Firefox) cloneConfig() {
+	f.FirefoxConfig = NewFirefoxConfig()
+}
+
+//TODO!: Duplicate logic with initFirefoxConfig (config.go)
+func (f *Firefox) Init(ctx *modules.Context, p *profiles.Profile) error {
+	if p == nil {
+		return f.init(ctx)
+	}
+
+	// for new profile use a new config
+	f.cloneConfig()
+	f.Profile = p.Name
+
+
+	bookmarkDir, err := FirefoxProfileManager.GetProfilePath(p.Name)
+	if err != nil {
+		return err
+	}
+	f.BkDir = bookmarkDir
+
+	return f.init(ctx)
+}
+
 // TEST:
 // TODO: implement watching of multiple profiles.
 // NOTE: should be done at core gosuki level where multiple instances are spawned for each profile
 //
 // Implements browser.Initializer interface
-func (f *Firefox) Init(ctx *modules.Context) error {
-	log.Infof("initializing <%s>", f.Name)
+func (f *Firefox) init(ctx *modules.Context) error {
+	log.Infof("initializing <%s>", f.fullId())
 
 	watchedPath, err := f.BookmarkDir()
 	log.Debugf("Watching path: %s", watchedPath)
@@ -288,7 +317,7 @@ func (f *Firefox) Init(ctx *modules.Context) error {
 	// Setup watcher
 	w := &watch.Watch{
 		Path:       watchedPath,
-		EventTypes: []fsnotify.Op{fsnotify.Write},
+		EventTypes: []fsnotify.Op{fsnotify.Write, fsnotify.Chmod},
 		EventNames: []string{filepath.Join(watchedPath, "places.sqlite-wal")},
 		ResetWatch: false,
 	}
@@ -309,6 +338,7 @@ func (f *Firefox) Init(ctx *modules.Context) error {
 	// TODO!: make a new copy of places for every new event change
 
 	// Add a reducer to the watcher
+	log.Debugf("Running reducer on path <%s>", watchedPath)
 	go watch.ReduceEvents(WatchMinJobInterval, f)
 
 	return nil
@@ -347,7 +377,8 @@ func (f *Firefox) Load() error {
 	f.LastFullTreeParseTime = time.Since(start)
 	f.lastRunAt = time.Now().UTC()
 
-	log.Debugf("parsed %d bookmarks and %d nodes in %s",
+	log.Debugf("<%s> parsed %d bookmarks and %d nodes in %s",
+		f.fullId(),
 		f.CurrentURLCount,
 		f.CurrentNodeCount,
 		f.LastFullTreeParseTime)
@@ -694,7 +725,7 @@ func init() {
 // interface guards
 
 var _ modules.BrowserModule = (*Firefox)(nil)
-var _ modules.Initializer = (*Firefox)(nil)
+var _ modules.ProfileInitializer = (*Firefox)(nil)
 var _ modules.Loader = (*Firefox)(nil)
 var _ modules.Shutdowner = (*Firefox)(nil)
 var _ watch.WatchRunner = (*Firefox)(nil)

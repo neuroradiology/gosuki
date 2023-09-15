@@ -1,8 +1,9 @@
 package watch
 
 import (
-	"git.blob42.xyz/blob42/gum"
+	"time"
 
+	"git.blob42.xyz/gomark/gosuki/pkg/manager"
 	"git.blob42.xyz/gomark/gosuki/internal/logging"
 
 	"github.com/fsnotify/fsnotify"
@@ -43,7 +44,6 @@ type Stats interface {
 type WatchDescriptor struct {
 	ID      string
 	W       *fsnotify.Watcher // underlying fsnotify watcher
-	Watched map[string]*Watch // watched paths
 	Watches []*Watch          // helper var
 
 	// channel used to communicate watched events
@@ -81,7 +81,6 @@ func NewWatcher(name string, watches ...*Watch) (*WatchDescriptor, error) {
 	watcher := &WatchDescriptor{
 		ID:         name,
 		W:          fswatcher,
-		Watched:    watchedMap,
 		Watches:    watches,
 		eventsChan: nil,
 	}
@@ -112,18 +111,18 @@ type WatcherWork struct {
 	wr WatchRunner
 }
 
-func Worker(wr WatchRunner) *WatcherWork {
-	return &WatcherWork{wr}
+func Worker(wr WatchRunner) WatcherWork {
+	return WatcherWork{wr}
 }
 
-func (w *WatcherWork) Run(m gum.UnitManager) {
+func (w WatcherWork) Run(m manager.UnitManager) {
 	watcher := w.wr.Watch()
 	if ! watcher.isWatching {
 		go WatchLoop(w.wr)
 		watcher.isWatching = true
 
-		for watched := range watcher.Watched{
-			log.Infof("Watching %s", watched)
+		for _, watch := range watcher.Watches{
+			log.Infof("Watching %s", watch.Path)
 		}
 	}
 
@@ -142,16 +141,17 @@ func (w *WatcherWork) Run(m gum.UnitManager) {
 func WatchLoop(w WatchRunner) {
 
 	watcher := w.Watch()
+	beat := time.NewTicker(1 * time.Second).C
 	log.Infof("<%s> Started watcher", watcher.ID)
+watchloop:
 	for {
-		// Keep watcher here as it is reset from within
-		// the select block
-		resetWatch := false
 
 		select {
+		case <-beat:
+			// log.Debugf("main watch loop beat %s", watcher.ID)
 		case event := <-watcher.W.Events:
 			// Very verbose
-			//log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
+			// log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
 
 			// On Chrome like browsers the bookmarks file is created
 			// at every change.
@@ -170,14 +170,18 @@ func WatchLoop(w WatchRunner) {
 			for _, watched := range watcher.Watches {
 				for _, watchedEv := range watched.EventTypes {
 					for _, watchedName := range watched.EventNames {
+						// log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
+
 						if event.Op&watchedEv == watchedEv &&
 							event.Name == watchedName {
 
-							// For watchers who need a reducer
-							// to avoid spammy events
+							// For watchers who use a reducer forward the event
+							// to the reducer channel
 							if watcher.hasReducer() {
 								ch := watcher.eventsChan
 								ch <- event
+
+								// the reducer will call Run()
 							} else {
 								go func(){
 									w.Run()
@@ -190,11 +194,14 @@ func WatchLoop(w WatchRunner) {
 							//log.Warningf("event: %v | eventName: %v", event.Op, event.Name)
 
 							//TODO!: remove condition and use interface instead
+							// if the runner inplmenets reset watcher we call
+							// its reset watcher
 							if watched.ResetWatch {
 								log.Debugf("resetting watchers")
 								if r, ok := w.(ResetWatcher); ok {
 									r.ResetWatcher()
-									resetWatch = true // needed to break out of big loop
+									// break out of watch loop
+									break watchloop
 								} else {
 									log.Fatalf("<%s> does not implement ResetWatcher", watcher.ID)
 								}
@@ -219,11 +226,6 @@ func WatchLoop(w WatchRunner) {
 			if err != nil {
 				log.Error(err)
 			}
-		}
-
-		if resetWatch {
-			log.Debug("breaking out of watch loop")
-			break
 		}
 	}
 }

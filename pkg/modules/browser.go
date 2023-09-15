@@ -12,9 +12,12 @@ import (
 	"git.blob42.xyz/gomark/gosuki/internal/logging"
 	"git.blob42.xyz/gomark/gosuki/internal/utils"
 	"git.blob42.xyz/gomark/gosuki/pkg/parsing"
+	"git.blob42.xyz/gomark/gosuki/pkg/profiles"
 	"git.blob42.xyz/gomark/gosuki/pkg/tree"
 	"git.blob42.xyz/gomark/gosuki/pkg/watch"
 )
+
+var registeredBrowsers []BrowserModule
 
 type BrowserType uint8
 
@@ -211,19 +214,65 @@ type Initializer interface {
 
 	// Init() is the first method called after a browser instance is created
 	// and registered.
+	// A pointer to 
 	// Return ok, error
 	Init(*Context) error
+}
+
+// ProfileInitializer is similar to Initializer but is called with a profile.
+// This is useful for modules that need to do some custom initialization for a
+// specific profile.
+type ProfileInitializer interface {
+	Init(*Context, *profiles.Profile) error
 }
 
 // Every browser is setup once, the following methods are called in order of
 // their corresponding interfaces are implemented.
 // TODO!: integrate with refactoring
-// 0- Provision: Sets up and custom configiguration to the browser
+// 0- provision: custom configuration to the browser
 // 1- Init : any variable and state initialization
 // 2- Load: Does the first loading of data (ex first loading of bookmarks )
-func Setup(browser BrowserModule, c *Context) error {
+func Setup(browser BrowserModule, c *Context, p *profiles.Profile) error {
 
-	//TODO!: default init
+
+
+	log.Infof("setting up browser <%s>", browser.ModInfo().ID)
+	browserID := browser.ModInfo().ID
+
+	// Handle Initializers custom Init from Browser module
+	initializer, okInit := browser.(Initializer)
+	pInitializer, okProfileInit := browser.(ProfileInitializer)
+
+	if okProfileInit && p == nil {
+		 log.Warningf("<%s> ProfileInitializer called with nil profile", browserID)
+	}
+
+	if !okProfileInit  && !okInit {
+		log.Warningf("<%s> does not implement Initializer or ProfileInitializer, not calling Init()", browserID)
+	}
+
+	if okInit {
+		log.Debugf("<%s> custom init", browserID)
+		//TODO!: missing profile name
+		if err := initializer.Init(c); err != nil {
+			return fmt.Errorf("<%s> initialization error: %v", browserID, err)
+		}
+	} 
+
+	// Handle Initializers custom Init from Browser module
+	if okProfileInit {
+		if p != nil {
+			log.Debugf("<%s> custom init with profile <%s>", browserID, p.Name)
+		}
+
+		if err := pInitializer.Init(c, p); err != nil {
+			return fmt.Errorf("<%s> initialization error: %v", browserID, err)
+		}
+	}
+
+	// We modify the base config after the custom init had the chance to
+	// modify it (ex. set the profile name)
+
     bConf := browser.Config()
 
 	// Setup registered hooks
@@ -237,30 +286,15 @@ func Setup(browser BrowserModule, c *Context) error {
 	}
 
 
-
 	// Init browsers' BufferDB
 	buffer, err := database.NewBuffer(bConf.Name)
 	if err != nil {
 		return err
 	}
-    bConf.BufferDB = buffer
+	bConf.BufferDB = buffer
+
 	// Creates in memory Index (RB-Tree)
-    bConf.URLIndex = index.NewIndex()
-
-	log.Infof("setting up browser <%s>", browser.ModInfo().ID)
-	browserID := browser.ModInfo().ID
-
-	// Handle Initializers custom Init from Browser module
-	initializer, ok := browser.(Initializer)
-	if ok {
-		log.Debugf("<%s> custom init", browserID)
-		if err := initializer.Init(c); err != nil {
-			return fmt.Errorf("<%s> initialization error: %v", browserID, err)
-		}
-
-	} else {
-		log.Warningf("<%s> does not implement Initializer, not calling Init()", browserID)
-	}
+	bConf.URLIndex = index.NewIndex()
 
 
 	// Default browser loading logic
@@ -269,7 +303,7 @@ func Setup(browser BrowserModule, c *Context) error {
 		return fmt.Errorf("<%s> Loading bookmarks while cache not yet initialized", browserID)
 	}
 
-	//handle Loader interface
+	// handle Loader interface
 	loader, ok := browser.(Loader)
 	if ok {
 		log.Debugf("<%s> custom loading", browserID)
@@ -292,7 +326,12 @@ func SetupWatchers(browserConf *BrowserConfig, watches ...*watch.Watch) (bool, e
 		return false, nil
 	}
 
-	browserConf.watcher, err = watch.NewWatcher(browserConf.Name, watches...)
+	var bkPath string
+	if bkPath, err = browserConf.BookmarkPath(); err != nil {
+		return false, err
+	}
+
+	browserConf.watcher, err = watch.NewWatcher(bkPath, watches...)
 	if err != nil {
 		return false, err
 	}
@@ -309,7 +348,11 @@ func SetupWatchersWithReducer(browserConf *BrowserConfig,
 		return false, nil
 	}
 
-	browserConf.watcher, err = watch.NewWatcherWithReducer(browserConf.Name, reducerChanLen, watches...)
+	var bkPath string
+	if bkPath, err = browserConf.BookmarkPath(); err != nil {
+		return false, err
+	}
+	browserConf.watcher, err = watch.NewWatcherWithReducer(bkPath, reducerChanLen, watches...)
 	if err != nil {
 		return false, err
 	}
@@ -318,12 +361,17 @@ func SetupWatchersWithReducer(browserConf *BrowserConfig,
 
 }
 
+func RegisterBrowser(browserMod BrowserModule) {
+	if err := verifyModule(browserMod); err != nil {
+		panic(err)
+	}
 
+	registeredBrowsers = append(registeredBrowsers, browserMod)
+	
+	// A browser module is also a module
+	registeredModules = append(registeredModules, browserMod)
+}
 
-// Used to store bookmark paths and other
-// data related to a particular browser kind
-// _TODO: replace in chrome with ProfileManager and remove this ref
-// type BrowserPaths struct {
-// 	BookmarkFile string
-// 	BookmarkDir  string
-// }
+func GetBrowserModules() []BrowserModule {
+	return registeredBrowsers
+}

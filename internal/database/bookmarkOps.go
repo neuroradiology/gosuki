@@ -68,7 +68,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) {
     tagList := utils.ReplaceInList(bk.Tags, TagJoinSep, "--")
 
     tagListText := strings.Trim(strings.Join(tagList, TagJoinSep), TagJoinSep)
-	log.Debugf("inserting tags <%s>", tagListText)
+	// log.Debugf("inserting tags <%s>", tagListText)
 	// First try to insert the bookmark (assume it's new)
 	_, err = tx.Stmt(tryInsertBk).Exec(
 		bk.URL,
@@ -92,7 +92,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) {
 	// ErrConstraint means the bookmark (url) already exists in table,
 	// we need to update it instead.
 	if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
-		log.Debugf("Updating bookmark %s", bk.URL)
+		// log.Debugf("Updating bookmark %s", bk.URL)
 
 		// First get existing tags for this bookmark if any ?
 		res := tx.Stmt(getTags).QueryRow(

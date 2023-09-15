@@ -1,7 +1,3 @@
-git.blob42.xyz/blob42/gum v0.0.0-20230911125330-f57e69d1a6fd h1:WKHLfwlWRcXQ83b239K5KTWS0cpfCU/wEfzCYvwc0k8=
-git.blob42.xyz/blob42/gum v0.0.0-20230911125330-f57e69d1a6fd/go.mod h1:zek0PsDQ57lse6YYLgY4kxYmKq/E4OyHo4ywoA9zZIE=
-git.blob42.xyz/blob42/gum v0.0.0-20230911134418-d5a782249822 h1:j+KjkzflGmJBqTOmgxZUJmg7uMM/e5jHha5wTr3VYbY=
-git.blob42.xyz/blob42/gum v0.0.0-20230911134418-d5a782249822/go.mod h1:zek0PsDQ57lse6YYLgY4kxYmKq/E4OyHo4ywoA9zZIE=
 github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557 h1:l6surSnJ3RP4qA1qmKJ+hQn3UjytosdoG27WGjrDlVs=
 github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557/go.mod h1:sTrmvD/TxuypdOERsDOS7SndZg0rzzcCi1b6wQMXUYM=
 github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak=
@@ -149,8 +145,8 @@ golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220908164124-27713097b956/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.2.0 h1:ljd4t30dBnAvMZaQCevtY0xLLD0A+bRZXbgLMLU1F/A=
-golang.org/x/sys v0.2.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.12.0 h1:CM0HF96J0hcLAwsHPJZjfdNzs0gftsLfgKt57wWHJ0o=
+golang.org/x/sys v0.12.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
 golang.org/x/text v0.3.6/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=

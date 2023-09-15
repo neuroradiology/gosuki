@@ -3,7 +3,6 @@ module git.blob42.xyz/gomark/gosuki
 go 1.21.1
 
 require (
-	git.blob42.xyz/blob42/gum v0.0.0-20230911134418-d5a782249822
 	github.com/BurntSushi/toml v1.2.1
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/chenhg5/collection v0.0.0-20200925143926-f403b87088f9
@@ -21,7 +20,7 @@ require (
 	github.com/swithek/dotsqlx v1.0.0
 	github.com/urfave/cli/v2 v2.23.5
 	github.com/xlab/treeprint v1.0.0
-	golang.org/x/sys v0.2.0
+	golang.org/x/sys v0.12.0
 )
 
 require (
