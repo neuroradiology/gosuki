@@ -34,7 +34,7 @@ func getBookmarks(c *gin.Context) {
 			log.Error(err)
 		}
 
-		bookmark.Tags = strings.Split(tags, database.TagJoinSep)
+		bookmark.Tags = strings.Split(tags, database.TagSep)
 		//log.Debugf("GET %s", tags)
 		//log.Debugf("%v", bookmark)
 

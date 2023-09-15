@@ -46,4 +46,3 @@ func ParseTags(node *Node) error {
 
 	return nil
 }
-

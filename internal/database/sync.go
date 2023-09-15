@@ -148,8 +148,8 @@ func (src *DB) SyncTo(dst *DB) {
 
 		//log.Debugf("src tags: %v", scan.tags)
 		//log.Debugf("dst tags: %v", dstTags)
-		srcTags := strings.Split(scan.tags, TagJoinSep)
-		dstTags := strings.Split(tags, TagJoinSep)
+		srcTags := strings.Split(scan.tags, TagSep)
+		dstTags := strings.Split(tags, TagSep)
 		tagMap := make(map[string]bool)
 		for _, v := range srcTags {
 			tagMap[v] = true
@@ -165,7 +165,7 @@ func (src *DB) SyncTo(dst *DB) {
 
 		_, err = dstTx.Stmt(updateDstRow).Exec(
 			scan.metadata,
-			strings.Join(newTags, TagJoinSep),
+			strings.Join(newTags, TagSep),
 			scan.desc,
 			0, //flags
 			scan.URL,
