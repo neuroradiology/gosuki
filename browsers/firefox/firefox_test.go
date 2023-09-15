@@ -36,7 +36,7 @@ func setupFirefox() {
 				Name:     "firefox",
 				Type:     modules.TFirefox,
 				BkFile:   mozilla.PlacesFile,
-				BkDir:    "../pkg/browsers/mozilla/testdata",
+				BkDir:    "../../pkg/browsers/mozilla/testdata",
 				BufferDB: &database.DB{},
 				URLIndex: index.NewIndex(),
 				NodeTree: &tree.Node{Name: mozilla.RootName, Parent: nil, Type: tree.RootNode},
