@@ -10,7 +10,7 @@ import (
 )
 
 // Default separator used to join tags in the DB
-const TagJoinSep = ","
+const TagSep = ","
 
 type Bookmark = bookmarks.Bookmark
 
@@ -18,6 +18,23 @@ func cleanup(f func() error) {
 	if err := f(); err != nil {
 		log.Error(err)
 	}
+}
+
+/// Returns a string wrapped with the delim
+func delimWrap(token string) string {
+	if token == "" || strings.TrimSpace(token) == "" {
+		return TagSep
+	}
+
+	if token[0] != TagSep[0] {
+		token = TagSep + token
+	}
+
+	if token[len(token)-1] != TagSep[0] {
+		token = token + TagSep
+	}
+
+	return token
 }
 
 // Inserts or updates a bookmarks to the passed DB
@@ -65,9 +82,11 @@ func (db *DB) UpsertBookmark(bk *Bookmark) {
 	}
 
     // clean tags from tag separator
-    tagList := utils.ReplaceInList(bk.Tags, TagJoinSep, "--")
+    tagList := utils.ReplaceInList(bk.Tags, TagSep, "--")
 
-    tagListText := strings.Trim(strings.Join(tagList, TagJoinSep), TagJoinSep)
+    tagListText := strings.Join(tagList, TagSep)
+	tagListText = delimWrap(tagListText)
+
 	// log.Debugf("inserting tags <%s>", tagListText)
 	// First try to insert the bookmark (assume it's new)
 	_, err = tx.Stmt(tryInsertBk).Exec(
@@ -99,7 +118,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) {
 			bk.URL,
 		)
 		res.Scan(&scannedTags)
-		cacheTags := strings.Split(scannedTags, TagJoinSep)
+		cacheTags := strings.Split(scannedTags, TagSep)
 
 		// If tags are different, merge current bookmark tags and existing tags
 		// Put them in a map first to remove duplicates
@@ -118,7 +137,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) {
 			newTags = append(newTags, k)
 		}
 
-		tagListText := strings.Trim(strings.Join(newTags, TagJoinSep), TagJoinSep)
+		tagListText := strings.Trim(strings.Join(newTags, TagSep), TagSep)
 		// log.Debugf("Updating bookmark %s with tags <%s>", bk.URL, tagListText)
 		_, err = tx.Stmt(updateBk).Exec(
 			bk.Metadata,
@@ -155,7 +174,7 @@ func (db *DB) InsertBookmark(bk *Bookmark) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(bk.URL, bk.Metadata, strings.Join(bk.Tags, TagJoinSep), "", 0)
+	_, err = stmt.Exec(bk.URL, bk.Metadata, strings.Join(bk.Tags, TagSep), "", 0)
 	if err != nil {
 		log.Errorf("%s: %s", err, bk.URL)
 	}
