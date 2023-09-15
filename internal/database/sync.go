@@ -83,12 +83,14 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 
 	// Lock destination db
+	log.Debugf("starting transaction")
 	dstTx, err := dst.Handle.Begin()
 	if err != nil {
 		log.Error(err)
 	}
 
 	// Start syncing all entries from source table
+	log.Debugf("scanning entries in source table")
 	for srcTable.Next() {
 
 		// Fetch on row
@@ -121,6 +123,7 @@ func (src *DB) SyncTo(dst *DB) {
 		}
 	}
 
+	log.Debugf("commit")
 	err = dstTx.Commit()
 	if err != nil {
 		log.Error(err)

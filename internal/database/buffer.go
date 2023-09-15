@@ -30,6 +30,14 @@ func NewBuffer(name string) (*DB, error) {
 }
 
 func SyncURLIndexToBuffer(urls []string, index Index, buffer *DB) {
+	if buffer == nil {
+		log.Error("buffer is nil")
+		return
+	}
+	if index == nil {
+		log.Error("index is nil")
+		return
+	}
 	for _, url := range urls {
 		iNode, exists := index.Get(url)
 		if !exists {

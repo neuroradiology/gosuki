@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	registeredBrowsers []BrowserModule
 	registeredModules []Module
 )
 
@@ -44,16 +43,7 @@ type ModInfo struct {
 
 type ModID string
 
-func RegisterBrowser(browserMod BrowserModule) {
-	if err := verifyModule(browserMod); err != nil {
-		panic(err)
-	}
 
-	registeredBrowsers = append(registeredBrowsers, browserMod)
-	
-	// A browser module is also a module
-	registeredModules = append(registeredModules, browserMod)
-}
 
 func verifyModule(module Module) error {
 	var err error
@@ -92,6 +82,3 @@ func GetModules() []Module {
 	return registeredModules
 }
 
-func GetBrowserModules() []BrowserModule {
-	return registeredBrowsers
-}

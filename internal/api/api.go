@@ -10,7 +10,7 @@ import (
 	"git.blob42.xyz/gomark/gosuki/internal/logging"
 	"git.blob42.xyz/gomark/gosuki/pkg/bookmarks"
 
-	"git.blob42.xyz/blob42/gum"
+	"git.blob42.xyz/gomark/gosuki/pkg/manager"
 	"github.com/gin-gonic/gin"
 )
 
@@ -52,7 +52,7 @@ type API struct {
 	router *gin.RouterGroup
 }
 
-func (api *API) Run(m gum.UnitManager) {
+func (api *API) Run(m manager.UnitManager) {
 	api.router.GET("/urls", getBookmarks)
 
 	// Run router
