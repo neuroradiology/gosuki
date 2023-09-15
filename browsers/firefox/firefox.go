@@ -317,7 +317,7 @@ func (f *Firefox) init(ctx *modules.Context) error {
 	// Setup watcher
 	w := &watch.Watch{
 		Path:       watchedPath,
-		EventTypes: []fsnotify.Op{fsnotify.Write, fsnotify.Chmod},
+		EventTypes: []fsnotify.Op{fsnotify.Write},
 		EventNames: []string{filepath.Join(watchedPath, "places.sqlite-wal")},
 		ResetWatch: false,
 	}
