@@ -122,7 +122,7 @@ func (w WatcherWork) Run(m manager.UnitManager) {
 		watcher.isWatching = true
 
 		for _, watch := range watcher.Watches{
-			log.Infof("Watching %s", watch.Path)
+			log.Debugf("Watching %s", watch.Path)
 		}
 	}
 
@@ -142,7 +142,7 @@ func WatchLoop(w WatchRunner) {
 
 	watcher := w.Watch()
 	beat := time.NewTicker(1 * time.Second).C
-	log.Infof("<%s> Started watcher", watcher.ID)
+	log.Debugf("<%s> Started watcher", watcher.ID)
 watchloop:
 	for {
 
