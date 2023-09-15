@@ -95,15 +95,15 @@ func Test_addUrlNode(t *testing.T) {
 	// if urlNode exists find fetch it
 	// if urlNode exists put tag node as parent to this url
 
-	testNewUrl := "new urlNode: url is not yet in URLIndex"
+	testNewURL := "new urlNode: url is not yet in URLIndex"
 
-	t.Run(testNewUrl, func(t *testing.T) {
+	t.Run(testNewURL, func(t *testing.T) {
 		ok, urlNode := ff.addURLNode(testURL.url, testURL.title, testURL.desc)
 		if !ok {
 			t.Fatalf("expected %v, got %v", true, false)
 		}
 		if urlNode == nil {
-			t.Fatal("url node was not returned", testNewUrl)
+			t.Fatal("url node was not returned", testNewURL)
 		}
 
 		_, ok = ff.URLIndex.Get(testURL.url)
@@ -117,8 +117,8 @@ func Test_addUrlNode(t *testing.T) {
 
 	})
 
-	testUrlExists := "return existing urlNode found in URLIndex"
-	t.Run(testUrlExists, func(t *testing.T) {
+	testURLExists := "return existing urlNode found in URLIndex"
+	t.Run(testURLExists, func(t *testing.T) {
 		_, origNode := ff.addURLNode(testURL.url, testURL.title, testURL.desc)
 		ok, urlNode := ff.addURLNode(testURL.url, testURL.title, testURL.desc)
 		if ok {
@@ -291,7 +291,7 @@ func Test_PlaceBookmarkTimeParsing(t *testing.T) {
 func findTagsInNodeTree(urlNode *tree.Node,
                         tags []string, // tags to find in tagMap
                         tagMap map[string]*tree.Node) (bool ,error) {
-	var foundTagNodeForUrl bool
+	var foundTagNodeForURL bool
 	for _, tagName := range tags {
 		tagNode, tagNodeExists := ff.tagMap[tagName]
 		if !tagNodeExists {
@@ -299,11 +299,11 @@ func findTagsInNodeTree(urlNode *tree.Node,
 		}
 		// Check that the URL node is a direct child of the tag node
 		if urlNode.DirectChildOf(tagNode) {
-			foundTagNodeForUrl = true
+			foundTagNodeForURL = true
 		}
 	}
 
-    return foundTagNodeForUrl, nil
+    return foundTagNodeForURL, nil
 }
 
 // TODO!: integration test loading firefox bookmarks
@@ -362,7 +362,7 @@ func Test_scanBookmarks(t *testing.T) {
 			}
 
 			var testUrls []string
-			for url, _ := range data.bookmarkTags {
+			for url := range data.bookmarkTags {
 				testUrls = append(testUrls, url)
 			}
 			testUrls = collection.Collect(testUrls).Unique().ToStringArray()
@@ -395,7 +395,7 @@ func Test_scanBookmarks(t *testing.T) {
 
 			for _, bk := range bookmarks {
 				bkTags[bk.Url] = collection.Collect(strings.Split(bk.Tags, ",")).
-					Unique().Filter(func(item, val interface{}) bool {
+					Unique().Filter(func(_, val interface{}) bool {
 					// Filter out empty ("") strings
 					if v, ok := val.(string); ok {
 						if v == "" {
@@ -636,9 +636,9 @@ func Test_FindModifiedBookmarks(t *testing.T) {
         })
 
         t.Run("new bookmarks", func(t *testing.T){
-            for newUrl, newBk := range newBookmarks {
+            for newURL, newBk := range newBookmarks {
 
-                node, exists := ff.URLIndex.Get(newUrl)      
+                node, exists := ff.URLIndex.Get(newURL)      
                 urlNode := node.(*tree.Node)
 				assert.True(t, exists, "url missing in URLIndex")
 				assert.True(t, tree.FindNode(urlNode, ff.NodeTree), "url node missing from tree")
