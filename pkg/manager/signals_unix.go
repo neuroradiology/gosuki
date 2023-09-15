@@ -1,4 +1,5 @@
 /// Signal management for unix
-// +build !windows
+/// +build !windows
+
 package manager
 

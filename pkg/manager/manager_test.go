@@ -5,6 +5,7 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	llog "log"
 )
 
 var WorkerID int
@@ -20,7 +21,7 @@ func (w *Worker) Run(um UnitManager) {
 		select {
 
 		case <-ticker.C:
-			log.Println("tick")
+			llog.Print("tick")
 
 		// Read from channel if this worker unit should stop
 		case <-um.ShouldStop():
