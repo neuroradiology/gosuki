@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"git.blob42.xyz/gomark/gosuki/pkg/bookmarks"
-	"git.blob42.xyz/gomark/gosuki/internal/utils"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
@@ -20,27 +19,11 @@ func cleanup(f func() error) {
 	}
 }
 
-/// Returns a string wrapped with the delim
-func delimWrap(token string) string {
-	if token == "" || strings.TrimSpace(token) == "" {
-		return TagSep
-	}
-
-	if token[0] != TagSep[0] {
-		token = TagSep + token
-	}
-
-	if token[len(token)-1] != TagSep[0] {
-		token = token + TagSep
-	}
-
-	return token
-}
-
 // Inserts or updates a bookmarks to the passed DB
 // In case of a conflict for a UNIQUE URL constraint,
 // update the existing bookmark
 func (db *DB) UpsertBookmark(bk *Bookmark) {
+
 	var sqlite3Err sqlite3.Error
 	var isSqlite3Err bool
 	var scannedTags string
@@ -58,7 +41,6 @@ func (db *DB) UpsertBookmark(bk *Bookmark) {
 	}
 	defer cleanup(tryInsertBk.Close)
 
-	// Prepare statement that updates an existing bookmark in db
 	updateBk, err := _db.Prepare(
 		`UPDATE bookmarks SET metadata=?, tags=?, modified=strftime('%s')
 		WHERE url=?`,
@@ -69,8 +51,8 @@ func (db *DB) UpsertBookmark(bk *Bookmark) {
 	}
 
 	// Stmt to fetch existing bookmark and tags in db
-	getTags, err := _db.Prepare(`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`)
-	defer cleanup(getTags.Close)
+	getTagsStmt, err := _db.Prepare(`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`)
+	defer cleanup(getTagsStmt.Close)
 	if err != nil {
 		log.Errorf("%s: %s", err, bk.URL)
 	}
@@ -81,19 +63,24 @@ func (db *DB) UpsertBookmark(bk *Bookmark) {
 		log.Error(err)
 	}
 
-    // clean tags from tag separator
-    tagList := utils.ReplaceInList(bk.Tags, TagSep, "--")
+	// avoids using the delim in the query
+	// ex: [ "tag,1", "t,g2", "tag3" ] -> [ "tag--1", "t--g2", "tag3" ]
 
-    tagListText := strings.Join(tagList, TagSep)
-	tagListText = delimWrap(tagListText)
+	tags := NewTags(bk.Tags, TagSep).PreSanitize()
 
-	// log.Debugf("inserting tags <%s>", tagListText)
+    tagListText := tags.String(true)
+	// log.Debugf("inserting tags %#v", tagListText)
+
 	// First try to insert the bookmark (assume it's new)
+	// log.Debugf("INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (%s, %s, %s, %s, %d)",
+	// 	bk.URL, bk.Metadata, tagListText, "", 0)
+
 	_, err = tx.Stmt(tryInsertBk).Exec(
 		bk.URL,
 		bk.Metadata,
 		tagListText,
-		"", 0,
+		"", // desc
+		0, // flags
 	)
 
 	if err != nil {
@@ -111,34 +98,34 @@ func (db *DB) UpsertBookmark(bk *Bookmark) {
 	// ErrConstraint means the bookmark (url) already exists in table,
 	// we need to update it instead.
 	if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
-		// log.Debugf("Updating bookmark %s", bk.URL)
+		log.Debugf("Updating bookmark %s", bk.URL)
 
 		// First get existing tags for this bookmark if any ?
-		res := tx.Stmt(getTags).QueryRow(
+		res := tx.Stmt(getTagsStmt).QueryRow(
 			bk.URL,
 		)
 		res.Scan(&scannedTags)
-		cacheTags := strings.Split(scannedTags, TagSep)
+		cacheTags := TagsFromString(scannedTags, TagSep)
 
 		// If tags are different, merge current bookmark tags and existing tags
 		// Put them in a map first to remove duplicates
 		tagMap := make(map[string]bool)
-		for _, v := range cacheTags {
+		for _, v := range cacheTags.tags {
 			tagMap[v] = true
 		}
 		for _, v := range bk.Tags {
 			tagMap[v] = true
 		}
 
-		var newTags []string // merged tags
+		newTags := Tags{delim: TagSep} // merged tags
 
 		// Merge in a single slice
 		for k := range tagMap {
-			newTags = append(newTags, k)
+			newTags.Add(k)
 		}
 
-		tagListText := strings.Trim(strings.Join(newTags, TagSep), TagSep)
-		// log.Debugf("Updating bookmark %s with tags <%s>", bk.URL, tagListText)
+		tagListText := newTags.StringWrap()
+		log.Debugf("Updating bookmark %s with tags <%s>", bk.URL, tagListText)
 		_, err = tx.Stmt(updateBk).Exec(
 			bk.Metadata,
 			tagListText,
@@ -154,7 +141,6 @@ func (db *DB) UpsertBookmark(bk *Bookmark) {
 	if err != nil {
 		log.Error(err)
 	}
-
 }
 
 // Inserts a bookmarks to the passed DB

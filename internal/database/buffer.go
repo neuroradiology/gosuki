@@ -38,6 +38,8 @@ func SyncURLIndexToBuffer(urls []string, index Index, buffer *DB) {
 		log.Error("index is nil")
 		return
 	}
+
+	//OPTI: hot path
 	for _, url := range urls {
 		iNode, exists := index.Get(url)
 		if !exists {
