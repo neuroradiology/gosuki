@@ -28,7 +28,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"git.blob42.xyz/gomark/gosuki/internal/logging"
+	"git.blob42.xyz/gosuki/gosuki/internal/logging"
 )
 
 var (

@@ -24,7 +24,7 @@ package database
 import (
 	"path/filepath"
 
-	"git.blob42.xyz/gomark/gosuki/internal/utils"
+	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 )
 
 func InitDB() {

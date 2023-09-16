@@ -30,8 +30,8 @@ import (
 
 	"github.com/0xAX/notificator"
 
-	"git.blob42.xyz/gomark/gosuki/pkg/parsing"
-	"git.blob42.xyz/gomark/gosuki/pkg/tree"
+	"git.blob42.xyz/gosuki/gosuki/pkg/parsing"
+	"git.blob42.xyz/gosuki/gosuki/pkg/tree"
 )
 
 // Hook that sends a system notification using notify-send (Linux).

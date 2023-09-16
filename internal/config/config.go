@@ -26,7 +26,7 @@ package config
 import (
 	"os"
 
-	"git.blob42.xyz/gomark/gosuki/internal/logging"
+	"git.blob42.xyz/gosuki/gosuki/internal/logging"
 
 	"github.com/BurntSushi/toml"
 	"github.com/urfave/cli/v2"

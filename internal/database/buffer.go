@@ -26,7 +26,7 @@ import (
 
 	"github.com/teris-io/shortid"
 
-	"git.blob42.xyz/gomark/gosuki/pkg/tree"
+	"git.blob42.xyz/gosuki/gosuki/pkg/tree"
 )
 
 

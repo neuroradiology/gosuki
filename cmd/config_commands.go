@@ -22,8 +22,8 @@
 package cmd
 
 import (
-	"git.blob42.xyz/gomark/gosuki/internal/config"
-	"git.blob42.xyz/gomark/gosuki/internal/logging"
+	"git.blob42.xyz/gosuki/gosuki/internal/config"
+	"git.blob42.xyz/gosuki/gosuki/internal/logging"
 
 	"github.com/kr/pretty"
 	"github.com/urfave/cli/v2"

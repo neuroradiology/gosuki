@@ -27,11 +27,11 @@ import (
 	"os"
 	"strings"
 
-	"git.blob42.xyz/gomark/gosuki/internal/database"
-	"git.blob42.xyz/gomark/gosuki/internal/logging"
-	"git.blob42.xyz/gomark/gosuki/pkg/bookmarks"
+	"git.blob42.xyz/gosuki/gosuki/internal/database"
+	"git.blob42.xyz/gosuki/gosuki/internal/logging"
+	"git.blob42.xyz/gosuki/gosuki/pkg/bookmarks"
 
-	"git.blob42.xyz/gomark/gosuki/pkg/manager"
+	"git.blob42.xyz/gosuki/gosuki/pkg/manager"
 	"github.com/gin-gonic/gin"
 )
 
