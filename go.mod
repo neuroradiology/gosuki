@@ -1,4 +1,4 @@
-module git.blob42.xyz/gomark/gosuki
+module git.blob42.xyz/gosuki/gosuki
 
 go 1.21.1
 
