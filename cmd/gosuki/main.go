@@ -25,20 +25,20 @@ package main
 import (
 	"os"
 
-	"git.blob42.xyz/gomark/gosuki/internal/config"
-	"git.blob42.xyz/gomark/gosuki/internal/logging"
-	"git.blob42.xyz/gomark/gosuki/pkg/modules"
-	"git.blob42.xyz/gomark/gosuki/internal/utils"
+	"git.blob42.xyz/gosuki/gosuki/internal/config"
+	"git.blob42.xyz/gosuki/gosuki/internal/logging"
+	"git.blob42.xyz/gosuki/gosuki/pkg/modules"
+	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 
-	"git.blob42.xyz/gomark/gosuki/cmd"
+	"git.blob42.xyz/gosuki/gosuki/cmd"
 
 	"github.com/urfave/cli/v2"
 
 	// Load firefox browser modules
-	_ "git.blob42.xyz/gomark/gosuki/browsers/firefox"
+	_ "git.blob42.xyz/gosuki/gosuki/browsers/firefox"
 
 	// Load chrome browser module
-	_ "git.blob42.xyz/gomark/gosuki/browsers/chrome"
+	_ "git.blob42.xyz/gosuki/gosuki/browsers/chrome"
 )
 
 var log = logging.GetLogger("")

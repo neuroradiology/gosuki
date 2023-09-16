@@ -24,8 +24,8 @@ package watch
 import (
 	"time"
 
-	"git.blob42.xyz/gomark/gosuki/pkg/manager"
-	"git.blob42.xyz/gomark/gosuki/internal/logging"
+	"git.blob42.xyz/gosuki/gosuki/pkg/manager"
+	"git.blob42.xyz/gosuki/gosuki/internal/logging"
 
 	"github.com/fsnotify/fsnotify"
 )

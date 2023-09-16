@@ -26,10 +26,10 @@ package firefox
 import (
 	"fmt"
 
-	"git.blob42.xyz/gomark/gosuki/cmd"
-	"git.blob42.xyz/gomark/gosuki/internal/logging"
-	"git.blob42.xyz/gomark/gosuki/pkg/browsers/mozilla"
-	"git.blob42.xyz/gomark/gosuki/internal/utils"
+	"git.blob42.xyz/gosuki/gosuki/cmd"
+	"git.blob42.xyz/gosuki/gosuki/internal/logging"
+	"git.blob42.xyz/gosuki/gosuki/pkg/browsers/mozilla"
+	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 
 	"github.com/urfave/cli/v2"
 )

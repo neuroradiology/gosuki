@@ -22,8 +22,8 @@
 package main
 
 import (
-	"git.blob42.xyz/gomark/gosuki/internal/config"
-	"git.blob42.xyz/gomark/gosuki/internal/utils"
+	"git.blob42.xyz/gosuki/gosuki/internal/config"
+	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 )
 
 func initDefaultConfig() {

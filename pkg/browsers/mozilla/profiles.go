@@ -28,8 +28,8 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"git.blob42.xyz/gomark/gosuki/internal/logging"
-	_debug "git.blob42.xyz/gomark/gosuki/pkg/profiles"
+	"git.blob42.xyz/gosuki/gosuki/internal/logging"
+	_debug "git.blob42.xyz/gosuki/gosuki/pkg/profiles"
 
 	"github.com/go-ini/ini"
 )

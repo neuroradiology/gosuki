@@ -24,8 +24,8 @@ package cmd
 import (
 	"fmt"
 
-	"git.blob42.xyz/gomark/gosuki/pkg/modules"
-	"git.blob42.xyz/gomark/gosuki/pkg/profiles"
+	"git.blob42.xyz/gosuki/gosuki/pkg/modules"
+	"git.blob42.xyz/gosuki/gosuki/pkg/profiles"
 	"github.com/urfave/cli/v2"
 )
 
