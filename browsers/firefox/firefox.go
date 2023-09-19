@@ -90,6 +90,11 @@ type Firefox struct {
 }
 
 
+func (firefox *Firefox) ListFlavours() []profiles.BrowserFlavour {
+	return FirefoxProfileManager.ListFlavours()
+}
+
+
 
 // func (ff *Firefox) updateModifiedFolders(since timestamp) ([]*MozFolder, error) {
 //     // Get list of modified folders
@@ -265,16 +270,8 @@ func (f Firefox) fullId() string {
 }
 
 // Implements the profiles.ProfileManager interface
-func (f *Firefox) GetProfiles() ([]*profiles.Profile, error) {
-	return FirefoxProfileManager.GetProfiles()
-}
-
-func (f *Firefox) GetDefaultProfile() (*profiles.Profile, error) {
-	return FirefoxProfileManager.GetDefaultProfile()
-}
-
-func (f *Firefox) GetProfilePath(p profiles.Profile) string {
-	return filepath.Join(FirefoxProfileManager.ConfigDir, p.Path)
+func (f *Firefox) GetProfiles(flavour string) ([]*profiles.Profile, error) {
+	return FirefoxProfileManager.GetProfiles(flavour)
 }
 
 // If should watch all profiles
@@ -288,13 +285,12 @@ func (f *Firefox) UseProfile(p profiles.Profile) error {
 	f.Profile = p.Name
 
 	// setup the bookmark dir
-	bookmarkDir, err := FirefoxProfileManager.GetProfilePath(p.Name)
-	if err != nil {
+	if bookmarkDir, err := p.AbsolutePath(); err != nil {
 		return err
+	} else {
+		f.BkDir = bookmarkDir
+		return nil
 	}
-
-	f.BkDir = bookmarkDir
-	return nil
 }
 
 func (f *Firefox) cloneConfig() {
@@ -312,19 +308,16 @@ func (f *Firefox) Init(ctx *modules.Context, p *profiles.Profile) error {
 	f.Profile = p.Name
 
 
-	bookmarkDir, err := FirefoxProfileManager.GetProfilePath(p.Name)
-	if err != nil {
+	if bookmarkDir, err := p.AbsolutePath(); err != nil {
 		return err
+	} else {
+		f.BkDir = bookmarkDir
 	}
-	f.BkDir = bookmarkDir
 
 	return f.init(ctx)
 }
 
 // TEST:
-// TODO: implement watching of multiple profiles.
-// NOTE: should be done at core gosuki level where multiple instances are spawned for each profile
-//
 // Implements browser.Initializer interface
 func (f *Firefox) init(ctx *modules.Context) error {
 	log.Infof("initializing <%s>", f.fullId())
@@ -356,7 +349,6 @@ func (f *Firefox) init(ctx *modules.Context) error {
 	/*
 	 *Run reducer to avoid duplicate jobs when a batch of events is received
 	 */
-	// TODO!: make a new copy of places for every new event change
 
 	// Add a reducer to the watcher
 	log.Debugf("Running reducer on path <%s>", watchedPath)
@@ -748,6 +740,7 @@ func init() {
 
 var _ modules.BrowserModule = (*Firefox)(nil)
 var _ modules.ProfileInitializer = (*Firefox)(nil)
+var _ profiles.ProfileManager = (*Firefox)(nil)
 var _ modules.Loader = (*Firefox)(nil)
 var _ modules.Shutdowner = (*Firefox)(nil)
 var _ watch.WatchRunner = (*Firefox)(nil)

@@ -38,7 +38,7 @@ import (
 	_ "git.blob42.xyz/gosuki/gosuki/browsers/firefox"
 
 	// Load chrome browser module
-	_ "git.blob42.xyz/gosuki/gosuki/browsers/chrome"
+	// _ "git.blob42.xyz/gosuki/gosuki/browsers/chrome"
 )
 
 var log = logging.GetLogger("")
@@ -95,6 +95,9 @@ func main() {
 
 		// Execute config hooks
 		//TODO: better doc for what are Conf hooks ???
+		// modules can run custom code before the CLI is ready.
+		// For example read the environment and set configuration options to be
+		// used by the module instances.
 		config.RunConfHooks(c)
 
 		initConfig()

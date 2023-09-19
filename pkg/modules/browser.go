@@ -23,8 +23,6 @@ package modules
 
 import (
 	"fmt"
-	"path"
-	"path/filepath"
 	"time"
 
 	"git.blob42.xyz/gosuki/gosuki/hooks"
@@ -116,7 +114,7 @@ func (b *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
 
 func (b BrowserConfig) BookmarkDir() (string, error) {
 	var err error
- 	bDir, err := filepath.EvalSymlinks(utils.ExpandPath(b.BkDir))
+ 	bDir, err := utils.ExpandPath(b.BkDir)
 	if err != nil {
 		return "", err
 	}
@@ -171,8 +169,7 @@ func (b BrowserConfig) HasHook(hook hooks.Hook) bool {
 // It expands the path by concatenating the base directory and bookmarks file, 
 // then checks if it exists.
 func (b BrowserConfig) BookmarkPath() (string, error) {
-	bPath, err := filepath.EvalSymlinks(path.Join(utils.ExpandPath(b.BkDir),
-													b.BkFile))
+	bPath, err := utils.ExpandPath(b.BkDir, b.BkFile)
 	if err != nil {
 		log.Error(err)
 	}

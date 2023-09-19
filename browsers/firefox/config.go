@@ -24,27 +24,26 @@ package firefox
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"git.blob42.xyz/gosuki/gosuki/internal/config"
 	"git.blob42.xyz/gosuki/gosuki/internal/database"
-	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 	"git.blob42.xyz/gosuki/gosuki/pkg/browsers/mozilla"
 	"git.blob42.xyz/gosuki/gosuki/pkg/modules"
 	"git.blob42.xyz/gosuki/gosuki/pkg/parsing"
+	"git.blob42.xyz/gosuki/gosuki/pkg/profiles"
 	"git.blob42.xyz/gosuki/gosuki/pkg/tree"
 
 	"github.com/fatih/structs"
 	"github.com/mitchellh/mapstructure"
-	"github.com/urfave/cli/v2"
 )
 
 const (
-	BrowserName      = "firefox"
 	//TODO: auto detect firefox base dir based on OS and installed flavors
-	FirefoxBaseDir = "$HOME/.mozilla/firefox"
+	// FirefoxBaseDir = "$HOME/.mozilla/firefox"
 	DefaultProfile   = "default"
+
+	// Default flavour to use
+	BrowserName = mozilla.FirefoxFlavour
 )
 
 var (
@@ -52,15 +51,14 @@ var (
 	// firefox global config state.  
 	FFConfig = NewFirefoxConfig()
 
-	ffProfileLoader = &mozilla.INIProfileLoader{
+	ffProfileLoader = &profiles.INIProfileLoader{
 		//BasePath to be set at runtime in init
 		ProfilesFile: mozilla.ProfilesFile,
 	}
 
-	FirefoxProfileManager = &mozilla.MozProfileManager{
-		BrowserName: BrowserName,
-		PathGetter:  ffProfileLoader,
-	}
+	FirefoxProfileManager = mozilla.NewMozProfileManager(
+		ffProfileLoader,
+	)
 )
 
 // FirefoxConfig implements the Configurator interface
@@ -86,27 +84,34 @@ type FirefoxConfig struct {
 }
 
 func setBookmarkDir(fc *FirefoxConfig) {
-	pm := FirefoxProfileManager
+	var err error
+	// pm := FirefoxProfileManager
+
 	// expand environment variables in path
-	pm.ConfigDir = filepath.Join(os.ExpandEnv(FirefoxBaseDir))
+	// pm.ConfigDir = filepath.Join(os.ExpandEnv(FirefoxBaseDir))
 
 	// Check if base folder exists
-	exists, err := utils.CheckDirExists(pm.ConfigDir)
-	if !exists {
-		log.Criticalf("the base firefox folder <%s> does not exist", pm.ConfigDir)
-	}
+	// handled by profiles.Detect()
+	// exists, err := utils.CheckDirExists(pm.ConfigDir)
+	// if !exists {
+	// 	log.Criticalf("the base firefox folder <%s> does not exist", pm.ConfigDir)
+	// }
 
-	if err != nil {
+	// if err != nil {
+	// 	log.Fatal(err)
+	// 	return
+	// }
+
+	// Set in NewMozProfileManager
+	// ffProfileLoader.BasePath = pm.ConfigDir
+
+	// load the default profile from the one defined in the config
+	var profile *profiles.Profile
+	if profile, err = FirefoxProfileManager.GetProfileByName(BrowserName, fc.Profile); err != nil {
 		log.Fatal(err)
-		return
 	}
 
-	// The next part prepares the default profile using the profile manager
-	ffProfileLoader.BasePath = pm.ConfigDir
-
-	// use default profile
-	// WIP: calling multiple profiles uses the following logic
-	bookmarkDir, err := FirefoxProfileManager.GetProfilePath(fc.Profile)
+	bookmarkDir, err := profile.AbsolutePath()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -185,51 +190,6 @@ func (fc *FirefoxConfig) MapFrom(src interface{}) error {
 	return mapstructure.Decode(src, fc)
 }
 
-//REFACT: 
-// Hook called when the config is ready
-func initFirefoxConfig(c *cli.Context) error {
-	log.Debugf("<firefox> initializing config")
-
-	// The following code is executed before the cli context is ready
-	// so we cannot use cli flags here
-
-	pm := FirefoxProfileManager
-
-	// expand environment variables in path
-	pm.ConfigDir = filepath.Join(os.ExpandEnv(FirefoxBaseDir))
-
-	// Check if base folder exists
-	exists, err := utils.CheckDirExists(pm.ConfigDir)
-	if !exists {
-		log.Criticalf("the base firefox folder <%s> does not exist", pm.ConfigDir)
-	}
-
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-
-	// The next part prepares the default profile using the profile manager
-	ffProfileLoader.BasePath = pm.ConfigDir
-
-
-
-	// use default profile
-	// WIP: calling multiple profiles uses the following logic
-	bookmarkDir, err := FirefoxProfileManager.GetProfilePath(FFConfig.Profile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-// update bookmark dir in firefox config
-	//TEST: verify that bookmark dir is set before browser is started
-	FFConfig.BkDir = bookmarkDir
-	log.Debugf("Using profile %s", bookmarkDir)
-	return nil
-}
-
 func init() {
 	config.RegisterConfigurator(BrowserName, FFConfig)
-
-	// config.RegisterConfReadyHooks(initFirefoxConfig)
 }
