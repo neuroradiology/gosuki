@@ -85,25 +85,6 @@ type FirefoxConfig struct {
 
 func setBookmarkDir(fc *FirefoxConfig) {
 	var err error
-	// pm := FirefoxProfileManager
-
-	// expand environment variables in path
-	// pm.ConfigDir = filepath.Join(os.ExpandEnv(FirefoxBaseDir))
-
-	// Check if base folder exists
-	// handled by profiles.Detect()
-	// exists, err := utils.CheckDirExists(pm.ConfigDir)
-	// if !exists {
-	// 	log.Criticalf("the base firefox folder <%s> does not exist", pm.ConfigDir)
-	// }
-
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return
-	// }
-
-	// Set in NewMozProfileManager
-	// ffProfileLoader.BasePath = pm.ConfigDir
 
 	// load the default profile from the one defined in the config
 	var profile *profiles.Profile
