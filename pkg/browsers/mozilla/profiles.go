@@ -25,22 +25,23 @@ package mozilla
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"regexp"
 
 	"git.blob42.xyz/gosuki/gosuki/internal/logging"
-	_debug "git.blob42.xyz/gosuki/gosuki/pkg/profiles"
+	"git.blob42.xyz/gosuki/gosuki/internal/utils"
+	"git.blob42.xyz/gosuki/gosuki/pkg/profiles"
 
 	"github.com/go-ini/ini"
 )
 
-// ProfileManager interface
-type ProfileManager = _debug.ProfileManager
-type INIProfileLoader = _debug.INIProfileLoader
-type PathGetter = _debug.PathGetter
-
 const (
 	ProfilesFile = "profiles.ini"
+)
+
+// Browser flavour names
+const (
+	FirefoxFlavour     = "firefox"
+	LibreWolfFlavour   = "librewolf"
 )
 
 var (
@@ -50,47 +51,62 @@ var (
 	ErrProfilesIni      = errors.New("could not parse profiles.ini file")
 	ErrNoDefaultProfile = errors.New("no default profile found")
 
-	// Common default profiles for mozilla/firefox based browsers
-	DefaultProfileNames = map[string]string{
-		"firefox-esr": "default-esr",
+	//TODO: multi platform
+	// linux mozilla browsers
+	MozBrowsers = map[string]profiles.BrowserFlavour{
+		FirefoxFlavour:    { FirefoxFlavour   , "~/.mozilla/firefox"} ,
+		LibreWolfFlavour:  { LibreWolfFlavour , "~/.librewolf"}       ,
 	}
 )
 
 type MozProfileManager struct {
-	BrowserName  string
-	ConfigDir    string
-	ProfilesFile *ini.File
-	PathGetter   PathGetter
-	ProfileManager
+	PathResolver   profiles.PathResolver
 }
 
-func (pm *MozProfileManager) loadProfile() error {
+func NewMozProfileManager(resolver profiles.PathResolver) *MozProfileManager {
 
-	log.Debugf("loading profile from <%s>", pm.PathGetter.GetPath())
-	pFile, err := ini.Load(pm.PathGetter.GetPath())
+	return &MozProfileManager{
+		PathResolver: resolver,
+	}
+}
+
+func (pm *MozProfileManager) loadINIProfile(r profiles.PathResolver) (*ini.File, error) {
+	log.Debugf("loading profile from <%s>", r.GetPath())
+	profilePath, err := utils.ExpandPath(r.GetPath())
 	if err != nil {
-		return err
+	  return nil, err
+	}
+	
+	pFile, err := ini.Load(profilePath)
+	if err != nil {
+		return nil, err
 	}
 
-	pm.ProfilesFile = pFile
-	return nil
+	return pFile, nil
 }
 
-func (pm *MozProfileManager) GetProfiles() ([]*_debug.Profile, error) {
-    err := pm.loadProfile()
-    if err != nil {
-      return nil, err
-    }
+//TODO: should also handle flavours
+func (pm *MozProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, error) {
+	var pFile *ini.File
+	var err error
+	f, ok := MozBrowsers[flavour]
 
-	sections := pm.ProfilesFile.Sections()
-	var filtered []*ini.Section
-	var result []*_debug.Profile
+	if !ok {
+		return nil, fmt.Errorf("unknown flavour <%s>", flavour)
+	}
+
+	pm.PathResolver.SetBaseDir(f.BaseDir)
+	if pFile, err = pm.loadINIProfile(pm.PathResolver); err != nil {
+		return nil, err
+	}
+
+	sections := pFile.Sections()
+	var result []*profiles.Profile
 	for _, section := range sections {
 		if ReIniProfiles.MatchString(section.Name()) {
-			filtered = append(filtered, section)
-
-			p := &_debug.Profile{
+			p := &profiles.Profile{
 				Id: section.Name(),
+				BaseDir: f.BaseDir,
 			}
 
 			err := section.MapTo(p)
@@ -98,32 +114,28 @@ func (pm *MozProfileManager) GetProfiles() ([]*_debug.Profile, error) {
 				return nil, err
 			}
 
-
 			result = append(result, p)
-
 		}
+	}
+
+	if len(result) == 0 {
+		return nil, ErrProfilesIni
 	}
 
 	return result, nil
 }
 
+// TODO!: ConfigDir is stored in the profile, stop using ConfigDir in the base
+// profile manager
 // GetProfilePath returns the absolute directory path to a mozilla profile.
-func (pm *MozProfileManager) GetProfilePath(name string) (string, error) {
-	log.Debugf("using config dir %s", pm.ConfigDir)
-	p, err := pm.GetProfileByName(name)
-	if err != nil {
-		return "", err
-	}
-	rawPath := filepath.Join(pm.ConfigDir, p.Path)
-	fullPath , err := filepath.EvalSymlinks(rawPath)
+//TODO!: fix the mess of GetProfilePath and GetProfielPathByName
+// one method has to be moved as a function
+// func (pm *MozProfileManager) GetProfilePath(prof profiles.Profile) (string, error) {
+// 	return utils.ExpandPath(p.BaseDir, p.Path)
+// }
 
-	return fullPath, err
-	
-	// Eval symlinks
-}
-
-func (pm *MozProfileManager) GetProfileByName(name string) (*_debug.Profile, error) {
-	profs, err := pm.GetProfiles()
+func (pm *MozProfileManager) GetProfileByName(flavour string, name string) (*profiles.Profile, error) {
+	profs, err := pm.GetProfiles(flavour)
 	if err != nil {
 		return nil, err
 	}
@@ -137,41 +149,15 @@ func (pm *MozProfileManager) GetProfileByName(name string) (*_debug.Profile, err
 	return nil, fmt.Errorf("profile %s not found", name)
 }
 
-// TEST:
-func (pm *MozProfileManager) GetDefaultProfile() (*_debug.Profile, error) {
-	profs, err := pm.GetProfiles()
-	if err != nil {
-		return nil, err
-	}
+func (pm *MozProfileManager) ListFlavours() []profiles.BrowserFlavour {
+	var result []profiles.BrowserFlavour
 
-	defaultProfileName, ok := DefaultProfileNames[pm.BrowserName]
-	if !ok {
-		defaultProfileName = "default"
-	}
-
-	log.Debugf("looking for profile %s", defaultProfileName)
-	for _, p := range profs {
-		if p.Name == defaultProfileName {
-			return p, nil
+	// detect local flavours
+	for _, v := range MozBrowsers {
+		if v.Detect() {
+			result = append(result, v)
 		}
 	}
 
-	return nil, ErrNoDefaultProfile
-}
-
-func (pm *MozProfileManager) ListProfiles() ([]string, error) {
-	pm.loadProfile()
-	sections := pm.ProfilesFile.SectionStrings()
-	var result []string
-	for _, s := range sections {
-		if ReIniProfiles.MatchString(s) {
-			result = append(result, s)
-		}
-	}
-
-	if len(result) == 0 {
-		return nil, ErrProfilesIni
-	}
-
-	return result, nil
+	return result
 }

@@ -32,3 +32,7 @@ type INIProfileLoader struct {
 func (pg *INIProfileLoader) GetPath() string {
 	return filepath.Join(pg.BasePath, pg.ProfilesFile)
 }
+
+func (pg *INIProfileLoader) SetBaseDir(dir string) {
+	pg.BasePath = dir
+}

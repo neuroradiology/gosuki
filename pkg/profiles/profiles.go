@@ -22,32 +22,39 @@
 // Package profiles ...
 package profiles
 
-
-// go:build linux
-
-
-const (
-	XDGHome = "XDG_CONFIG_HOME"
+import (
+	"git.blob42.xyz/gosuki/gosuki/internal/logging"
+	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 )
 
-// ProfileManager is any module that can detect or list profiles, usually a browser module. 
+var log = logging.GetLogger("profiles")
+
+// ProfileManager is any module that can detect or list profiles, usually a browser module.
+// One profile manager should be created for each browser flavour.
 type ProfileManager interface {
 
-	// Get all profile details
-	GetProfiles() ([]*Profile, error)
+	// Returns all profiles for a given flavour
+	GetProfiles(flavour string) ([]*Profile, error)
 
+	//TODO!: remove
 	// Returns the default profile if no profile is selected
-	GetDefaultProfile() (*Profile, error)
+	// GetDefaultProfile() (*Profile, error)
 
+	//TODO!: remove
+	//TODO!: fix input to method, should take string ? 
 	// Return that absolute path to a profile and follow symlinks
-	GetProfilePath(Profile) (string)
+	// GetProfilePath(Profile) (string)
 
 	// If should watch all profiles
 	WatchAllProfiles() bool
 
 	// Notifies the module to use a custom profile
 	UseProfile(p Profile) error
+
+	// Returns all flavours supported by this module
+	ListFlavours() []BrowserFlavour
 }
+
 
 type Profile struct {
 	// Unique identifier for the profile
@@ -56,10 +63,44 @@ type Profile struct {
 	// Name of the profile
 	Name string
 
-	// relative path to profile
+	// relative path to profile from base dir
 	Path string
+
+	// Base dir of the profile
+	BaseDir string
 }
 
-type PathGetter interface {
-	GetPath() string
+func (f Profile) AbsolutePath() (string, error) {
+	return utils.ExpandPath(f.BaseDir, f.Path)
 }
+
+// PathResolver allows custom path resolution for profiles
+// See the INIProfileLoader for an example
+type PathResolver interface {
+	GetPath() string
+	SetBaseDir(string)
+}
+
+// The BrowserFlavour struct stores the name of the browser and the base
+// directory where the profiles are stored.
+// Example flavours: chrome-stable, chrome-unstable, firefox, firefox-esr, librewolf, etc.
+type BrowserFlavour struct {
+	Name string
+	BaseDir string
+}
+
+// Detect if the browser is installed. Returns true if the path exists
+func (b BrowserFlavour) Detect() bool {
+	var dir string
+	var err error
+	if dir, err = utils.ExpandPath(b.BaseDir); err != nil {
+		log.Warningf("could not expand path <%s>: %s", b.BaseDir, err)
+		return false
+	} else if _, err = utils.CheckDirExists(dir); err != nil {
+			log.Warningf("could not find browser <%s> at <%s>: %s", b.Name, dir, err)
+			return false
+		}
+
+	return true
+}
+

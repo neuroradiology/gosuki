@@ -29,48 +29,49 @@ import (
 	"git.blob42.xyz/gosuki/gosuki/cmd"
 	"git.blob42.xyz/gosuki/gosuki/internal/logging"
 	"git.blob42.xyz/gosuki/gosuki/pkg/browsers/mozilla"
-	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 
 	"github.com/urfave/cli/v2"
 )
 
 var fflog = logging.GetLogger("FF")
 
-var ffUnlockVFSCmd = cli.Command{
-	Name:    "unlock",
-	Aliases: []string{"u"},
-	Action:  ffUnlockVFS,
-}
+var (
+	ffUnlockVFSCmd = cli.Command{
+		Name:    "unlock",
+		Aliases: []string{"u"},
+		Action:  ffUnlockVFS,
+	}
 
-var ffCheckVFSCmd = cli.Command{
-	Name:    "check",
-	Aliases: []string{"c"},
-	Action:  ffCheckVFS,
-}
+	ffCheckVFSCmd = cli.Command{
+		Name:    "check",
+		Aliases: []string{"c"},
+		Action:  ffCheckVFS,
+	}
 
-var ffVFSCommands = cli.Command{
-	Name:  "vfs",
-	Usage: "VFS locking commands",
-	Subcommands: []*cli.Command{
-		&ffUnlockVFSCmd,
+	ffVFSCommands = cli.Command{
+		Name:  "vfs",
+		Usage: "VFS locking commands",
+		Subcommands: []*cli.Command{
+			&ffUnlockVFSCmd,
 		&ffCheckVFSCmd,
 	},
 }
 
-var ffListProfilesCmd = cli.Command{
-	Name:    "list",
-	Aliases: []string{"l"},
-	Action:  ffListProfiles,
-}
+	ffListProfilesCmd = cli.Command{
+		Name:    "list",
+		Aliases: []string{"l"},
+		Action:  ffListProfiles,
+	}
 
-var ffProfilesCmds = cli.Command{
-	Name:    "profiles",
-	Aliases: []string{"p"},
-	Usage:   "Profiles commands",
-	Subcommands: []*cli.Command{
-		&ffListProfilesCmd,
-	},
-}
+	ffProfilesCmds = cli.Command{
+		Name:    "profiles",
+		Aliases: []string{"p"},
+		Usage:   "Profiles commands",
+		Subcommands: []*cli.Command{
+			&ffListProfilesCmd,
+		},
+	}
+)
 
 var FirefoxCmds = &cli.Command{
 	Name:    "firefox",
@@ -90,14 +91,21 @@ func init() {
 //TODO: #54 define interface for modules to handle and list profiles
 //FIX: Remove since profile listing is implemented at the main module level
 func ffListProfiles(_ *cli.Context) error {
-	profs, err := FirefoxProfileManager.GetProfiles()
-	if err != nil {
-		return err
+	flavours := FirefoxProfileManager.ListFlavours()
+	for _, f := range flavours {
+		profs, err := FirefoxProfileManager.GetProfiles(f.Name)
+		if err != nil {
+			return err
+		}
+		for _, p := range profs {
+			if fullPath, err := p.AbsolutePath(); err != nil {
+				return err
+			} else {
+				fmt.Printf("%-10s \t %s\n", p.Name, fullPath)
+			}
+		}
 	}
 
-	for _, p := range profs {
-		fmt.Printf("%-10s \t %s\n", p.Name, utils.ExpandPath(FirefoxProfileManager.ConfigDir, p.Path))
-	}
 
 	return nil
 }

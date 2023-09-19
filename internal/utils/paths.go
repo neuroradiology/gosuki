@@ -94,6 +94,18 @@ func GetHomeDir() string {
 	return user.HomeDir
 }
 
-func ExpandPath(paths ...string) string {
-	return os.ExpandEnv(filepath.Join(paths...))
+// ExpandPath expands a path with environment variables and tilde
+// Symlinks are followed by default
+func ExpandPath(paths ...string) (string, error) {
+	var homedir string
+	var err error
+	if homedir, err = os.UserHomeDir(); err != nil {
+		return "", err
+	}
+	path := os.ExpandEnv(filepath.Join(paths...))
+
+	if path[0] == '~' {
+		path = filepath.Join(homedir, path[1:])
+	}
+	return filepath.EvalSymlinks(path)
 }

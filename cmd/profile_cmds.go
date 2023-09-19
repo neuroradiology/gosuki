@@ -22,11 +22,14 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/urfave/cli/v2"
+
+	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 	"git.blob42.xyz/gosuki/gosuki/pkg/modules"
 	"git.blob42.xyz/gosuki/gosuki/pkg/profiles"
-	"github.com/urfave/cli/v2"
 )
 
 
@@ -37,15 +40,15 @@ var ProfileCmds = &cli.Command{
 	Usage: "profile commands",
 	Subcommands: []*cli.Command{
 		listProfilesCmd,
+		detectInstalledCmd,
 	},
 }
-
 
 //TODO: only enable commands when modules which implement profiles interfaces
 // are available
 var listProfilesCmd = &cli.Command{
 	Name: "list",
-	Usage: "list available profiles",
+	Usage: "list all available profiles",
 	Action: func(c *cli.Context) error {
 
 	browsers := modules.GetBrowserModules()
@@ -59,23 +62,67 @@ var listProfilesCmd = &cli.Command{
 
 		pm, isProfileManager := brmod.(profiles.ProfileManager)
 		if !isProfileManager{
-			log.Critical("not profile manager")
+			return errors.New("not profile manager")
 		}
-		if isProfileManager {
-			// handle default profile commands
 
-			profs, err := pm.GetProfiles()
-			if err != nil {
+		flavours := pm.ListFlavours()
+		for _, f := range flavours {
+			fmt.Printf("Profiles for <%s> flavour <%s>:\n\n", br.ModInfo().ID, f.Name)
+			if profs, err := pm.GetProfiles(f.Name); err != nil {
 				return err
+			} else {
+				for _, p := range profs {
+					pPath, err := p.AbsolutePath()
+					if err != nil {
+						return err
+					}
+					fmt.Printf("%-10s \t %s\n", p.Name, pPath)
+				}
 			}
-
-			for _, p := range profs {
-				fmt.Printf("%-10s \t %s\n", p.Name, pm.GetProfilePath(*p))
-			}
-
-			
+			fmt.Println()
 		}
+
 	}
+
+	return nil
+	},
+}
+
+
+var detectInstalledCmd = &cli.Command{
+	Name: "detect",
+	Aliases: []string{"d"},
+	Usage: "detect installed browsers",
+	Action: func(_ *cli.Context) error {
+		mods := modules.GetModules()
+		for _, mod := range mods {
+			browser, isBrowser := mod.ModInfo().New().(modules.BrowserModule)
+			if !isBrowser {
+				log.Debugf("module <%s> is not a browser", mod.ModInfo().ID)
+				continue
+			}
+
+			pm, isProf := browser.(profiles.ProfileManager)
+			if !isProf {
+				log.Debugf("module <%s> is not a profile manager", mod.ModInfo().ID)
+				continue
+			}
+
+			flavours := pm.ListFlavours()
+			if len(flavours) > 0 {
+				fmt.Printf("Installed browsers:\n\n")
+			}
+			for _, f := range flavours {
+				log.Debugf("found flavour <%s> for <%s>", f.Name, mod.ModInfo().ID)
+				if dir, err := utils.ExpandPath(f.BaseDir); err != nil {
+					log.Errorf("could not expand path <%s> for flavour <%s>", f.BaseDir, f.Name)
+					continue
+				} else {
+					f.BaseDir = dir
+				}
+				fmt.Printf("-%-10s \t %s\n", f.Name, f.BaseDir)
+			}
+		}
 
 		return nil
 	},

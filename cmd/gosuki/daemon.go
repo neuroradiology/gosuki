@@ -156,17 +156,20 @@ func startDaemon(c *cli.Context) error {
 		bpm, ok := browser.(profiles.ProfileManager)
 		if ok {
 			if bpm.WatchAllProfiles() {
-				profs, err := bpm.GetProfiles()
-				if err != nil {
-					log.Critical("could not get profiles")
-					continue
-				}
-				for _, p := range profs {
-					log.Debugf("profile: <%s>", p.Name)
-					err = runModule(manager, c, browserMod, p)
+				falvours := bpm.ListFlavours()
+				for _, f := range falvours {
+					profs, err := bpm.GetProfiles(f.Name)
 					if err != nil {
-						log.Critical(err)
+						log.Critical("could not get profiles")
 						continue
+					}
+					for _, p := range profs {
+						log.Debugf("profile: <%s>", p.Name)
+						err = runModule(manager, c, browserMod, p)
+						if err != nil {
+							log.Critical(err)
+							continue
+						}
 					}
 				}
 			} else {
