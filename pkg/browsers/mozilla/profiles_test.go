@@ -27,12 +27,13 @@ var BadProfile = &profiles.INIProfileLoader{
 }
 
 func TestGetProfiles(t *testing.T) {
+	MozBrowsers["test"] = profiles.BrowserFlavour{"test", "testdata"}
 	t.Run("OK", func(t *testing.T) {
 		pm := &MozProfileManager{
 			PathResolver: OkProfile,
 		}
 
-		profs, err := pm.GetProfiles()
+		profs, err := pm.GetProfiles("test")
 		if err != nil {
 			t.Error(err)
 		}
@@ -58,7 +59,7 @@ func TestGetProfiles(t *testing.T) {
 			PathResolver: BadProfile,
 		}
 
-		_, err := pm.GetProfiles()
+		_, err := pm.GetProfiles("test")
 		if err != ErrProfilesIni || err == nil {
 			t.Error("Expected error parsing bad profiles file")
 		}
