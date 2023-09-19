@@ -22,7 +22,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/urfave/cli/v2"
@@ -57,12 +56,13 @@ var listProfilesCmd = &cli.Command{
 		//Create a browser instance
 		brmod, ok := br.ModInfo().New().(modules.BrowserModule)
 		if !ok {
-			log.Criticalf("module <%s> is not a BrowserModule", br.ModInfo().ID)
+			log.Criticalf("<%s> is not a BrowserModule", br.ModInfo().ID)
 		}
 
 		pm, isProfileManager := brmod.(profiles.ProfileManager)
 		if !isProfileManager{
-			return errors.New("not profile manager")
+			log.Warningf("<%s> is not a profile manager", br.ModInfo().ID)
+			continue
 		}
 
 		flavours := pm.ListFlavours()
