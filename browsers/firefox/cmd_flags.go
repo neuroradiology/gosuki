@@ -48,7 +48,7 @@ var globalFirefoxFlags = []cli.Flag{
 	&cli.BoolFlag{
 		Name:        "ff-watch-all-profiles",
 		Category:	 "firefox",
-		Usage:       "Watch all detected firefox profiles at the same time.",
+		Usage:       "TOFIX! Watch all detected firefox profiles at the same time.",
 		Aliases:     []string{"ff-watch-all"},
 	},
 }
