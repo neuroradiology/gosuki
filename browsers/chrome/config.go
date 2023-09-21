@@ -22,31 +22,61 @@
 package chrome
 
 import (
+	"git.blob42.xyz/gosuki/gosuki/internal/config"
 	"git.blob42.xyz/gosuki/gosuki/pkg/modules"
 	"git.blob42.xyz/gosuki/gosuki/pkg/parsing"
+	"git.blob42.xyz/gosuki/gosuki/pkg/profiles"
 	"git.blob42.xyz/gosuki/gosuki/pkg/tree"
 )
 
 const (
-	BrowserName    = "chrome"
+	BrowserName    = ChromeStable
 	ChromeBaseDir  = "$HOME/.config/google-chrome"
 	DefaultProfile = "Default"
 	RootNodeName   = "ROOT"
 )
 
+
 type ChromeConfig struct {
-	Profile                string
 	*modules.BrowserConfig `toml:"-"`
-	modules.ProfilePrefs   `toml:"profile_options"`
+	modules.ProfilePrefs `toml:"profile_options" mapstructure:"profile_options"`
 }
 
 var (
-	ChromeCfg = &ChromeConfig{
-		Profile: DefaultProfile,
+	ProfileManager = &ChromeProfileManager{}
+
+	ChromeCfg = NewChromeConfig()
+)
+
+func setBookmarkDir(cc *ChromeConfig) {
+	var err error
+
+	// load profile from config
+	var profile *profiles.Profile
+	
+	// In chrome we need to identify the profiles by their ID to get the correct
+	// path
+	if profile, err = ProfileManager.GetProfileByID(BrowserName, cc.Profile); err != nil {
+		log.Warning(err)
+	} else {
+		bookmarkDir, err := profile.AbsolutePath()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		cc.BkDir = bookmarkDir
+		log.Debugf("Using profile %s", bookmarkDir)
+
+	}
+
+}
+
+func NewChromeConfig() *ChromeConfig {
+
+	config := &ChromeConfig{
 		BrowserConfig: &modules.BrowserConfig{
 			Name:   BrowserName,
 			Type:   modules.TChrome,
-			BkDir:  "$HOME/.config/google-chrome/Default",
 			BkFile: "Bookmarks",
 			NodeTree: &tree.Node{
 				Name:   RootNodeName,
@@ -57,6 +87,16 @@ var (
 			UseFileWatcher: true,
 			UseHooks:       []string{"tags_from_name", "notify-send"},
 		},
-		//TODO: profile
+		ProfilePrefs: modules.ProfilePrefs{
+			Profile: DefaultProfile,
+		},
 	}
-)
+
+	setBookmarkDir(config)
+
+	return config
+}
+
+func init() {
+	config.RegisterConfigurator(BrowserName, config.AsConfigurator(ChromeCfg))
+}

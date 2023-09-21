@@ -24,7 +24,7 @@
 // Chrome bookmarks are stored in a json file normally called Bookmarks.
 // The bookmarks file is updated atomically by chrome for each change to the
 // bookmark entries by the user.
-// 
+//
 // Changes are detected by watching the parent directory for fsnotify.Create
 // events on the bookmark file. On linux this is done by using fsnotify.
 package chrome
@@ -41,10 +41,11 @@ import (
 
 	"github.com/buger/jsonparser"
 
-	"git.blob42.xyz/gosuki/gosuki/internal/database"
 	"git.blob42.xyz/gosuki/gosuki/hooks"
+	"git.blob42.xyz/gosuki/gosuki/internal/database"
 	"git.blob42.xyz/gosuki/gosuki/internal/logging"
 	"git.blob42.xyz/gosuki/gosuki/pkg/modules"
+	"git.blob42.xyz/gosuki/gosuki/pkg/profiles"
 	"git.blob42.xyz/gosuki/gosuki/pkg/tree"
 	"git.blob42.xyz/gosuki/gosuki/pkg/watch"
 )
@@ -135,11 +136,8 @@ func (ch *Chrome) Init(_ *modules.Context) error {
 }
 
 func (ch *Chrome) setupWatchers() error {
-	bookmarkDir, err := ch.BookmarkDir()
+	bookmarkDir := ch.BkDir
 	log.Debugf("Watching path: %s", bookmarkDir)
-	if err != nil {
-		return err
-	}
 	bookmarkPath := filepath.Join(bookmarkDir, ch.BkFile)
 	// Setup watcher
 	w := &watch.Watch{
@@ -455,6 +453,8 @@ func (ch *Chrome) Run() {
 }
 
 
+
+
 // Load() will be called right after a browser is initialized
 func (ch *Chrome) Load() error {
 	go ch.Run()
@@ -479,3 +479,4 @@ var _ modules.Loader = (*Chrome)(nil)
 var _ watch.WatchRunner = (*Chrome)(nil)
 var _ hooks.HookRunner = (*Chrome)(nil)
 var _ watch.Stats = (*Chrome)(nil)
+var _ profiles.ProfileManager = (*Chrome)(nil)

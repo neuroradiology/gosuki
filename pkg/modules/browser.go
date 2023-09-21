@@ -67,7 +67,8 @@ type Browser interface {
 type ProfilePrefs struct {
 
 	// Whether to watch all the profiles for multi-profile modules
-	WatchAllProfiles bool `toml:"watch_all_profiles"`
+	WatchAllProfiles bool `toml:"watch_all_profiles" mapstructure:"watch_all_profiles"`
+	Profile          string `toml:"profile" mapstructure:"profile"`
 }
 
 // BrowserConfig is the main browser configuration shared by all browser modules.
@@ -80,9 +81,6 @@ type BrowserConfig struct {
 
 	// Name of bookmarks file
 	BkFile string
-
-
-	ProfilePrefs
 
 	// In memory sqlite db (named `memcache`).
 	// Used to keep a browser's state of bookmarks across jobs.
@@ -108,27 +106,9 @@ type BrowserConfig struct {
 	hooks map[string]hooks.Hook
 }
 
+
 func (b *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
 	return b.watcher
-}
-
-func (b BrowserConfig) BookmarkDir() (string, error) {
-	var err error
- 	bDir, err := utils.ExpandPath(b.BkDir)
-	if err != nil {
-		return "", err
-	}
-
-	exists, err := utils.CheckDirExists(bDir)
-	if err != nil {
-		return "", err
-	}
-
-	if !exists {
-		return "", fmt.Errorf("not a bookmark dir: %s ", bDir)
-	}
-
-	return bDir, nil
 }
 
 // CallHooks calls all registered hooks for this browser for the given

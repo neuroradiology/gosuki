@@ -23,7 +23,7 @@
 package firefox
 
 import (
-	"fmt"
+	"github.com/urfave/cli/v2"
 
 	"git.blob42.xyz/gosuki/gosuki/internal/config"
 	"git.blob42.xyz/gosuki/gosuki/internal/database"
@@ -32,9 +32,6 @@ import (
 	"git.blob42.xyz/gosuki/gosuki/pkg/parsing"
 	"git.blob42.xyz/gosuki/gosuki/pkg/profiles"
 	"git.blob42.xyz/gosuki/gosuki/pkg/tree"
-
-	"github.com/fatih/structs"
-	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -44,6 +41,7 @@ const (
 
 	// Default flavour to use
 	BrowserName = mozilla.FirefoxFlavour
+
 )
 
 var (
@@ -73,41 +71,41 @@ var (
 // config file options will only be accepted if they are defined here.
 type FirefoxConfig struct {
 	// Default data source name query options for `places.sqlite` db
-    PlacesDSN        database.DsnOptions
-    Profile          string
+	PlacesDSN        database.DsnOptions `toml:"-"`
 
-	modules.ProfilePrefs `toml:"profile_options"`
+	modules.ProfilePrefs `toml:"profile_options" mapstructure:"profile_options"`
 
     //TEST: ignore this field in config.Configurator interface
 	// Embed base browser config
     *modules.BrowserConfig `toml:"-"`
 }
 
+//REFACT: move logic to modules package and use interface as input
 func setBookmarkDir(fc *FirefoxConfig) {
 	var err error
 
-	// load the default profile from the one defined in the config
+	// load profile from config
 	var profile *profiles.Profile
 	if profile, err = FirefoxProfileManager.GetProfileByName(BrowserName, fc.Profile); err != nil {
-		log.Fatal(err)
+		log.Warning(err)
+	} else {
+		bookmarkDir, err := profile.AbsolutePath()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fc.BkDir = bookmarkDir
+		log.Debugf("Using profile %s", bookmarkDir)
 	}
 
-	bookmarkDir, err := profile.AbsolutePath()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fc.BkDir = bookmarkDir
-	log.Debugf("Using profile %s", bookmarkDir)
 }
 
 func NewFirefoxConfig() *FirefoxConfig {
 
-	config := &FirefoxConfig{
+	cfg := &FirefoxConfig{
 		BrowserConfig: &modules.BrowserConfig{
 			Name:         BrowserName,
 			Type:         modules.TFirefox,
-			BkDir:        "",
 			BkFile:       mozilla.PlacesFile,
 			NodeTree: &tree.Node{
 				Name: mozilla.RootName,
@@ -128,49 +126,47 @@ func NewFirefoxConfig() *FirefoxConfig {
 		},
 
 		// default profile to use, can be selected as cli argument
-		Profile: DefaultProfile,
+
+		ProfilePrefs: modules.ProfilePrefs{
+			Profile: DefaultProfile,
+		},
 	}
 
-	setBookmarkDir(config)
+	setBookmarkDir(cfg)
 
-	return config
+	// Set WatchAllProfiles that was set by user in flags
+	// if userConf := config.GetModule(BrowserName); userConf != nil {
+	// 	watchAll, err := userConf.Get("WatchAllProfiles")
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	} else {
+	// 		cfg.WatchAllProfiles = watchAll.(bool)
+	// 	}
+	// }
+	//
+
+	return cfg
 }
 
-func (fc *FirefoxConfig) Set(opt string, v interface{}) error {
-	// log.Debugf("setting option %s = %v", opt, v)
-	s := structs.New(fc)
-	f, ok := s.FieldOk(opt)
-	if !ok {
-		return fmt.Errorf("%s option not defined", opt)
-	}
-
-	return f.Set(v)
-}
-
-func (fc *FirefoxConfig) Get(opt string) (interface{}, error) {
-	s := structs.New(fc)
-	f, ok := s.FieldOk(opt)
-	if !ok {
-		return nil, fmt.Errorf("%s option not defined", opt)
-	}
-
-	return f.Value(), nil
-}
-
-func (fc *FirefoxConfig) Dump() map[string]interface{} {
-	s := structs.New(fc)
-	return s.Map()
-}
-
-func (fc *FirefoxConfig) String() string {
-	s := structs.New(fc)
-	return fmt.Sprintf("%v", s.Map())
-}
-
-func (fc *FirefoxConfig) MapFrom(src interface{}) error {
-	return mapstructure.Decode(src, fc)
-}
 
 func init() {
-	config.RegisterConfigurator(BrowserName, FFConfig)
+	config.RegisterConfigurator(BrowserName, config.AsConfigurator(FFConfig))
+	config.RegisterConfReadyHooks(func(*cli.Context) error{
+		// log.Debugf("%#v", config.GetAll().Dump())
+
+
+		//FIX: WatchAllProfiles option not set when instanciating new
+		//browser in daemon.go
+		// Recover Watch All Profiles value
+		if userConf := config.GetModule(BrowserName); userConf != nil {
+			watchAll, err := userConf.Get("WatchAllProfiles")
+			if err != nil {
+				log.Fatal(err)
+			} else {
+				FFConfig.WatchAllProfiles = watchAll.(bool)
+			}
+		}
+
+		return nil
+	})
 }

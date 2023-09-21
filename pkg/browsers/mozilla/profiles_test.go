@@ -27,6 +27,7 @@ var BadProfile = &profiles.INIProfileLoader{
 }
 
 func TestGetProfiles(t *testing.T) {
+	// fake browser flavour
 	MozBrowsers["test"] = profiles.BrowserFlavour{"test", "testdata"}
 	t.Run("OK", func(t *testing.T) {
 		pm := &MozProfileManager{
