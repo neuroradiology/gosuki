@@ -151,6 +151,7 @@ func startDaemon(c *cli.Context) error {
 			log.Criticalf("TODO: module <%s> is not a BrowserModule", mod.ID)
 		}
 
+		//BUG: WatchAllProfiles `module` flag option not working here
 		// if the module is a profile manager and is watching all profiles
 		// call runModule for each profile
 		bpm, ok := browser.(profiles.ProfileManager)

@@ -23,6 +23,12 @@ package profiles
 
 import "path/filepath"
 
+// PathResolver allows custom path resolution for profiles
+type PathResolver interface {
+	GetPath() string
+	SetBaseDir(string)
+}
+
 type INIProfileLoader struct {
 	// The absolute path to the directory where profiles.ini is located
 	BasePath     string

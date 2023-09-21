@@ -23,6 +23,7 @@
 package profiles
 
 import (
+
 	"git.blob42.xyz/gosuki/gosuki/internal/logging"
 	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 )
@@ -35,15 +36,6 @@ type ProfileManager interface {
 
 	// Returns all profiles for a given flavour
 	GetProfiles(flavour string) ([]*Profile, error)
-
-	//TODO!: remove
-	// Returns the default profile if no profile is selected
-	// GetDefaultProfile() (*Profile, error)
-
-	//TODO!: remove
-	//TODO!: fix input to method, should take string ? 
-	// Return that absolute path to a profile and follow symlinks
-	// GetProfilePath(Profile) (string)
 
 	// If should watch all profiles
 	WatchAllProfiles() bool
@@ -61,6 +53,7 @@ type Profile struct {
 	Id   string
 
 	// Name of the profile
+	// This is usually the name of the directory where the profile is stored
 	Name string
 
 	// relative path to profile from base dir
@@ -74,12 +67,6 @@ func (f Profile) AbsolutePath() (string, error) {
 	return utils.ExpandPath(f.BaseDir, f.Path)
 }
 
-// PathResolver allows custom path resolution for profiles
-// See the INIProfileLoader for an example
-type PathResolver interface {
-	GetPath() string
-	SetBaseDir(string)
-}
 
 // The BrowserFlavour struct stores the name of the browser and the base
 // directory where the profiles are stored.

@@ -38,7 +38,7 @@ import (
 	_ "git.blob42.xyz/gosuki/gosuki/browsers/firefox"
 
 	// Load chrome browser module
-	// _ "git.blob42.xyz/gosuki/gosuki/browsers/chrome"
+	_ "git.blob42.xyz/gosuki/gosuki/browsers/chrome"
 )
 
 var log = logging.GetLogger("")

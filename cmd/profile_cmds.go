@@ -76,7 +76,7 @@ var listProfilesCmd = &cli.Command{
 					if err != nil {
 						return err
 					}
-					fmt.Printf("%-10s \t %s\n", p.Name, pPath)
+					fmt.Printf("%-10s[id:%s]\t %s\n", p.Name, p.Id, pPath)
 				}
 			}
 			fmt.Println()

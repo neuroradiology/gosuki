@@ -245,6 +245,7 @@ func (f *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error)
 
 
 func NewFirefox() *Firefox {
+
 	return &Firefox{
 		FirefoxConfig: FFConfig,
 		places:        &database.DB{},
@@ -270,7 +271,7 @@ func (f Firefox) fullId() string {
 }
 
 // Implements the profiles.ProfileManager interface
-func (f *Firefox) GetProfiles(flavour string) ([]*profiles.Profile, error) {
+func (*Firefox) GetProfiles(flavour string) ([]*profiles.Profile, error) {
 	return FirefoxProfileManager.GetProfiles(flavour)
 }
 
@@ -293,18 +294,23 @@ func (f *Firefox) UseProfile(p profiles.Profile) error {
 	}
 }
 
-func (f *Firefox) cloneConfig() {
-	f.FirefoxConfig = NewFirefoxConfig()
-}
-
-//TODO!: Duplicate logic with initFirefoxConfig (config.go)
 func (f *Firefox) Init(ctx *modules.Context, p *profiles.Profile) error {
 	if p == nil {
+		// setup profile from config
+		profile, err := FirefoxProfileManager.GetProfileByName(BrowserName, f.Profile)
+		if err != nil {
+			return err
+		} 
+		bookmarkDir, err := profile.AbsolutePath()
+		if err != nil {
+			return err
+		}
+		f.BkDir = bookmarkDir
 		return f.init(ctx)
 	}
 
-	// for new profile use a new config
-	f.cloneConfig()
+	// use a new config for this profile
+	f.FirefoxConfig = NewFirefoxConfig()
 	f.Profile = p.Name
 
 
@@ -322,11 +328,8 @@ func (f *Firefox) Init(ctx *modules.Context, p *profiles.Profile) error {
 func (f *Firefox) init(ctx *modules.Context) error {
 	log.Infof("initializing <%s>", f.fullId())
 
-	watchedPath, err := f.BookmarkDir()
+	watchedPath := f.BkDir
 	log.Debugf("Watching path: %s", watchedPath)
-	if err != nil {
-		return err
-	}
 
 	// Setup watcher
 	w := &watch.Watch{
