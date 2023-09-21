@@ -1,8 +1,11 @@
-[firefox]
-WatchAllProfiles = false
-DefaultProfile = "default-esr"
+[chrome]
+  [chrome.profile_options]
+    watch_all_profiles = false
+    profile = "Default"
 
-[firefox.PlacesDSN]
-_journal_mode = "WAL"
+[firefox]
+  [firefox.profile_options]
+    watch_all_profiles = false
+    profile = "default"
 
 [global]
