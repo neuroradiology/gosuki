@@ -39,7 +39,6 @@ import (
 	"git.blob42.xyz/gosuki/gosuki/pkg/modules"
 	"git.blob42.xyz/gosuki/gosuki/pkg/profiles"
 
-	// "git.blob42.xyz/gosuki/gosuki/pkg/profiles"
 	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 	"git.blob42.xyz/gosuki/gosuki/pkg/tree"
 	"git.blob42.xyz/gosuki/gosuki/pkg/watch"
@@ -277,7 +276,7 @@ func (*Firefox) GetProfiles(flavour string) ([]*profiles.Profile, error) {
 
 // If should watch all profiles
 func (f *Firefox) WatchAllProfiles() bool {
-	return f.FirefoxConfig.WatchAllProfiles
+	return FFConfig.WatchAllProfiles
 }
 
 // Use custom profile
@@ -310,7 +309,7 @@ func (f *Firefox) Init(ctx *modules.Context, p *profiles.Profile) error {
 	}
 
 	// use a new config for this profile
-	f.FirefoxConfig = NewFirefoxConfig()
+	// f.FirefoxConfig = NewFirefoxConfig()
 	f.Profile = p.Name
 
 

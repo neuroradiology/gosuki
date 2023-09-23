@@ -47,9 +47,7 @@ func initConfig() {
 
 	if !exists {
 		// Initialize default initConfig
-		//NOTE: if custom flags are passed before config.toml exists, falg
-		//options will not be saved to the initial config.toml, this means
-		//command line flags have higher priority than config.toml
+		//NOTE: flags have higher priority than config file
 		initDefaultConfig()
 	} else {
 		err = config.LoadFromTomlFile()

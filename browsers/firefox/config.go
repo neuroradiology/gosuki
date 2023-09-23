@@ -47,7 +47,7 @@ const (
 var (
 
 	// firefox global config state.  
-	FFConfig = NewFirefoxConfig()
+	FFConfig *FirefoxConfig
 
 	ffProfileLoader = &profiles.INIProfileLoader{
 		//BasePath to be set at runtime in init
@@ -150,21 +150,19 @@ func NewFirefoxConfig() *FirefoxConfig {
 
 
 func init() {
+	FFConfig = NewFirefoxConfig()
 	config.RegisterConfigurator(BrowserName, config.AsConfigurator(FFConfig))
-	config.RegisterConfReadyHooks(func(*cli.Context) error{
+
+	// log.Debugf("%p", FFConfig)
+
+	// An example of running custom code when config is ready
+	config.RegisterConfReadyHooks(func(c *cli.Context) error{
 		// log.Debugf("%#v", config.GetAll().Dump())
 
 
-		//FIX: WatchAllProfiles option not set when instanciating new
-		//browser in daemon.go
-		// Recover Watch All Profiles value
 		if userConf := config.GetModule(BrowserName); userConf != nil {
-			watchAll, err := userConf.Get("WatchAllProfiles")
-			if err != nil {
-				log.Fatal(err)
-			} else {
-				FFConfig.WatchAllProfiles = watchAll.(bool)
-			}
+			watchAll, _ := userConf.Get("WatchAllProfiles")
+			log.Debugf("WATCH_ALL: %v", watchAll)
 		}
 
 		return nil
