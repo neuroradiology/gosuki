@@ -125,7 +125,12 @@ func RegisterGlobalOption(key string, val interface{}) {
 func RegisterModuleOpt(module string, opt string, val interface{}) error {
 	log.Debugf("Setting option for module <%s>: %s = %v", module, opt, val)
 	dest := configs[module]
-	return dest.Set(opt, val)
+	if err := dest.Set(opt, val); err != nil {
+		return err
+	}
+	watchAll, _ := configs[module].Get("WatchAllProfiles")
+	log.Debugf("[%s]WATCH_ALL: %v", module, watchAll)
+	return nil
 }
 
 // Get all configs as a map[string]interface{}

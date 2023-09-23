@@ -27,8 +27,8 @@ import (
 
 	"git.blob42.xyz/gosuki/gosuki/internal/config"
 	"git.blob42.xyz/gosuki/gosuki/internal/logging"
-	"git.blob42.xyz/gosuki/gosuki/pkg/modules"
 	"git.blob42.xyz/gosuki/gosuki/internal/utils"
+	"git.blob42.xyz/gosuki/gosuki/pkg/modules"
 
 	"git.blob42.xyz/gosuki/gosuki/cmd"
 
@@ -36,12 +36,11 @@ import (
 
 	// Load firefox browser modules
 	_ "git.blob42.xyz/gosuki/gosuki/browsers/firefox"
-
 	// Load chrome browser module
 	_ "git.blob42.xyz/gosuki/gosuki/browsers/chrome"
 )
 
-var log = logging.GetLogger("")
+var log = logging.GetLogger("MAIN")
 
 
 func main() {
@@ -75,8 +74,19 @@ func main() {
 	flags = append(flags, config.SetupGlobalFlags()...)
 	app.Flags = append(app.Flags, flags...)
 
+	
 	app.Before = func(c *cli.Context) error {
 
+		// The order here is important
+		//
+		// 1. we load the file config
+		// 2. every module has the opprtunity to register its own flags
+		// 3. the modules can run custom code before the CLI is ready but after
+		// the config is ready, using the config hooks.
+		// 
+		// Cli flags have the highest priority and override config file values
+
+		initConfig()
 
 		// get all registered browser modules
 		modules := modules.GetModules()
@@ -93,14 +103,15 @@ func main() {
 			}
 		}
 
+
 		// Execute config hooks
-		//TODO: better doc for what are Conf hooks ???
+		// DOC: better documentation  of Conf hooks ???
 		// modules can run custom code before the CLI is ready.
 		// For example read the environment and set configuration options to be
 		// used by the module instances.
 		config.RunConfHooks(c)
 
-		initConfig()
+
 
 		return nil
 	}
@@ -140,11 +151,14 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+
+	// log.Debugf("flags: %s", app.Flags)
+
 }
 
 func init() {
 
 	//TODO: watch all profiles (handled at browser level for now)
-	// config.RegisterGlobalOption("all-profiles", false)
+	config.RegisterGlobalOption("watch-all", false)
 }
 
