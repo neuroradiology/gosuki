@@ -23,8 +23,6 @@
 package firefox
 
 import (
-	"github.com/urfave/cli/v2"
-
 	"git.blob42.xyz/gosuki/gosuki/internal/config"
 	"git.blob42.xyz/gosuki/gosuki/internal/database"
 	"git.blob42.xyz/gosuki/gosuki/pkg/browsers/mozilla"
@@ -156,15 +154,15 @@ func init() {
 	// log.Debugf("%p", FFConfig)
 
 	// An example of running custom code when config is ready
-	config.RegisterConfReadyHooks(func(c *cli.Context) error{
-		// log.Debugf("%#v", config.GetAll().Dump())
-
-
-		if userConf := config.GetModule(BrowserName); userConf != nil {
-			watchAll, _ := userConf.Get("WatchAllProfiles")
-			log.Debugf("WATCH_ALL: %v", watchAll)
-		}
-
-		return nil
-	})
+	// config.RegisterConfReadyHooks(func(c *cli.Context) error{
+	// 	// log.Debugf("%#v", config.GetAll().Dump())
+	//
+	//
+	// 	if userConf := config.GetModule(BrowserName); userConf != nil {
+	// 		watchAll, _ := userConf.Get("WatchAllProfiles")
+	// 		log.Debugf("WATCH_ALL: %v", watchAll)
+	// 	}
+	//
+	// 	return nil
+	// })
 }

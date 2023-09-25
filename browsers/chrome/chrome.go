@@ -127,10 +127,38 @@ type Chrome struct {
 	*ChromeConfig
 }
 
+func (ch *Chrome) Init(ctx *modules.Context, p *profiles.Profile) error {
+	// if called without profile setup default profile
+	if p == nil {
+		prof, err := ProfileManager.GetProfileByID(BrowserName, ch.Profile)
+		if err != nil {
+			return err
+		}
+		bookmarkDir, err := prof.AbsolutePath()
+		if err != nil {
+			return err
+		}
+
+		ch.BkDir = bookmarkDir
+		return ch.init(ctx)
+	}
+
+	ch.ChromeConfig = NewChromeConfig()
+	ch.Profile = p.Id
+
+	if bookmarkDir, err := p.AbsolutePath(); err != nil {
+		return err
+	} else {
+		ch.BkDir = bookmarkDir
+	}
+
+	return ch.init(ctx)
+}
+
 // Init() is the first method called after a browser instance is created
 // and registered.
 // Return ok, error
-func (ch *Chrome) Init(_ *modules.Context) error {
+func (ch *Chrome) init(_ *modules.Context) error {
 	log.Infof("initializing <%s>", ch.Name)
 	return ch.setupWatchers()
 }
@@ -433,7 +461,8 @@ func (ch *Chrome) Run() {
 
 	// If the cache is empty just copy buffer to cache
 	// until local db is already populated and preloaded
-	//debugPrint("%d", BufferDB.Count())
+	// debugPrint("%d", BufferDB.Count())
+	log.Debugf("checking if db is empty")
 	if empty, err := database.Cache.DB.IsEmpty(); empty {
 		if err != nil {
 			log.Error(err)
@@ -444,12 +473,16 @@ func (ch *Chrome) Run() {
 
 		log.Debugf("syncing <%s> to disk", database.Cache.DB.Name)
 	} else {
+		log.Debug("syncing to db")
 		ch.BufferDB.SyncTo(database.Cache.DB)
 	}
 
-	go database.Cache.DB.SyncToDisk(database.GetDBFullPath())
+	go func(){
+	if err = database.Cache.DB.SyncToDisk(database.GetDBFullPath()); err != nil  {
+		log.Critical(err)
+	}
+	}()
 	ch.LastWatchRunTime = time.Since(startRun)
-
 }
 
 
@@ -474,7 +507,7 @@ func init() {
 // interface guards
 
 var _ modules.BrowserModule = (*Chrome)(nil)
-var _ modules.Initializer = (*Chrome)(nil)
+var _ modules.ProfileInitializer = (*Chrome)(nil)
 var _ modules.Loader = (*Chrome)(nil)
 var _ watch.WatchRunner = (*Chrome)(nil)
 var _ hooks.HookRunner = (*Chrome)(nil)

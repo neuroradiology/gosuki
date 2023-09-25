@@ -23,13 +23,17 @@ package database
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
-// For ever row in `src` try to insert it into `dst`.
-// If if fails then try to update it. It means `src` is synced to `dst`
+var mu sync.Mutex
+
+// Manual UPSERT:
+// For every row in `src` try to insert it into `dst`. if if fails then try to
+// update it. It means `src` is synced to `dst`
 func (src *DB) SyncTo(dst *DB) {
 	var sqlite3Err sqlite3.Error
 	var existingUrls []*SBookmark
@@ -69,7 +73,7 @@ func (src *DB) SyncTo(dst *DB) {
 		VALUES (?, ?, ?, ?, ?)`,
 	)
 	defer func() {
-		err := tryInsertDstRow.Close()
+		err = tryInsertDstRow.Close()
 		if err != nil {
 			log.Critical(err)
 		}
@@ -87,7 +91,7 @@ func (src *DB) SyncTo(dst *DB) {
 	)
 
     defer func(){
-        err := updateDstRow.Close()
+        err = updateDstRow.Close()
         if err != nil {
             log.Critical()
         }
@@ -102,12 +106,12 @@ func (src *DB) SyncTo(dst *DB) {
 		log.Error(err)
 	}
 
-	// Lock destination db
 	log.Debugf("starting transaction")
 	dstTx, err := dst.Handle.Begin()
 	if err != nil {
 		log.Error(err)
 	}
+
 
 	// Start syncing all entries from source table
 	log.Debugf("scanning entries in source table")
@@ -149,7 +153,7 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 
 	// Start a new transaction to update the existing urls
-	dstTx, err = dst.Handle.Begin() // Lock dst db
+	dstTx, err = dst.Handle.Begin() 
 	if err != nil {
 		log.Error(err)
 	}
@@ -196,6 +200,7 @@ func (src *DB) SyncTo(dst *DB) {
 		if err != nil {
 			log.Errorf("%s: %s", err, scan.URL)
 		}
+		log.Debugf("synced %s to %s", scan.URL, dst.Name)
 
 	}
 
@@ -213,8 +218,13 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 }
 
+// TODO!: add concurrency
+// Multiple threads(goroutines) are trying to sync together when running 
+// with watch all. Use sync.Mutex !! 
 func (src *DB) SyncToDisk(dbpath string) error {
 	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
+	mu.Lock()
+	defer mu.Unlock()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -247,7 +257,12 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	}
 
 	if len(_sql3conns) < 2 {
-		return fmt.Errorf("not enough sql connections for backup")
+		return fmt.Errorf("not enough sql connections for backup call")
+	}
+
+	if _sql3conns[0] == nil {
+		log.Critical("nil sql connection")
+		return fmt.Errorf("nil sql connection")
 	}
 
 	bkp, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
