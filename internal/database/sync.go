@@ -57,7 +57,7 @@ func (src *DB) SyncTo(dst *DB) {
 	)
 
 	defer func() {
-		err := getDstTags.Close()
+		err = getDstTags.Close()
 
 		if err != nil {
 			log.Critical(err)
@@ -336,21 +336,21 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 
 	log.Debugf("Syncing <%s> to <%s>", dbpath, dst.Name)
 
-	dbUri := fmt.Sprintf("file:%s", dbpath)
-	srcDb, err := sqlx.Open(DriverBackupMode, dbUri)
-	defer flushSqliteCon(srcDb)
+	dbURI := fmt.Sprintf("file:%s", dbpath)
+	srcDB, err := sqlx.Open(DriverBackupMode, dbURI)
+	defer flushSqliteCon(srcDB)
 	if err != nil {
 		return err
 	}
-	srcDb.Ping()
+	srcDB.Ping()
 
 	//log.Debugf("[flush] opening <%s>", DB_FILENAME)
-	bkDb, err := sqlx.Open(DriverBackupMode, dst.Path)
-	defer flushSqliteCon(bkDb)
+	bkDB, err := sqlx.Open(DriverBackupMode, dst.Path)
+	defer flushSqliteCon(bkDB)
 	if err != nil {
 		return err
 	}
-	bkDb.Ping()
+	bkDB.Ping()
 
 	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
 	if err != nil {
@@ -373,26 +373,26 @@ func (src *DB) CopyTo(dst *DB) {
 
 	log.Debugf("Copying <%s> to <%s>", src.Name, dst.Name)
 
-	srcDb, err := sqlx.Open(DriverBackupMode, src.Path)
+	srcDB, err := sqlx.Open(DriverBackupMode, src.Path)
 	defer func() {
-		srcDb.Close()
+		srcDB.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
 	}()
 	if err != nil {
 		log.Error(err)
 	}
 
-	srcDb.Ping()
+	srcDB.Ping()
 
-	dstDb, err := sqlx.Open(DriverBackupMode, dst.Path)
+	dstDB, err := sqlx.Open(DriverBackupMode, dst.Path)
 	defer func() {
-		dstDb.Close()
+		dstDB.Close()
 		_sql3conns = _sql3conns[:len(_sql3conns)-1]
 	}()
 	if err != nil {
 		log.Error(err)
 	}
-	dstDb.Ping()
+	dstDB.Ping()
 
 	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
 	if err != nil {
