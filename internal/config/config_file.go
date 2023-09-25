@@ -35,6 +35,7 @@ func InitConfigFile() error {
 	allConf := GetAll()
 
 	tomlEncoder := toml.NewEncoder(configFile)
+	tomlEncoder.Indent = ""
 	err = tomlEncoder.Encode(&allConf)
 	if err != nil {
 		return err
