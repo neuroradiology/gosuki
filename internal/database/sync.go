@@ -24,6 +24,7 @@ package database
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"
@@ -218,9 +219,58 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 }
 
+var syncQueue = make(chan interface{})
+
+// Sync all databases to disk in a goroutine using a debouncer
+//TODO: add `force` param to force sync
+func cacheSyncScheduler(input <-chan interface{}) {
+	log.Debug("starting cache sync scheduler")
+
+	// debounce interval
+	queue := make(chan<- interface{}, 100)
+	interval := 4 * time.Second
+	timer := time.NewTimer(0)
+	for {
+		select {
+		case <-input:
+			log.Debug("debouncing sync to disk")
+			timer.Reset(interval)
+			select {
+			case queue <- true:
+				// Writing to queue would not block
+			default:
+				log.Critical("cache sync queue is full, something is wrong")
+			}
+		case <-timer.C:
+			if len(queue) > 0 {
+				log.Debug("syncing cache to disk")
+				if Cache.DB == nil {
+					log.Fatalf("cache db is nil")
+				}
+				if err := Cache.DB.SyncToDisk(GetDBFullPath()); err != nil {
+					log.Fatalf("failed to sync cache to disk: %s", err)
+				}
+				queue = make(chan<- interface{})
+			}
+		}
+	}
+}
+
+func ScheduleSyncToDisk() {
+	go func() {
+		log.Debug("received sync to disk request")
+		syncQueue <- true
+	}()
+}
+
+func StartSyncScheduler() {
+	go cacheSyncScheduler(syncQueue)
+}
+
 // TODO!: add concurrency
 // Multiple threads(goroutines) are trying to sync together when running 
 // with watch all. Use sync.Mutex !! 
+//TODO: should be centrally managed with a debouncer
 func (src *DB) SyncToDisk(dbpath string) error {
 	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
 	mu.Lock()
@@ -277,6 +327,7 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	}
 
 	bkp.Finish()
+	log.Infof("synced <%s> to <%s>", src.Name, dbpath)
 
 	return nil
 }

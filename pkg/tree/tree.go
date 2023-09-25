@@ -199,7 +199,7 @@ func AddChild(parent *Node, child *Node) {
 	for _, n := range parent.Children {
 		if child == n {
 			// log.Errorf("<%s> Node already exists", child)
-            log.Info(pretty.Sprintf("skipping node <%s>, already exists", child.Name))
+            log.Debugf(pretty.Sprintf("skipping node <%s>, already exists", child.Name))
 			// update n with child metadata
 			log.Debugf("updating node <%s> with metadata <%s>", n.Name, child.Name)
 			n.Name = child.Name

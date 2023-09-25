@@ -477,11 +477,7 @@ func (ch *Chrome) Run() {
 		ch.BufferDB.SyncTo(database.Cache.DB)
 	}
 
-	go func(){
-	if err = database.Cache.DB.SyncToDisk(database.GetDBFullPath()); err != nil  {
-		log.Critical(err)
-	}
-	}()
+	database.ScheduleSyncToDisk()
 	ch.LastWatchRunTime = time.Since(startRun)
 }
 

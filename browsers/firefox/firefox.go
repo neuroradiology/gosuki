@@ -147,7 +147,7 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
 		// Create/Update URL node and apply tag node
 		ok, urlNode := f.addURLNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
 		if !ok {
-			log.Infof("url <%s> already in url index", bkEntry.Url)
+			log.Debugf("url <%s> already in url index", bkEntry.Url)
 		}
 
 		/*
@@ -160,7 +160,7 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark) {
 			}
 			seen, tagNode := f.addTagNode(tagName)
 			if !seen {
-				log.Infof("tag <%s> already in tag map", tagNode.Name)
+				log.Debugf("tag <%s> already in tag map", tagNode.Name)
 			}
 
 			// Add tag name to urlnode tags
@@ -411,7 +411,7 @@ func (f *Firefox) Load() error {
 		if err != nil {
 			return err
 		}
-		log.Info("cache empty: loading buffer to Cachedb")
+		log.Debugf("cache empty: loading buffer to Cachedb")
 
 		f.BufferDB.CopyTo(database.Cache.DB)
 
@@ -420,8 +420,9 @@ func (f *Firefox) Load() error {
 		f.BufferDB.SyncTo(database.Cache.DB)
 	}
 
-	//TODO: send as goroutine ?
-	go database.Cache.DB.SyncToDisk(database.GetDBFullPath())
+	// go database.Cache.DB.SyncToDisk(database.GetDBFullPath())
+	// schedule a sync to disk
+	database.ScheduleSyncToDisk()
 
 	//DEBUG:
 	// tree.PrintTree(f.NodeTree)
@@ -465,11 +466,7 @@ func (ff *Firefox) Run() {
 
 	database.SyncURLIndexToBuffer(ff.URLIndexList, ff.URLIndex, ff.BufferDB)
 	ff.BufferDB.SyncTo(database.Cache.DB)
-	go func(){
-		err = database.Cache.DB.SyncToDisk(database.GetDBFullPath()); if err != nil {
-			log.Critical(err)
-		}
-	}()
+	database.ScheduleSyncToDisk()
 
 
 	//TODO!: is LastWatchRunTime alone enough ?
@@ -684,14 +681,14 @@ func loadBookmarks(f *Firefox) {
 		 */
 		ok, tagNode := f.addTagNode(tagTitle)
 		if !ok {
-			log.Infof("tag <%s> already in tag map", tagNode.Name)
+			log.Debugf("tag <%s> already in tag map", tagNode.Name)
 		}
 
 		// Add the url to the tag
 		// NOTE: this call is responsible for updating URLIndexList
 		ok, urlNode := f.addURLNode(url, title, desc)
 		if !ok {
-			log.Infof("url <%s> already in url index", url)
+			log.Debugf("url <%s> already in url index", url)
 		}
 
 		// Add tag name to urlnode tags

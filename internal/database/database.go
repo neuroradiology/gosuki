@@ -274,6 +274,7 @@ func (db *DB) Init() (*DB, error) {
 		return nil, DBError{DBName: db.Name, Err: err}
 	}
 
+
 	return db, nil
 }
 
@@ -397,7 +398,7 @@ func ScanBookmarkRow(row *sql.Rows) (*SBookmark, error) {
 func flushSqliteCon(con *sqlx.DB) {
 	con.Close()
 	_sql3conns = _sql3conns[:len(_sql3conns)-1]
-	log.Debugf("Flushed sqlite conns -> %v", _sql3conns)
+	// log.Debugf("Flushed sqlite conns -> %v", _sql3conns)
 }
 
 func registerSqliteHooks() {
@@ -411,7 +412,7 @@ func registerSqliteHooks() {
 				//log.Debugf("[ConnectHook] registering new connection")
 				_sql3conns = append(_sql3conns, conn)
 				// log.Debugf("[ConnectHook] registered new connection")
-				log.Debugf("%v", _sql3conns)
+				// log.Debugf("%v", _sql3conns)
 				return nil
 			},
 		})
@@ -421,4 +422,5 @@ func registerSqliteHooks() {
 func init() {
 	initCache()
 	registerSqliteHooks()
+	StartSyncScheduler()
 }
