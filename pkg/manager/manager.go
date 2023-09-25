@@ -95,6 +95,8 @@ func (m *Manager) Run() {
 		go w.unit.Run(w)
 	}
 
+	fmt.Println("gosuki running ...")
+
 	for {
 		select {
 		case sig := <-m.signalIn:

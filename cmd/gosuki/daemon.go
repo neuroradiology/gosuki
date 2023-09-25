@@ -109,7 +109,7 @@ func runModule(m *manager.Manager,
 			log.Critical(err)
 			return err
 		}
-		log.Infof("adding watch runner <%s>", runner.Watch().ID)
+		log.Debugf("adding watch runner <%s>", runner.Watch().ID)
 
 		// create the worker name
 		unitName := browser.Config().Name
@@ -143,6 +143,7 @@ func startDaemon(c *cli.Context) error {
 	// instanciate all browsers
 	for _, browserMod := range registeredBrowsers {
 		mod := browserMod.ModInfo()
+		fmt.Printf("starting <%s>\n", mod.ID)
 
 		//Create a temporary browser instance to check if it implements
 		// the ProfileManager interface
