@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/user"
 	"path"
 	"path/filepath"
 )
@@ -87,11 +86,6 @@ func CheckWriteable(dir string) error {
 	}
 
 	return err
-}
-
-func GetHomeDir() string {
-	user, _ := user.Current()
-	return user.HomeDir
 }
 
 // ExpandPath expands a path with environment variables and tilde

@@ -43,12 +43,12 @@ var globalFirefoxFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:  FirefoxProfileFlag,
 		Category: "firefox",
-		Usage: "Set the default firefox `PROFILE` to use",
+		Usage: "set the default firefox `PROFILE` to use",
 	},
 	&cli.BoolFlag{
 		Name:        "ff-watch-all-profiles",
 		Category:	 "firefox",
-		Usage:       "TOFIX! Watch all detected firefox profiles at the same time.",
+		Usage:       "watch all firefox profiles for changes", 
 		Aliases:     []string{"ff-watch-all"},
 	},
 }

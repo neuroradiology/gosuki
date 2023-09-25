@@ -18,16 +18,80 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
 package config
+//TODO: load config path from cli flag/env var
 
 import (
+	"errors"
+	"fmt"
 	"os"
+	"path"
 
 	"github.com/BurntSushi/toml"
+
+	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 )
+
+const (
+	ConfigFileName       = "config.toml"
+	ConfigDirName = "gosuki"
+)
+
+func getConfigDir() (string, error) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("could not get config dir: %s", err)
+	}
+	if configDir == "" {
+		return "", errors.New("could not get config dir")
+	}
+
+	configDir = path.Join(configDir, ConfigDirName)
+	return configDir, nil
+}
+
+func getConfigFile() (string, error) {
+	if configDir, err := getConfigDir(); err != nil {
+		return "", err
+	}  else {
+		return path.Join(configDir, ConfigFileName), nil
+	}
+}
+
+func ConfigFile() string {
+	configFile, err := getConfigFile()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return configFile
+}
+
+func ConfigExists() (bool, error) {
+	configFile, err := getConfigFile()
+	if err != nil {
+		return false, err
+	}
+
+	return utils.CheckFileExists(configFile)
+}
+
 
 // Create a toml config file
 func InitConfigFile() error {
-	configFile, err := os.Create(ConfigFile)
+	var configDir string
+	var err error
+
+	if configDir, err = getConfigDir(); err != nil {
+		return err
+	}
+
+	if err = os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("could not create config dir: %s", err)
+	}
+
+	configFilePath := path.Join(configDir, ConfigFileName)
+
+	configFile, err := os.Create(configFilePath)
 	if err != nil {
 		return err
 	}
@@ -45,8 +109,13 @@ func InitConfigFile() error {
 }
 
 func LoadFromTomlFile() error {
+	configFile, err := getConfigFile()
+	if err != nil {
+		return err
+	}
+
 	dest := make(Config)
-	_, err := toml.DecodeFile(ConfigFile, &dest)
+	_, err = toml.DecodeFile(configFile, &dest)
 
 	for k, val := range dest {
 

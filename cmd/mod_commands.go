@@ -66,6 +66,7 @@ var ModuleCmds = &cli.Command {
 
 var listModulesCmd = &cli.Command{
 	Name: "list",
+	Aliases: []string{"l"},
 	Usage: "list available browsers and modules",
 	Action: func(_ *cli.Context) error {
 

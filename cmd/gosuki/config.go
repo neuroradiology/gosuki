@@ -23,7 +23,6 @@ package main
 
 import (
 	"git.blob42.xyz/gosuki/gosuki/internal/config"
-	"git.blob42.xyz/gosuki/gosuki/internal/utils"
 )
 
 func initDefaultConfig() {
@@ -40,7 +39,7 @@ func initConfig() {
 	log.Debugf("gosuki init config")
 
 	// Check if config file exists
-	exists, err := utils.CheckFileExists(config.ConfigFile)
+	exists, err := config.ConfigExists()
 	if err != nil {
 		log.Fatal(err)
 	}
