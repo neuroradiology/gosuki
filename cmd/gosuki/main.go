@@ -53,22 +53,35 @@ func main() {
 
 	flags := []cli.Flag{
 
+		//TODO!: load config file provided by user  
 		&cli.StringFlag{
-			Name:  "config-file",
-			Value: config.ConfigFile,
-			Usage: "TOML config `FILE` path",
+			Name:  "config",
+			Aliases: []string{"c"},
+			Value: config.ConfigFile(),
+			Usage: "load config from `FILE`",
+			DefaultText:  "~/.config/gosuki/config.toml",
+			Category: "_",
 		},
 
         &cli.IntFlag{
         	Name:        "debug",
+			Category: "_",
         	Aliases:     []string{"d"},
+			DefaultText: "0",
+			Usage: "set debug level. (`0`-3)",
         	EnvVars:     []string{logging.EnvGosukiDebug},
-            Action: func (c *cli.Context, val int) error {
+            Action: func (_ *cli.Context, val int) error {
                 logging.SetMode(val)
                 return nil
             },
 
         },
+		// &cli.BoolFlag{
+		// 	Name: "help-more-options",
+		// 	Usage: "show more options",
+		// 	Aliases: []string{"H"},
+		// 	Category: "_",
+		// },
 	}
 
 	flags = append(flags, config.SetupGlobalFlags()...)
@@ -152,7 +165,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// log.Debugf("flags: %s", app.Flags)
+	log.Debugf("flags: %s", app.Flags)
 
 }
 

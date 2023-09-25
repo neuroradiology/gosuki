@@ -42,7 +42,6 @@ var (
 )
 
 const (
-	ConfigFile       = "config.toml"
 	GlobalConfigName = "global"
 )
 
