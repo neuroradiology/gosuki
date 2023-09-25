@@ -39,8 +39,8 @@ import (
 )
 
 var (
+	//TODO!: document this
 	_sql3conns           []*sqlite3.SQLiteConn // Only used for backup hook
-	backupHookRegistered bool                  // set to true once the backup hook is registered
 
 	DefaultDBPath = "./"
 )
@@ -236,7 +236,6 @@ func NewDB(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB 
 
 }
 
-// TODO: Should check if DB is locked
 // We should export Open() in its own method and wrap
 // with interface so we can mock it and test the lock status in Init()
 // Initialize a sqlite database with Gosuki Schema if not already done
@@ -252,16 +251,11 @@ func (db *DB) Init() (*DB, error) {
 	// Detect if database file is locked
 	if db.Type == DBTypeRegularFile {
 
-		locked, err := db.Locked()
-
-		if err != nil {
+		if locked, err := db.Locked(); err != nil {
 			return nil, DBError{DBName: db.Name, Err: err}
-		}
-
-		if locked {
+		} else if locked {
 			return nil, ErrVfsLocked
 		}
-
 	}
 
 	// Open database
@@ -408,14 +402,16 @@ func flushSqliteCon(con *sqlx.DB) {
 
 func registerSqliteHooks() {
 	// sqlite backup hook
-	log.Debugf("backup_hook: registering driver %s", DriverBackupMode)
+	// log.Debugf("backup_hook: registering driver %s", DriverBackupMode)
 	// Register the hook
 	sql.Register(DriverBackupMode,
 		&sqlite3.SQLiteDriver{
+			//TODO!: document why ?
 			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
 				//log.Debugf("[ConnectHook] registering new connection")
 				_sql3conns = append(_sql3conns, conn)
-				//log.Debugf("%v", _sql3conns)
+				// log.Debugf("[ConnectHook] registered new connection")
+				log.Debugf("%v", _sql3conns)
 				return nil
 			},
 		})

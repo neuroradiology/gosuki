@@ -95,6 +95,7 @@ var detectInstalledCmd = &cli.Command{
 	Usage: "detect installed browsers",
 	Action: func(_ *cli.Context) error {
 		mods := modules.GetModules()
+		fmt.Printf("installed browsers:\n\n")
 		for _, mod := range mods {
 			browser, isBrowser := mod.ModInfo().New().(modules.BrowserModule)
 			if !isBrowser {
@@ -109,9 +110,6 @@ var detectInstalledCmd = &cli.Command{
 			}
 
 			flavours := pm.ListFlavours()
-			if len(flavours) > 0 {
-				fmt.Printf("Installed browsers:\n\n")
-			}
 			for _, f := range flavours {
 				log.Debugf("found flavour <%s> for <%s>", f.Name, mod.ModInfo().ID)
 				if dir, err := utils.ExpandPath(f.BaseDir); err != nil {

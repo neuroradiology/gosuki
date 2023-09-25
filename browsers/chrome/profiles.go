@@ -110,6 +110,7 @@ func (chrome *Chrome) WatchAllProfiles() bool {
 }
 
 
+// chrome uses ID to identify the profile path
 func (cpm *ChromeProfileManager) GetProfileByID (flavour string, id string) (*profiles.Profile, error) {
 	profiles, err := cpm.GetProfiles(flavour)
 	if err != nil {

@@ -308,8 +308,9 @@ func (f *Firefox) Init(ctx *modules.Context, p *profiles.Profile) error {
 		return f.init(ctx)
 	}
 
+	//TEST: try multiple profiles at same time
 	// use a new config for this profile
-	// f.FirefoxConfig = NewFirefoxConfig()
+	f.FirefoxConfig = NewFirefoxConfig()
 	f.Profile = p.Name
 
 
@@ -419,7 +420,8 @@ func (f *Firefox) Load() error {
 		f.BufferDB.SyncTo(database.Cache.DB)
 	}
 
-	database.Cache.DB.SyncToDisk(database.GetDBFullPath())
+	//TODO: send as goroutine ?
+	go database.Cache.DB.SyncToDisk(database.GetDBFullPath())
 
 	//DEBUG:
 	// tree.PrintTree(f.NodeTree)
@@ -463,7 +465,12 @@ func (ff *Firefox) Run() {
 
 	database.SyncURLIndexToBuffer(ff.URLIndexList, ff.URLIndex, ff.BufferDB)
 	ff.BufferDB.SyncTo(database.Cache.DB)
-	database.Cache.DB.SyncToDisk(database.GetDBFullPath())
+	go func(){
+		err = database.Cache.DB.SyncToDisk(database.GetDBFullPath()); if err != nil {
+			log.Critical(err)
+		}
+	}()
+
 
 	//TODO!: is LastWatchRunTime alone enough ?
 	ff.LastWatchRunTime = time.Since(startRun)

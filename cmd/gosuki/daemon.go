@@ -151,14 +151,10 @@ func startDaemon(c *cli.Context) error {
 			log.Criticalf("TODO: module <%s> is not a BrowserModule", mod.ID)
 		}
 
-		if c.Bool("watch-all") {
-			panic("TODO: watch all profiles")
-		}
-
 		// call runModule for each profile
 		bpm, ok := browser.(profiles.ProfileManager)
 		if ok {
-			if bpm.WatchAllProfiles() {
+			if c.Bool("watch-all") || bpm.WatchAllProfiles() {
 				falvours := bpm.ListFlavours()
 				for _, f := range falvours {
 					profs, err := bpm.GetProfiles(f.Name)
