@@ -184,7 +184,7 @@ func (ch *Chrome) setupWatchers() error {
 
 	ok, err := modules.SetupWatchers(ch.BrowserConfig, w)
 	if err != nil {
-		return fmt.Errorf("could not setup watcher: %s", err)
+		return fmt.Errorf("could not setup watcher: %w", err)
 	}
 	if !ok {
 		return errors.New("could not setup watcher")

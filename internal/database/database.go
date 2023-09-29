@@ -407,7 +407,8 @@ func registerSqliteHooks() {
 	// Register the hook
 	sql.Register(DriverBackupMode,
 		&sqlite3.SQLiteDriver{
-			//TODO!: document why ?
+			//TODO!: document
+			//add extra connection that are used by the sql.Backup function
 			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
 				//log.Debugf("[ConnectHook] registering new connection")
 				_sql3conns = append(_sql3conns, conn)

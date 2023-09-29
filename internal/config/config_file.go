@@ -86,7 +86,7 @@ func InitConfigFile() error {
 	}
 
 	if err = os.MkdirAll(configDir, 0755); err != nil {
-		return fmt.Errorf("could not create config dir: %s", err)
+		return fmt.Errorf("could not create config dir: %w", err)
 	}
 
 	configFilePath := path.Join(configDir, ConfigFileName)

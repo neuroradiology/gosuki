@@ -341,7 +341,7 @@ func (f *Firefox) init(ctx *modules.Context) error {
 
 	ok, err := modules.SetupWatchersWithReducer(f.BrowserConfig, modules.ReducerChanLen, w)
 	if err != nil {
-		return fmt.Errorf("could not setup watcher: %s", err)
+		return fmt.Errorf("could not setup watcher: %w", err)
 	}
 
 	if !ok {
@@ -710,7 +710,7 @@ func (f *Firefox) initPlacesCopy() (mozilla.PlaceCopyJob, error) {
 
 	err := utils.CopyFilesToTmpFolder(path.Join(f.BkDir, f.BkFile+"*"), pc.Path())
 	if err != nil {
-		return pc, fmt.Errorf("could not copy places.sqlite to tmp folder: %s", err)
+		return pc, fmt.Errorf("could not copy places.sqlite to tmp folder: %w", err)
 	}
 
 	opts := FFConfig.PlacesDSN
