@@ -22,32 +22,37 @@
 package api
 
 import (
-	"io"
+	"encoding/json"
 	"net/http"
-	"os"
 	"strings"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 
 	"git.blob42.xyz/gosuki/gosuki/internal/database"
 	"git.blob42.xyz/gosuki/gosuki/internal/logging"
 	"git.blob42.xyz/gosuki/gosuki/pkg/bookmarks"
-
 	"git.blob42.xyz/gosuki/gosuki/pkg/manager"
-	"github.com/gin-gonic/gin"
 )
 
-var log = logging.GetLogger("API")
+type ApiServer struct {
+	http.Handler
+}
 
 type Bookmark = bookmarks.Bookmark
 
-func getBookmarks(c *gin.Context) {
+var log = logging.GetLogger("API")
 
-	rows, err := database.Cache.DB.Handle.QueryContext(c, "SELECT URL, metadata, tags FROM bookmarks")
+func getBookmarks(w http.ResponseWriter, r *http.Request) {
+	rows, err := database.Cache.DB.Handle.QueryContext(r.Context(), "SELECT URL, metadata, tags FROM bookmarks")
 	if err != nil {
 		log.Error(err)
 	}
-	var bookmarks []Bookmark
 
+	var bookmarks []Bookmark
 	var tags string
+
 	for rows.Next() {
 		bookmark := Bookmark{}
 		err = rows.Scan(&bookmark.URL, &bookmark.Metadata, &tags)
@@ -56,34 +61,35 @@ func getBookmarks(c *gin.Context) {
 		}
 
 		bookmark.Tags = strings.Split(tags, database.TagSep)
-		//log.Debugf("GET %s", tags)
-		//log.Debugf("%v", bookmark)
+		//log.Debug("GET %s", tags)
+		//log.Debug("%v", bookmark)
 
 		bookmarks = append(bookmarks, bookmark)
 	}
-	//log.Debugf("%v", bookmarks)
 
-	c.JSON(http.StatusOK, gin.H{
-		"bookmarks": bookmarks,
-	})
+	err = json.NewEncoder(w).Encode(bookmarks)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
-type API struct {
-	engine *gin.Engine
-	router *gin.RouterGroup
-}
-
-func (api *API) Run(m manager.UnitManager) {
-	api.router.GET("/urls", getBookmarks)
-
-	// Run router
-	// TODO: config params for api
+// Run router
+// TODO: config params for api
+func (s *ApiServer) Run(m manager.UnitManager) {
+	server := &http.Server{
+		Addr:         ":4444",
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 90 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Handler:      s.Handler,
+	}
 	go func() {
-		err := api.engine.Run(":4444")
+		err := server.ListenAndServe()
 		if err != nil {
-			m.Panic(err)
+			if err != http.ErrServerClosed {
+				m.Panic(err)
+			}
 		}
-
 	}()
 
 	// Wait for stop signal
@@ -91,15 +97,12 @@ func (api *API) Run(m manager.UnitManager) {
 	m.Done()
 }
 
-func NewApi() *API {
-	apiLogFile, _ := os.Create(".api.log")
-	gin.DefaultWriter = io.MultiWriter(apiLogFile, os.Stdout)
+func NewApi() *ApiServer {
 
-	api := gin.Default()
+	router := chi.NewRouter()
+	router.Use(middleware.Logger)
 
-	return &API{
-		engine: api,
-		router: api.Group("/api"),
-	}
+	router.HandleFunc("/bookmarks", getBookmarks)
 
+	return &ApiServer{router}
 }
