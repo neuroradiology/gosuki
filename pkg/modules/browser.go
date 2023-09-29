@@ -224,12 +224,11 @@ type ProfileInitializer interface {
 	Init(*Context, *profiles.Profile) error
 }
 
-// Every browser is setup once, the following methods are called in order of
-// their corresponding interfaces are implemented.
-// TODO!: integrate with refactoring
-// 0- provision: custom configuration to the browser
-// 1- Init : any variable and state initialization
-// 2- Load: Does the first loading of data (ex first loading of bookmarks )
+// Setup() is called for every browser module. It sets up the browser and calls
+// the following methods if they are implemented by the module:
+//
+// 	1. [Initializer].Init() : state initialization
+// 	2. [Loader].Load(): Do the first loading of data (ex first loading of bookmarks )
 func Setup(browser BrowserModule, c *Context, p *profiles.Profile) error {
 
 
@@ -253,7 +252,7 @@ func Setup(browser BrowserModule, c *Context, p *profiles.Profile) error {
 		log.Debugf("<%s> custom init", browserID)
 		//TODO!: missing profile name
 		if err := initializer.Init(c); err != nil {
-			return fmt.Errorf("<%s> initialization error: %v", browserID, err)
+			return fmt.Errorf("<%s> initialization error: %w", browserID, err)
 		}
 	} 
 
@@ -264,7 +263,7 @@ func Setup(browser BrowserModule, c *Context, p *profiles.Profile) error {
 		}
 
 		if err := pInitializer.Init(c, p); err != nil {
-			return fmt.Errorf("<%s> initialization error: %v", browserID, err)
+			return fmt.Errorf("<%s> initialization error: %w", browserID, err)
 		}
 	}
 
@@ -314,7 +313,7 @@ func Setup(browser BrowserModule, c *Context, p *profiles.Profile) error {
 	return nil
 }
 
-// Setup a watcher service using the provided []Watch elements
+// Sets up a watcher service using the provided []Watch elements
 // Returns true if a new watcher was created. false if it was previously craeted
 // or if the browser does not need a watcher (UseFileWatcher == false).
 func SetupWatchers(browserConf *BrowserConfig, watches ...*watch.Watch) (bool, error) {

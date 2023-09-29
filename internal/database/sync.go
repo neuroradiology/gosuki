@@ -18,8 +18,8 @@
 //
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
-
 package database
+// TODO: add context to all queries
 
 import (
 	"fmt"
@@ -267,20 +267,17 @@ func StartSyncScheduler() {
 	go cacheSyncScheduler(syncQueue)
 }
 
-// TODO!: add concurrency
-// Multiple threads(goroutines) are trying to sync together when running 
-// with watch all. Use sync.Mutex !! 
-//TODO: should be centrally managed with a debouncer
 func (src *DB) SyncToDisk(dbpath string) error {
 	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
+	defer func() {
+		if err := recover(); err != nil {
+			log.Critical("Recovered in SyncToDisk", err)
+		}
+	}()
+
 	mu.Lock()
 	defer mu.Unlock()
 
-	defer func() {
-		if r := recover(); r != nil {
-			log.Critical("Recovered in SyncToDisk", r)
-		}
-	}()
 
 	//log.Debugf("[flush] openeing <%s>", src.path)
 	srcDB, err := sqlx.Open(DriverBackupMode, src.Path)
