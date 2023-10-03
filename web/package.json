@@ -1,0 +1,21 @@
+{
+  "name": "gosuki-web",
+  "version": "1.0.0",
+  "description": "Gosuki Bookmarks Manager",
+  "main": "index.js",
+  "author": "contact@honeybadger.systems",
+  "license": "GPL3",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "vue": "^2.6.12",
+    "vue-hot-reload-api": "^2.3.4"
+  },
+  "scripts": {
+    "start": "parcel index.html",
+    "develop": "parcel serve -p 4443 index.html"
+  },
+  "devDependencies": {
+    "@vue/component-compiler-utils": "^3.2.0",
+    "vue-template-compiler": "^2.6.12"
+  }
+}
