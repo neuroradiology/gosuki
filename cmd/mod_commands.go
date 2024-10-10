@@ -55,19 +55,19 @@ func RegisteredModCommands(modID string) modCmds {
 	return modCommands[modID]
 }
 
-var ModuleCmds = &cli.Command {
-	Name: "modules",
+var ModuleCmds = &cli.Command{
+	Name:    "modules",
 	Aliases: []string{"m"},
-	Usage: "module commands",
+	Usage:   "module commands",
 	Subcommands: []*cli.Command{
 		listModulesCmd,
 	},
 }
 
 var listModulesCmd = &cli.Command{
-	Name: "list",
+	Name:    "list",
 	Aliases: []string{"l"},
-	Usage: "list available browsers and modules",
+	Usage:   "list available browsers and modules",
 	Action: func(_ *cli.Context) error {
 
 		fmt.Printf("\n%s\n", "Modules:")
@@ -75,9 +75,9 @@ var listModulesCmd = &cli.Command{
 		for _, mod := range mods {
 			_, isBrowser := mod.(modules.BrowserModule)
 			if isBrowser {
-				fmt.Printf("-%-10s \t %s\n", mod.ModInfo().ID, "<browser>")
+				fmt.Printf("- %-10s \t %s\n", mod.ModInfo().ID, "<browser>")
 			} else {
-				fmt.Printf("-%-10s \t %s\n", mod.ModInfo().ID, "<module>")
+				fmt.Printf("- %-10s \t %s\n", mod.ModInfo().ID, "<module>")
 			}
 		}
 		return nil
