@@ -132,12 +132,12 @@ func GetModuleOption(module string, opt string) (interface{}, error) {
 	return nil, fmt.Errorf("module %s not found", module)
 }
 
-// Regiser a module option ie. under [module] in toml file
-// If the module is not a configurator, a simple map[string]interface{} will be
-// created for it.
-
 // TODO: check if generics can be used here to avoid interface{} type
 // TODO: add support for option description that can be used in cli help
+
+// Register a module option ie. under [module] in toml file
+// If the module is not a configurator, a simple map[string]interface{} will be
+// created for it.
 func RegisterModuleOpt(module string, opt string, val interface{}) error {
 	log.Debugf("Setting option for module <%s>: %s = %v", module, opt, val)
 	if _, ok := configs[module]; !ok {
@@ -149,9 +149,6 @@ func RegisterModuleOpt(module string, opt string, val interface{}) error {
 		return err
 	}
 
-	//DEBUG:
-	// watchAll, _ := configs[module].Get("WatchAllProfiles")
-	// log.Debugf("[%s]WATCH_ALL: %v", module, watchAll)
 	return nil
 }
 

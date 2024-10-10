@@ -121,15 +121,13 @@ func LoadFromTomlFile() error {
 		return fmt.Errorf("loading config file %w", err)
 	}
 
+	//DEBUG:
 	// fmt.Println("Mem Config Keys:")
 	// for k, _ := range configs {
 	// 	fmt.Printf("%#v\n", k)
 	// }
 
 	for k, val := range buffer {
-		// fmt.Println("File Config Keys:")
-		// fmt.Printf("%#v\n", k)
-
 		// send the conf to its own module
 		if _, ok := configs[k]; !ok {
 			log.Debugf("creating module config [%s]", k)
@@ -143,9 +141,10 @@ func LoadFromTomlFile() error {
 
 	}
 
-	log.Debugf("loaded config from %s\n", configFile)
-	log.Debugf("config file %#v\n", buffer)
-	log.Debugf("loaded config %#v", configs)
+	//DEBUG:
+	// log.Debugf("loaded config from %s\n", configFile)
+	// log.Debugf("config file %#v\n", buffer)
+	// log.Debugf("loaded config %#v", configs)
 
 	return err
 }
