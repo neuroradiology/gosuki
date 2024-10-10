@@ -130,14 +130,13 @@ func LoadFromTomlFile() error {
 	for k, val := range buffer {
 		// send the conf to its own module
 		if _, ok := configs[k]; !ok {
-			log.Debugf("creating module config [%s]", k)
+			// log.Debugf("creating module config [%s]", k)
 			configs[k] = make(Config)
 		}
 		err = configs[k].MapFrom(val)
 		if err != nil {
 			return fmt.Errorf("parsing config <%s>: %w", k, err)
 		}
-		log.Debugf("config is %#v\n", configs)
 
 	}
 
