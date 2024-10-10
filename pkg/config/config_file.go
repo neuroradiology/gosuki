@@ -32,8 +32,8 @@ import (
 )
 
 const (
-	ConfigFileName       = "config.toml"
-	ConfigDirName = "gosuki"
+	ConfigFileName = "config.toml"
+	ConfigDirName  = "gosuki"
 )
 
 func getConfigDir() (string, error) {
@@ -52,7 +52,7 @@ func getConfigDir() (string, error) {
 func getConfigFile() (string, error) {
 	if configDir, err := getConfigDir(); err != nil {
 		return "", err
-	}  else {
+	} else {
 		return path.Join(configDir, ConfigFileName), nil
 	}
 }
@@ -74,7 +74,6 @@ func ConfigExists() (bool, error) {
 
 	return utils.CheckFileExists(configFile)
 }
-
 
 // Create a toml config file
 func InitConfigFile() error {
@@ -108,6 +107,7 @@ func InitConfigFile() error {
 	return nil
 }
 
+// Loads gosuki configuation into the global config
 func LoadFromTomlFile() error {
 	configFile, err := getConfigFile()
 	if err != nil {

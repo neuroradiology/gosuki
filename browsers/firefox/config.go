@@ -23,9 +23,9 @@
 package firefox
 
 import (
-	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/pkg/browsers/mozilla"
+	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/modules"
 	"github.com/blob42/gosuki/pkg/parsing"
 	"github.com/blob42/gosuki/pkg/profiles"
@@ -35,16 +35,15 @@ import (
 const (
 	//TODO: auto detect firefox base dir based on OS and installed flavors
 	// FirefoxBaseDir = "$HOME/.mozilla/firefox"
-	DefaultProfile   = "default"
+	DefaultProfile = "default"
 
 	// Default flavour to use
 	BrowserName = mozilla.FirefoxFlavour
-
 )
 
 var (
 
-	// firefox global config state.  
+	// firefox global config state.
 	FFConfig *FirefoxConfig
 
 	ffProfileLoader = &profiles.INIProfileLoader{
@@ -60,7 +59,7 @@ var (
 // FirefoxConfig implements the Configurator interface
 // which allows it to register and set field through the Configurator.
 //
-// It is also used alongside cli_flags.go to dynamically register cli flags
+// It is also used alongside cmd_flags.go to dynamically register cli flags
 // that can change this config (struct fields) from command line at runtime.
 //
 // The struct schema defines the parameters to pass on to firefox that can be
@@ -69,16 +68,16 @@ var (
 // config file options will only be accepted if they are defined here.
 type FirefoxConfig struct {
 	// Default data source name query options for `places.sqlite` db
-	PlacesDSN        database.DsnOptions `toml:"-"`
+	PlacesDSN database.DsnOptions `toml:"-"`
 
 	modules.ProfilePrefs `toml:"profile_options" mapstructure:"profile_options"`
 
-    //TEST: ignore this field in config.Configurator interface
+	//TEST: ignore this field in config.Configurator interface
 	// Embed base browser config
-    *modules.BrowserConfig `toml:"-"`
+	*modules.BrowserConfig `toml:"-"`
 }
 
-//REFACT: move logic to modules package and use interface as input
+// REFACT: move logic to modules package and use interface as input
 func setBookmarkDir(fc *FirefoxConfig) {
 	var err error
 
@@ -102,11 +101,11 @@ func NewFirefoxConfig() *FirefoxConfig {
 
 	cfg := &FirefoxConfig{
 		BrowserConfig: &modules.BrowserConfig{
-			Name:         BrowserName,
-			Type:         modules.TFirefox,
-			BkFile:       mozilla.PlacesFile,
+			Name:   BrowserName,
+			Type:   modules.TFirefox,
+			BkFile: mozilla.PlacesFile,
 			NodeTree: &tree.Node{
-				Name: mozilla.RootName,
+				Name:   mozilla.RootName,
 				Parent: nil,
 				Type:   tree.RootNode,
 			},
@@ -114,8 +113,7 @@ func NewFirefoxConfig() *FirefoxConfig {
 			UseFileWatcher: true,
 			// NOTE: see parsing.Hook to add custom parsing logic for each
 			// parsed bookmark node
-			UseHooks:   []string{"notify-send"},
-
+			UseHooks: []string{"notify-send"},
 		},
 
 		// Default data source name query options for `places.sqlite` db
@@ -145,7 +143,6 @@ func NewFirefoxConfig() *FirefoxConfig {
 
 	return cfg
 }
-
 
 func init() {
 	FFConfig = NewFirefoxConfig()

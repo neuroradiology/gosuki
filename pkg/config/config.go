@@ -54,7 +54,7 @@ type Configurator interface {
 	MapFrom(interface{}) error
 }
 
-// Used to store the global config
+// Global config holder
 type Config map[string]interface{}
 
 func (c Config) Set(opt string, v interface{}) error {
@@ -70,6 +70,8 @@ func (c Config) Dump() map[string]interface{} {
 	return c
 }
 
+// TODO: document usage, help for implmenters
+// TEST: is this a sane way to use Decode ?
 func (c Config) MapFrom(src interface{}) error {
 	// Not used here
 	return nil
@@ -111,8 +113,10 @@ func (ac AutoConfigurator) MapFrom(src interface{}) error {
 	return mapstructure.Decode(src, ac.c)
 }
 
+// AsConfigurator generates implements a default Configurator for a given struct
+// or custom type. Use this to handle module options.
 func AsConfigurator(c interface{}) Configurator {
- 	return AutoConfigurator{c}
+	return AutoConfigurator{c}
 }
 
 // Register a global option ie. under [global] in toml file
@@ -133,8 +137,8 @@ func GetModOpt(module string, opt string) (interface{}, error) {
 // If the module is not a configurator, a simple map[string]interface{} will be
 // created for it.
 
-//TODO: check if generics can be used here to avoid interface{} type
-//TODO: add support for option description that can be used in cli help
+// TODO: check if generics can be used here to avoid interface{} type
+// TODO: add support for option description that can be used in cli help
 func RegisterModuleOpt(module string, opt string, val interface{}) error {
 	log.Debugf("Setting option for module <%s>: %s = %v", module, opt, val)
 	if _, ok := configs[module]; !ok {
@@ -145,8 +149,10 @@ func RegisterModuleOpt(module string, opt string, val interface{}) error {
 	if err := dest.Set(opt, val); err != nil {
 		return err
 	}
-	watchAll, _ := configs[module].Get("WatchAllProfiles")
-	log.Debugf("[%s]WATCH_ALL: %v", module, watchAll)
+
+	//DEBUG:
+	// watchAll, _ := configs[module].Get("WatchAllProfiles")
+	// log.Debugf("[%s]WATCH_ALL: %v", module, watchAll)
 	return nil
 }
 
@@ -172,7 +178,6 @@ func GetModule(module string) Configurator {
 	return nil
 }
 
-
 // Hooks registered here will be executed after the config package has finished
 // loading the conf
 func RegisterConfReadyHooks(hooks ...Hook) {
@@ -185,7 +190,7 @@ func RunConfHooks(c *cli.Context) {
 	for _, f := range ConfReadyHooks {
 		err := f(c)
 		if err != nil {
-		  log.Fatalf("error running config hook: %v", err)
+			log.Fatalf("error running config hook: %v", err)
 		}
 	}
 }

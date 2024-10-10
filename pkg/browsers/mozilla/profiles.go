@@ -19,7 +19,6 @@
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: generalize this package to handle any mozilla based browser
 package mozilla
 
 import (
@@ -40,8 +39,8 @@ const (
 
 // Browser flavour names
 const (
-	FirefoxFlavour     = "firefox"
-	LibreWolfFlavour   = "librewolf"
+	FirefoxFlavour   = "firefox"
+	LibreWolfFlavour = "librewolf"
 )
 
 var (
@@ -54,13 +53,13 @@ var (
 	//TODO: multi platform
 	// linux mozilla browsers
 	MozBrowsers = map[string]profiles.BrowserFlavour{
-		FirefoxFlavour:    { FirefoxFlavour   , "~/.mozilla/firefox"} ,
-		LibreWolfFlavour:  { LibreWolfFlavour , "~/.librewolf"}       ,
+		FirefoxFlavour:   {FirefoxFlavour, "~/.mozilla/firefox"},
+		LibreWolfFlavour: {LibreWolfFlavour, "~/.librewolf"},
 	}
 )
 
 type MozProfileManager struct {
-	PathResolver   profiles.PathResolver
+	PathResolver profiles.PathResolver
 }
 
 func NewMozProfileManager(resolver profiles.PathResolver) *MozProfileManager {
@@ -74,9 +73,9 @@ func (pm *MozProfileManager) loadINIProfile(r profiles.PathResolver) (*ini.File,
 	log.Debugf("loading profile from <%s>", r.GetPath())
 	profilePath, err := utils.ExpandPath(r.GetPath())
 	if err != nil {
-	  return nil, err
+		return nil, err
 	}
-	
+
 	pFile, err := ini.Load(profilePath)
 	if err != nil {
 		return nil, err
@@ -85,7 +84,7 @@ func (pm *MozProfileManager) loadINIProfile(r profiles.PathResolver) (*ini.File,
 	return pFile, nil
 }
 
-//TODO: should also handle flavours
+// TODO: handle browser flavours (ie. firefox forks )
 func (pm *MozProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, error) {
 	var pFile *ini.File
 	var err error
@@ -105,7 +104,7 @@ func (pm *MozProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, e
 	for _, section := range sections {
 		if ReIniProfiles.MatchString(section.Name()) {
 			p := &profiles.Profile{
-				Id: section.Name(),
+				Id:      section.Name(),
 				BaseDir: f.BaseDir,
 			}
 

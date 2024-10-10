@@ -25,8 +25,8 @@ import (
 	"strings"
 
 	"github.com/blob42/gosuki/cmd"
-	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/config"
 
 	"github.com/gobuffalo/flect"
 	"github.com/urfave/cli/v2"
@@ -37,25 +37,25 @@ const (
 )
 
 var globalFirefoxFlags = []cli.Flag{
-    // This allows us to register dynamic cli flags which get converted to 
-    // config.Configurator options. 
-    // The flag must be given a name in the form `--firefox-<flag>`.
+	// This allows us to register dynamic cli flags which get converted to
+	// config.Configurator options.
+	// The flag must be given a name in the form `--firefox-<flag>` or `--ff-<flag>`.
 	&cli.StringFlag{
-		Name:  FirefoxProfileFlag,
+		Name:     FirefoxProfileFlag,
 		Category: "firefox",
-		Usage: "set the default firefox `PROFILE` to use",
+		Usage:    "set the default firefox `PROFILE` to use",
 	},
 	&cli.BoolFlag{
-		Name:        "ff-watch-all-profiles",
-		Category:	 "firefox",
-		Usage:       "watch all firefox profiles for changes", 
-		Aliases:     []string{"ff-watch-all"},
+		Name:     "ff-watch-all-profiles",
+		Category: "firefox",
+		Usage:    "watch all firefox profiles for changes",
+		Aliases:  []string{"ff-watch-all"},
 	},
 }
 
 // Firefox global flags must start with --firefox-<flag name here>
 // NOTE: is called in *cli.App.Before callback
-//TODO: refactor module flags/options mangement to generate flags from config options
+// TODO: refactor module flags/options mangement to generate flags from config options
 func globalCommandFlagsManager(c *cli.Context) error {
 	log.Debugf("<%s> registering global flag manager", BrowserName)
 	for _, f := range c.App.Flags {
@@ -84,7 +84,7 @@ func globalCommandFlagsManager(c *cli.Context) error {
 		}
 
 		//TODO: document this feature
-        // extracts global options that start with --firefox-*
+		// extracts global options that start with --firefox-*
 		optionName := flect.Pascalize(strings.Join(sp[1:], " "))
 		var destVal interface{}
 
@@ -119,7 +119,7 @@ func init() {
 	// register dynamic flag manager for firefox
 	cmd.RegBeforeHook(BrowserName, globalCommandFlagsManager)
 
-    for _, flag := range globalFirefoxFlags {
-        cmd.RegGlobalModFlag(BrowserName, flag)
-    }
+	for _, flag := range globalFirefoxFlags {
+		cmd.RegGlobalModFlag(BrowserName, flag)
+	}
 }
