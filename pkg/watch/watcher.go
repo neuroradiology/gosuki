@@ -1,4 +1,3 @@
-//
 // Copyright ⓒ 2023 Chakib Ben Ziane <contact@blob42.xyz> and [`GoSuki` contributors]
 // (https://github.com/blob42/gosuki/graphs/contributors).
 //
@@ -35,6 +34,7 @@ import (
 )
 
 var log = logging.GetLogger("WATCH")
+
 // Modules the implement their bookmark loading through a Run() method with an
 // internal logic of handling bookmarks and direct sync with gosuki DB
 // Mostly used through implementing [WatchRunner]
@@ -52,8 +52,8 @@ type IntervalFetcher interface {
 	Interval() time.Duration
 }
 
-// Fetcher is an interface for modules that fetches data from some source 
-// and produces a list of bookmarks. 
+// Fetcher is an interface for modules that fetches data from some source
+// and produces a list of bookmarks.
 type Fetcher interface {
 	Fetch() ([]*gosuki.Bookmark, error)
 }
@@ -68,7 +68,6 @@ type ResetWatcher interface {
 type Watcher interface {
 	Watch() *WatchDescriptor
 }
-
 
 type Shutdowner interface {
 	Shutdown() error
@@ -160,11 +159,11 @@ type WatchWork struct {
 
 func (w WatchWork) Run(m manager.UnitManager) {
 	watcher := w.Watch()
-	if ! watcher.isWatching {
+	if !watcher.isWatching {
 		go WatchLoop(w.WatchRunner)
 		watcher.isWatching = true
 
-		for _, watch := range watcher.Watches{
+		for _, watch := range watcher.Watches {
 			log.Debugf("Watching %s", watch.Path)
 		}
 	}
@@ -208,7 +207,8 @@ func IntervalLoop(ir IntervalFetcher, modName string) {
 	defer buffer.Close()
 
 	beat := time.NewTicker(ir.Interval()).C
-	for range beat {
+
+	loopEval := func() {
 		marks, err := ir.Fetch()
 		if err != nil {
 			log.Errorf("error fetching bookmarks: %s", err)
@@ -216,7 +216,7 @@ func IntervalLoop(ir IntervalFetcher, modName string) {
 
 		if len(marks) == 0 {
 			log.Warningf("no bookmarks fetched")
-			continue
+			return
 		}
 
 		for _, mark := range marks {
@@ -227,9 +227,14 @@ func IntervalLoop(ir IntervalFetcher, modName string) {
 		err = buffer.SyncToCache()
 		if err != nil {
 			log.Errorf("error syncing buffer to cache: %s", err)
-			continue
+			return
 		}
 		database.ScheduleSyncToDisk()
+	}
+
+	loopEval()
+	for range beat {
+		loopEval()
 	}
 
 }
@@ -259,7 +264,7 @@ watchloop:
 			 * need to destroy and create a new watcher. The ResetWatcher() and
 			 * `break` statement ensure we get out of the `select` block and catch
 			 * the newly created watcher to catch events even after rename/create
-			 * 
+			 *
 			 * NOTE: this does not seem to be an issue anymore. More testing
 			 * and user feedback is needed. Leaving this comment here for now.
 			 */
@@ -280,7 +285,7 @@ watchloop:
 
 								// the reducer will call Run()
 							} else {
-								go func(){
+								go func() {
 									w.Run()
 									if stats, ok := w.(Stats); ok {
 										stats.ResetStats()
@@ -308,7 +313,6 @@ watchloop:
 					}
 				}
 			}
-
 
 			// Firefox keeps the file open and makes changes on it
 			// It needs a debouncer
