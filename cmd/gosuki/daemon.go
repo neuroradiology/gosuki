@@ -139,8 +139,13 @@ func startDaemon(c *cli.Context) error {
 	mods := modules.GetModules()
 	for _, mod := range mods {
 		name := mod.ModInfo().ID
-		log.Debugf("starting <%s>", name)
 		modInstance := mod.ModInfo().New()
+		if _, ok := modInstance.(modules.BrowserModule); ok {
+			log.Debugf("skipping non browser module")
+			continue
+		}
+
+		log.Debugf("starting <%s>", name)
 
 		modContext := &modules.Context{
 			Cli: c,
@@ -149,7 +154,7 @@ func startDaemon(c *cli.Context) error {
 		// generic module need to implement watch.IntervalFetcher
 		ifetcher, ok := modInstance.(watch.IntervalFetcher)
 		if !ok {
-			log.Criticalf("module <%s> does not implement watch.Runner", name)
+			log.Criticalf("module <%s> does not implement watch.IntervalFetcher", name)
 			continue
 		}
 
@@ -159,7 +164,6 @@ func startDaemon(c *cli.Context) error {
 			log.Errorf("setting up <%s> %v", name, err)
 			return err
 		}
-		// panic("WIP")
 
 		worker := watch.IntervalWork{
 			Name:            string(name),
