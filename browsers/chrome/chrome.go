@@ -173,7 +173,6 @@ func (ch *Chrome) setupWatchers() error {
 		EventTypes: []fsnotify.Op{fsnotify.Create},
 		EventNames: []string{bookmarkPath},
 
-
 		// NOTE: it used to be that chrome watcher would go stale after the
 		// first event, this is because the bookmark file is created after the
 		// browser is started, so we need to reset the watcher after the first
@@ -236,7 +235,6 @@ func (ch *Chrome) Run() {
 	}
 
 	// Load bookmark file
-	//WIP:  use builting path helpers
 	bookmarkPath, err := ch.BookmarkPath()
 	if err != nil {
 		log.Critical(err)
@@ -462,27 +460,15 @@ func (ch *Chrome) Run() {
 	// If the cache is empty just copy buffer to cache
 	// until local db is already populated and preloaded
 	// debugPrint("%d", BufferDB.Count())
-	log.Debugf("checking if db is empty")
-	if empty, err := database.Cache.DB.IsEmpty(); empty {
-		if err != nil {
-			log.Error(err)
-		}
-		log.Info("cache empty: loading buffer to CacheDB")
 
-		ch.BufferDB.CopyTo(database.Cache.DB)
-
-		log.Debugf("syncing <%s> to disk", database.Cache.DB.Name)
-	} else {
-		log.Debug("syncing to db")
-		ch.BufferDB.SyncTo(database.Cache.DB)
+	//TODO!: test this code
+	if err = ch.BufferDB.SyncToCache(); err != nil {
+		return err
 	}
 
 	database.ScheduleSyncToDisk()
 	ch.LastWatchRunTime = time.Since(startRun)
 }
-
-
-
 
 // Load() will be called right after a browser is initialized
 func (ch *Chrome) Load() error {

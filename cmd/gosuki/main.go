@@ -174,5 +174,7 @@ func init() {
 
 	//TODO: watch all profiles (handled at browser level for now)
 	config.RegisterGlobalOption("watch-all", false)
-}
 
+	// database sync (ie save to disk) interval in seconds
+	config.RegisterModuleOpt("database", "sync-interval", 4)
+}

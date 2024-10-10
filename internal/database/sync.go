@@ -1,4 +1,3 @@
-//
 // Copyright ⓒ 2023 Chakib Ben Ziane <contact@blob42.xyz> and [`GoSuki` contributors]
 // (https://github.com/blob42/gosuki/graphs/contributors).
 //
@@ -19,6 +18,7 @@
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 package database
+
 // TODO: add context to all queries
 
 import (
@@ -93,13 +93,13 @@ func (src *DB) SyncTo(dst *DB) {
 		`,
 	)
 
-    defer func(){
-        err = updateDstRow.Close()
-        if err != nil {
-            log.Critical()
-        }
-    }()
-    
+	defer func() {
+		err = updateDstRow.Close()
+		if err != nil {
+			log.Critical()
+		}
+	}()
+
 	if err != nil {
 		log.Error(err)
 	}
@@ -114,7 +114,6 @@ func (src *DB) SyncTo(dst *DB) {
 	if err != nil {
 		log.Error(err)
 	}
-
 
 	// Start syncing all entries from source table
 	log.Debugf("scanning entries in source table")
@@ -156,7 +155,7 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 
 	// Start a new transaction to update the existing urls
-	dstTx, err = dst.Handle.Begin() 
+	dstTx, err = dst.Handle.Begin()
 	if err != nil {
 		log.Error(err)
 	}
@@ -186,7 +185,7 @@ func (src *DB) SyncTo(dst *DB) {
 			tagMap[v] = true
 		}
 
-		newTags := &Tags{delim: TagSep}//merged tags
+		newTags := &Tags{delim: TagSep} //merged tags
 		for k := range tagMap {
 			newTags.Add(k)
 		}
@@ -229,13 +228,12 @@ func cacheSyncScheduler(input <-chan interface{}) {
 
 	queue := make(chan interface{}, 100)
 
-
-	intervalOpt, err := config.GetModOpt("database", "sync-interval")
+	intervalOpt, err := config.GetModuleOption("database", "sync-interval")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	intervalInt, ok := intervalOpt.(int)
+	intervalInt, ok := intervalOpt.(int64)
 
 	if !ok {
 		log.Fatalf("sync-interval is not an int")
@@ -244,7 +242,6 @@ func cacheSyncScheduler(input <-chan interface{}) {
 	}
 
 	interval := time.Duration(intervalInt) * time.Second
-
 
 	// TODO: set as global options
 	// debounce interval
@@ -282,7 +279,7 @@ func cacheSyncScheduler(input <-chan interface{}) {
 	}
 }
 
-//TODO: add `force` param to force sync
+// TODO: add `force` param to force sync
 func ScheduleSyncToDisk() {
 	go func() {
 		log.Debug("received sync to disk request")
@@ -304,7 +301,6 @@ func (src *DB) SyncToDisk(dbpath string) error {
 
 	mu.Lock()
 	defer mu.Unlock()
-
 
 	//log.Debugf("[flush] openeing <%s>", src.path)
 	srcDB, err := sqlx.Open(DriverBackupMode, src.Path)
@@ -343,7 +339,6 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	if err != nil {
 		return err
 	}
-
 
 	_, err = bkp.Step(-1)
 	if err != nil {
@@ -438,16 +433,15 @@ func (src *DB) SyncToCache() error {
 		return fmt.Errorf("cache db is nil")
 	}
 
-	empty, err := Cache.DB.IsEmpty() 
-
+	empty, err := Cache.DB.IsEmpty()
 
 	//TODO!: if the error is table is not "non existant table" return the error
 	// otherwise move on and check if error is table does not exist
 	sql3err, isSQL3Err := err.(sqlite3.Error)
 	if err != nil && sql3err.Code != sqlite3.ErrError {
-			return fmt.Errorf("error checking if cache is empty: %w", err)
+		return fmt.Errorf("error checking if cache is empty: %w", err)
 	}
-	if empty || ( isSQL3Err && sql3err.Code == sqlite3.ErrError) {
+	if empty || (isSQL3Err && sql3err.Code == sqlite3.ErrError) {
 		log.Debugf("cache is empty, copying <%s> to <%s>", src.Name, CacheName)
 		src.CopyTo(Cache.DB)
 	} else {

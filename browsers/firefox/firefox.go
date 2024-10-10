@@ -406,18 +406,9 @@ func (f *Firefox) Load() error {
 
 	database.SyncURLIndexToBuffer(f.URLIndexList, f.URLIndex, f.BufferDB)
 
-	// Handle empty cache
-	if empty, err := database.Cache.DB.IsEmpty(); empty {
-		if err != nil {
-			return err
-		}
-		log.Debugf("cache empty: loading buffer to Cachedb")
-
-		f.BufferDB.CopyTo(database.Cache.DB)
-
-		log.Debugf("syncing <%s> to disk", database.Cache.DB.Name)
-	} else {
-		f.BufferDB.SyncTo(database.Cache.DB)
+	//TODO!: test this code
+	if err = f.BufferDB.SyncToCache(); err != nil {
+		return err
 	}
 
 	// go database.Cache.DB.SyncToDisk(database.GetDBFullPath())
