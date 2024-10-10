@@ -58,6 +58,12 @@ var (
 	ReducerChanLen = 1000
 )
 
+// browser modules need to implement Browser interface
+type BrowserModule interface {
+	Browser
+	Module
+}
+
 type Browser interface {
 	// Returns a pointer to an initialized browser config
 	Config() *BrowserConfig
@@ -67,7 +73,7 @@ type Browser interface {
 type ProfilePrefs struct {
 
 	// Whether to watch all the profiles for multi-profile modules
-	WatchAllProfiles bool `toml:"watch_all_profiles" mapstructure:"watch_all_profiles"`
+	WatchAllProfiles bool   `toml:"watch_all_profiles" mapstructure:"watch_all_profiles"`
 	Profile          string `toml:"profile" mapstructure:"profile"`
 }
 
@@ -100,12 +106,11 @@ type BrowserConfig struct {
 	UseFileWatcher bool
 
 	// Hooks registered by the browser module identified by name
-	UseHooks   []string
+	UseHooks []string
 
 	// Registered hooks
 	hooks map[string]hooks.Hook
 }
-
 
 func (b *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
 	return b.watcher
@@ -122,7 +127,7 @@ func (b BrowserConfig) CallHooks(node *tree.Node) error {
 	}
 
 	for _, hook := range b.hooks {
-		log.Debugf("<%s> calling hook <%s> on node <%s>",b.Name, hook.Name, node.URL)
+		log.Debugf("<%s> calling hook <%s> on node <%s>", b.Name, hook.Name, node.URL)
 		if err := hook.Func(node); err != nil {
 			return err
 		}
@@ -132,21 +137,19 @@ func (b BrowserConfig) CallHooks(node *tree.Node) error {
 
 // Registers hooks for this browser. Hooks are identified by their name.
 func (b BrowserConfig) AddHooks(hooks ...hooks.Hook) {
- 	for _, hook := range hooks {
+	for _, hook := range hooks {
 		b.hooks[hook.Name] = hook
 	}
 }
-
 
 func (b BrowserConfig) HasHook(hook hooks.Hook) bool {
 	_, ok := b.hooks[hook.Name]
 	return ok
 }
 
-
-//TODO!: use this method instead of manually building bookmark path
+// TODO!: use this method instead of manually building bookmark path
 // BookmarkPath returns the absolute path to the bookmark file.
-// It expands the path by concatenating the base directory and bookmarks file, 
+// It expands the path by concatenating the base directory and bookmarks file,
 // then checks if it exists.
 func (b BrowserConfig) BookmarkPath() (string, error) {
 	bPath, err := utils.ExpandPath(b.BkDir, b.BkFile)
@@ -184,77 +187,34 @@ func (b BrowserConfig) ResetStats() {
 	b.CurrentURLCount = 0
 }
 
-
-// Browser who implement this interface need to handle all shuttind down and
-// cleanup logic in the defined methods. This is usually called at the end of
-// the browser instance lifetime
-type Shutdowner interface {
-	watch.Shutdowner
-}
-
-// Loader is an interface for modules which is run only once when the module
-// starts. It should have the same effect as  Watchable.Run().
-// Run() is automatically called for watched events, Load() is called once
-// before starting to watch events. 
-//
-// Loader allows modules to do a first pass of Run() logic before the watcher
-// threads is spawned 
-type Loader interface {
-
-	// Load() will be called right after a browser is initialized
-	Load() error
-}
-
-// Initialize the module before any data loading or callbacks
-// If a module wants to do any preparation and prepare custom state before Loader.Load()
-// is called and before any Watchable.Run() or other callbacks are executed.
-type Initializer interface {
-
-	// Init() is the first method called after a browser instance is created
-	// and registered.
-	// A pointer to 
-	// Return ok, error
-	Init(*Context) error
-}
-
-// ProfileInitializer is similar to Initializer but is called with a profile.
-// This is useful for modules that need to do some custom initialization for a
-// specific profile.
-type ProfileInitializer interface {
-	Init(*Context, *profiles.Profile) error
-}
-
 // SetupBrowser() is called for every browser module. It sets up the browser and calls
 // the following methods if they are implemented by the module:
 //
-// 	1. [Initializer].Init() : state initialization
-// 	2. [Loader].Load(): Do the first loading of data (ex first loading of bookmarks )
+//  1. [Initializer].Init() : state initialization
+//  2. [Loader].Load(): initial preloading of bookmarks
 func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error {
 
-
-
-	log.Infof("setting up browser <%s>", browser.ModInfo().ID)
 	browserID := browser.ModInfo().ID
+	log.Infof("setting up browser <%s>", browserID)
 
 	// Handle Initializers custom Init from Browser module
 	initializer, okInit := browser.(Initializer)
 	pInitializer, okProfileInit := browser.(ProfileInitializer)
 
 	if okProfileInit && p == nil {
-		 log.Warningf("<%s> ProfileInitializer called with nil profile", browserID)
+		log.Warningf("<%s> ProfileInitializer called with nil profile", browserID)
 	}
 
-	if !okProfileInit  && !okInit {
+	if !okProfileInit && !okInit {
 		log.Warningf("<%s> does not implement Initializer or ProfileInitializer, not calling Init()", browserID)
 	}
 
 	if okInit {
 		log.Debugf("<%s> custom init", browserID)
-		//TODO!: missing profile name
 		if err := initializer.Init(c); err != nil {
 			return fmt.Errorf("<%s> initialization error: %w", browserID, err)
 		}
-	} 
+	}
 
 	// Handle Initializers custom Init from Browser module
 	if okProfileInit {
@@ -270,7 +230,7 @@ func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error 
 	// We modify the base config after the custom init had the chance to
 	// modify it (ex. set the profile name)
 
-    bConf := browser.Config()
+	bConf := browser.Config()
 
 	// Setup registered hooks
 	bConf.hooks = make(map[string]hooks.Hook)
@@ -282,7 +242,6 @@ func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error 
 		bConf.AddHooks(hook)
 	}
 
-
 	// Init browsers' BufferDB
 	buffer, err := database.NewBuffer(bConf.Name)
 	if err != nil {
@@ -292,7 +251,6 @@ func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error 
 
 	// Creates in memory Index (RB-Tree)
 	bConf.URLIndex = index.NewIndex()
-
 
 	// Default browser loading logic
 	// Make sure that cache is initialized
@@ -364,7 +322,7 @@ func RegisterBrowser(browserMod BrowserModule) {
 	}
 
 	registeredBrowsers = append(registeredBrowsers, browserMod)
-	
+
 	// A browser module is also a module
 	registeredModules = append(registeredModules, browserMod)
 }

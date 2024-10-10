@@ -18,7 +18,9 @@
 //
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
-
+//
+// Watch package provides functionality for watching file system events and
+// managing bookmark data sources.
 package watch
 
 import (
@@ -33,6 +35,12 @@ import (
 )
 
 var log = logging.GetLogger("WATCH")
+// Modules the implement their bookmark loading through a Run() method with an
+// internal logic of handling bookmarks and direct sync with gosuki DB
+// Mostly used through implementing [WatchRunner]
+type Runner interface {
+	Run()
+}
 
 type WatchRunner interface {
 	Watcher
@@ -61,28 +69,33 @@ type Watcher interface {
 	Watch() *WatchDescriptor
 }
 
-type Runner interface {
-	Run()
-}
 
 type Shutdowner interface {
 	Shutdown() error
 }
 
-// interface for modules that keep stats
+// Stats interface can be implemented in modules that keep and track stats
 type Stats interface {
 	ResetStats()
 }
 
-// Wrapper around fsnotify watcher
+// WatchDescriptor wraps around an fsnotify.Watcher and provides additional
+// functionality for managing file system watches.
 type WatchDescriptor struct {
-	ID      string
-	W       *fsnotify.Watcher // underlying fsnotify watcher
-	Watches []*Watch          // helper var
+	// ID is a unique identifier for the watch descriptor.
+	ID string
 
-	// channel used to communicate watched events
+	// W is the underlying fsnotify.Watcher that this wrapper uses to monitor file system events.
+	W *fsnotify.Watcher
+
+	// Watches is a slice of pointers to Watch objects, which represent specific files or directories being watched.
+	Watches []*Watch
+
+	// eventsChan is a channel used for communicating events related to the watches. It's buffered and has a size determined by fsnotify.BufferSize().
 	eventsChan chan fsnotify.Event
-    isWatching bool
+
+	// isWatching is a boolean flag that indicates whether this WatchDescriptor is actively watching any file or directory.
+	isWatching bool
 }
 
 func (w WatchDescriptor) hasReducer() bool {
@@ -130,7 +143,7 @@ func NewWatcher(name string, watches ...*Watch) (*WatchDescriptor, error) {
 	return watcher, nil
 }
 
-// Watch is a a filesystem object that can be watched for changes.
+// Watch is a filesystem object that can be watched for changes.
 type Watch struct {
 	Path       string        // Path to watch for events
 	EventTypes []fsnotify.Op // events to watch for
