@@ -18,6 +18,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
 package config
+
 //TODO: load config path from cli flag/env var
 
 import (
@@ -114,19 +115,37 @@ func LoadFromTomlFile() error {
 		return err
 	}
 
-	dest := make(Config)
-	_, err = toml.DecodeFile(configFile, &dest)
-
-	for k, val := range dest {
-
-		// send the conf to its own module
-		if _, ok := configs[k]; ok {
-			configs[k].MapFrom(val)
-		}
+	buffer := make(Config)
+	_, err = toml.DecodeFile(configFile, &buffer)
+	if err != nil {
+		return fmt.Errorf("loading config file %w", err)
 	}
 
-	log.Debugf("loaded firefox config %#v", configs["firefox"])
+	// fmt.Println("Mem Config Keys:")
+	// for k, _ := range configs {
+	// 	fmt.Printf("%#v\n", k)
+	// }
+
+	for k, val := range buffer {
+		// fmt.Println("File Config Keys:")
+		// fmt.Printf("%#v\n", k)
+
+		// send the conf to its own module
+		if _, ok := configs[k]; !ok {
+			log.Debugf("creating module config [%s]", k)
+			configs[k] = make(Config)
+		}
+		err = configs[k].MapFrom(val)
+		if err != nil {
+			return fmt.Errorf("parsing config <%s>: %w", k, err)
+		}
+		log.Debugf("config is %#v\n", configs)
+
+	}
+
+	log.Debugf("loaded config from %s\n", configFile)
+	log.Debugf("config file %#v\n", buffer)
+	log.Debugf("loaded config %#v", configs)
 
 	return err
 }
-

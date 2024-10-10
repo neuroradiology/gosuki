@@ -73,11 +73,10 @@ func (c Config) Dump() map[string]interface{} {
 // TODO: document usage, help for implmenters
 // TEST: is this a sane way to use Decode ?
 func (c Config) MapFrom(src interface{}) error {
-	// Not used here
-	return nil
+	return mapstructure.Decode(src, &c)
 }
 
-type AutoConfigurator struct{
+type AutoConfigurator struct {
 	c interface{}
 }
 
@@ -126,7 +125,7 @@ func RegisterGlobalOption(key string, val interface{}) {
 }
 
 // GetModuleOption returns a module option value given a module name and option name
-func GetModOpt(module string, opt string) (interface{}, error) {
+func GetModuleOption(module string, opt string) (interface{}, error) {
 	if c, ok := configs[module]; ok {
 		return c.Get(opt)
 	}

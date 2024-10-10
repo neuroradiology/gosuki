@@ -25,9 +25,9 @@ package main
 import (
 	"os"
 
-	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/internal/logging"
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/modules"
 
 	"github.com/blob42/gosuki/cmd"
@@ -35,48 +35,46 @@ import (
 	"github.com/urfave/cli/v2"
 
 	// Load firefox browser modules
-	_ "github.com/blob42/gosuki/browsers/firefox"
-
+	// _ "github.com/blob42/gosuki/browsers/firefox"
 	// Load chrome browser module
-	_ "github.com/blob42/gosuki/browsers/chrome"
+	// _ "github.com/blob42/gosuki/browsers/chrome"
+	// github module
+	_ "gosuki/mod-gh-stars"
 )
 
 var log = logging.GetLogger("MAIN")
 
-
 func main() {
 
 	app := cli.NewApp()
-
 
 	app.Name = "gosuki"
 	app.Version = utils.Version()
 
 	flags := []cli.Flag{
 
-		//TODO!: load config file provided by user  
+		//TODO!: load config file provided by user
 		&cli.StringFlag{
-			Name:  "config",
-			Aliases: []string{"c"},
-			Value: config.ConfigFile(),
-			Usage: "load config from `FILE`",
-			DefaultText:  "~/.config/gosuki/config.toml",
-			Category: "_",
+			Name:        "config",
+			Aliases:     []string{"c"},
+			Value:       config.ConfigFile(),
+			Usage:       "load config from `FILE`",
+			DefaultText: "~/.config/gosuki/config.toml",
+			Category:    "_",
 		},
 
-        &cli.IntFlag{
-        	Name:        "debug",
-			Category: "_",
-        	Aliases:     []string{"d"},
+		&cli.IntFlag{
+			Name:        "debug",
+			Category:    "_",
+			Aliases:     []string{"d"},
 			DefaultText: "0",
-			Usage: "set debug level. (`0`-3)",
-        	EnvVars:     []string{logging.EnvGosukiDebug},
-            Action: func (_ *cli.Context, val int) error {
-                logging.SetMode(val)
-                return nil
-            },
-
-        },
+			Usage:       "set debug level. (`0`-3)",
+			EnvVars:     []string{logging.EnvGosukiDebug},
+			Action: func(_ *cli.Context, val int) error {
+				logging.SetMode(val)
+				return nil
+			},
+		},
 		// &cli.BoolFlag{
 		// 	Name: "help-more-options",
 		// 	Usage: "show more options",
@@ -88,7 +86,6 @@ func main() {
 	flags = append(flags, config.SetupGlobalFlags()...)
 	app.Flags = append(app.Flags, flags...)
 
-	
 	app.Before = func(c *cli.Context) error {
 
 		// The order here is important
@@ -97,7 +94,7 @@ func main() {
 		// 2. every module has the opprtunity to register its own flags
 		// 3. the modules can run custom code before the CLI is ready but after
 		// the config is ready, using the config hooks.
-		// 
+		//
 		// Cli flags have the highest priority and override config file values
 
 		initConfig()
@@ -117,7 +114,6 @@ func main() {
 			}
 		}
 
-
 		// Execute config hooks
 		// DOC: better documentation  of Conf hooks ???
 		// modules can run custom code before the CLI is ready.
@@ -125,11 +121,8 @@ func main() {
 		// used by the module instances.
 		config.RunConfHooks(c)
 
-
-
 		return nil
 	}
-
 
 	// Browser modules can register commands through cmd.RegisterModCommand.
 	// registered commands will be appended here
