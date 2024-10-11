@@ -48,7 +48,7 @@ import (
 )
 
 var (
-	log            = logging.GetLogger("FF")
+	log = logging.GetLogger("FF")
 )
 
 const (
@@ -88,12 +88,9 @@ type Firefox struct {
 	lastRunAt time.Time
 }
 
-
 func (firefox *Firefox) ListFlavours() []profiles.BrowserFlavour {
 	return FirefoxProfileManager.ListFlavours()
 }
-
-
 
 // func (ff *Firefox) updateModifiedFolders(since timestamp) ([]*MozFolder, error) {
 //     // Get list of modified folders
@@ -242,7 +239,6 @@ func (f *Firefox) scanModifiedBookmarks(since timestamp) ([]*MozBookmark, error)
 	return bookmarks, err
 }
 
-
 func NewFirefox() *Firefox {
 
 	return &Firefox{
@@ -299,7 +295,7 @@ func (f *Firefox) Init(ctx *modules.Context, p *profiles.Profile) error {
 		profile, err := FirefoxProfileManager.GetProfileByName(BrowserName, f.Profile)
 		if err != nil {
 			return err
-		} 
+		}
 		bookmarkDir, err := profile.AbsolutePath()
 		if err != nil {
 			return err
@@ -312,7 +308,6 @@ func (f *Firefox) Init(ctx *modules.Context, p *profiles.Profile) error {
 	// use a new config for this profile
 	f.FirefoxConfig = NewFirefoxConfig()
 	f.Profile = p.Name
-
 
 	if bookmarkDir, err := p.AbsolutePath(); err != nil {
 		return err
@@ -347,7 +342,6 @@ func (f *Firefox) init(ctx *modules.Context) error {
 	if !ok {
 		return errors.New("could not setup watcher")
 	}
-	
 
 	/*
 	 *Run reducer to avoid duplicate jobs when a batch of events is received
@@ -376,7 +370,7 @@ func (f *Firefox) Load() error {
 		return err
 	}
 
-	defer func(){
+	defer func() {
 		if err := pc.Clean(); err != nil {
 			log.Errorf("error cleaning tmp places file: %s", err)
 		}
@@ -434,11 +428,9 @@ func (ff *Firefox) Run() {
 	}
 	defer pc.Clean()
 
-
 	// go one step back in time to avoid missing changes
 	scanSince := ff.lastRunAt.Add(-1 * time.Second)
 	scanSinceSQL := scanSince.UTC().UnixNano() / 1000
-
 
 	log.Debugf("Checking changes since <%d> %s",
 		scanSinceSQL,
@@ -456,9 +448,9 @@ func (ff *Firefox) Run() {
 	// reprensenting the bookmark hierarchy in a conveniant way.
 
 	database.SyncURLIndexToBuffer(ff.URLIndexList, ff.URLIndex, ff.BufferDB)
+	//TODO: use SyncToCache?
 	ff.BufferDB.SyncTo(database.Cache.DB)
 	database.ScheduleSyncToDisk()
-
 
 	//TODO!: is LastWatchRunTime alone enough ?
 	ff.LastWatchRunTime = time.Since(startRun)
@@ -722,7 +714,6 @@ func (f *Firefox) initPlacesCopy() (mozilla.PlaceCopyJob, error) {
 // init is required to register the module as a plugin when it is imported
 func init() {
 	modules.RegisterBrowser(Firefox{FirefoxConfig: FFConfig})
-
 
 	// Exaple for registering a command under the browser name
 	//TIP: cmd.RegisterModCommand(BrowserName, &cli.Command{
