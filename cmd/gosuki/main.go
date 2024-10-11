@@ -49,6 +49,8 @@ func main() {
 	app := cli.NewApp()
 
 	app.Name = "gosuki"
+	app.Description = "TODO: summary gosuki description"
+	app.Usage = "swiss-knife bookmark manager"
 	app.Version = utils.Version()
 
 	flags := []cli.Flag{
@@ -58,7 +60,6 @@ func main() {
 			Name:        "config",
 			Aliases:     []string{"c"},
 			Value:       config.ConfigFile(),
-			Usage:       "load config from `FILE`",
 			DefaultText: "~/.config/gosuki/config.toml",
 			Category:    "_",
 		},

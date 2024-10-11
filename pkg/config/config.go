@@ -137,7 +137,7 @@ func GetModuleOption(module string, opt string) (interface{}, error) {
 
 // Register a module option ie. under [module] in toml file
 // If the module is not a configurator, a simple map[string]interface{} will be
-// created for it.
+// created for it. use [GetModuleOption]
 func RegisterModuleOpt(module string, opt string, val interface{}) error {
 	log.Debugf("Setting option for module <%s>: %s = %v", module, opt, val)
 	if _, ok := configs[module]; !ok {

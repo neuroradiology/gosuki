@@ -38,6 +38,7 @@ var fflog = logging.GetLogger("FF")
 var (
 	ffUnlockVFSCmd = cli.Command{
 		Name:    "unlock",
+		Usage:   "Remove VFS lock from places.sqlite",
 		Aliases: []string{"u"},
 		Action:  ffUnlockVFS,
 	}
@@ -53,9 +54,9 @@ var (
 		Usage: "VFS locking commands",
 		Subcommands: []*cli.Command{
 			&ffUnlockVFSCmd,
-		&ffCheckVFSCmd,
-	},
-}
+			&ffCheckVFSCmd,
+		},
+	}
 
 	ffListProfilesCmd = cli.Command{
 		Name:    "list",
@@ -88,8 +89,8 @@ func init() {
 	cmd.RegisterModCommand(BrowserName, FirefoxCmds)
 }
 
-//TODO: #54 define interface for modules to handle and list profiles
-//FIX: Remove since profile listing is implemented at the main module level
+// TODO: #54 define interface for modules to handle and list profiles
+// FIX: Remove since profile listing is implemented at the main module level
 func ffListProfiles(_ *cli.Context) error {
 	flavours := FirefoxProfileManager.ListFlavours()
 	for _, f := range flavours {
@@ -105,7 +106,6 @@ func ffListProfiles(_ *cli.Context) error {
 			}
 		}
 	}
-
 
 	return nil
 }

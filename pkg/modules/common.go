@@ -154,14 +154,14 @@ func RegisterModule(module Module) {
 	//TODO: Register by ID
 	registeredModules = append(registeredModules, module)
 
-	//WIP:
-	switch module.(type) {
-	case watch.IntervalFetcher:
-		fmt.Println("this is interval fetcher")
-
-	case watch.WatchRunner:
-		fmt.Println("this is watch runner")
-	}
+	//WIP: custom handling of watcher types
+	// switch module.(type) {
+	// case watch.IntervalFetcher:
+	// 	fmt.Println("this is interval fetcher")
+	//
+	// case watch.WatchRunner:
+	// 	fmt.Println("this is watch runner")
+	// }
 }
 
 // Returns a list of registerd browser modules
