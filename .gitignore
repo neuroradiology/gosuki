@@ -14,3 +14,4 @@ _maintest.go
 gosuki
 !cmd/gosuki
 gosuki.db
+build
