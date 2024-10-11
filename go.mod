@@ -1,6 +1,6 @@
 module github.com/blob42/gosuki
 
-go 1.21.1
+go 1.23
 
 retract v0.0.1 // broken module path
 
