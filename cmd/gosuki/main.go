@@ -37,9 +37,9 @@ import (
 	// Load firefox browser modules
 	// _ "github.com/blob42/gosuki/browsers/firefox"
 	// Load chrome browser module
-	// _ "github.com/blob42/gosuki/browsers/chrome"
+	_ "github.com/blob42/gosuki/browsers/chrome"
 	// github module
-	_ "gosuki/mod-gh-stars"
+	// _ "gosuki/mod-gh-stars"
 )
 
 var log = logging.GetLogger("MAIN")
