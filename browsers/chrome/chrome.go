@@ -463,7 +463,7 @@ func (ch *Chrome) Run() {
 
 	//TODO!: test this code
 	if err = ch.BufferDB.SyncToCache(); err != nil {
-		return err
+		log.Criticalf("<%s>: %w", err)
 	}
 
 	database.ScheduleSyncToDisk()
