@@ -31,6 +31,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/blob42/gosuki/internal/api"
 	webui "github.com/blob42/gosuki/internal/webui"
 	"github.com/blob42/gosuki/pkg/manager"
 )
@@ -77,10 +78,10 @@ func NewWebUIServer(tuiMode bool) *WebUIServer {
 	}
 	router.Use(middleware.Recoverer)
 
-	api := chi.NewRouter()
-	api.Get("/bookmarks", apiGetBookmarks)
+	apiRoute := chi.NewRouter()
+	apiRoute.Get("/bookmarks", api.GetAPIBookmarks)
 
-	router.Mount("/api", api)
+	router.Mount("/api", apiRoute)
 
 	router.Get("/greet", greet)
 	router.Get("/bookmarks", webui.ListBookmarks)

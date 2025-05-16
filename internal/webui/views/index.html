@@ -3,9 +3,15 @@
 
 
 <span id="debug" style="display: none;">
+    {{/*
     {{ printf "debug: %#v" .QueryParams }}
+    {{ printf "pagination: %#v" .QueryParams.PaginationParams }}
+    */}}
 </span>
 
+<span id="debug" style="display: none;">
+    {{/* printf "debug: %#v" .QueryParams */}}
+</span>
 
 <div id="bookmarks">
     {{ block "bookmarks" . }}

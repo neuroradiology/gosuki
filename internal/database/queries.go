@@ -29,6 +29,25 @@ import (
 	"github.com/blob42/gosuki"
 )
 
+const (
+	WhereQueryBookmarks = `
+	URL like '%%%s%%' OR metadata like '%%%s%%' OR tags like '%%%s%%'
+	`
+
+	WhereQueryBookmarksFuzzy = `
+	fuzzy('%s', URL) OR fuzzy('%s', metadata) OR fuzzy('%s', tags)
+	`
+
+	WhereQueryBookmarksByTag = `
+		(URL LIKE '%%%s%%' OR metadata LIKE '%%%s%%') AND tags LIKE '%%%s%%'
+	`
+	WhereQueryBookmarksByTagFuzzy = `
+		(fuzzy('%s', URL) OR fuzzy('%s', metadata)) AND tags LIKE '%%%s%%'
+	`
+
+	QQueryPaginate = ` LIMIT %d OFFSET %d`
+)
+
 type RawBookmarks []*RawBookmark
 
 type RawBookmark struct {
@@ -45,23 +64,30 @@ type RawBookmark struct {
 	Module string
 }
 
-const (
-	QQueryBookmarks      = `URL like '%%%s%%' OR metadata like '%%%s%%' OR tags like '%%%s%%'`
-	QQueryBookmarksFuzzy = `fuzzy('%s', URL) OR fuzzy('%s', metadata) OR fuzzy('%s', tags)`
+type PaginationParams struct {
+	Page int
+	Size int
+}
 
-	QQueryBookmarksByTag      = `(URL LIKE '%%%s%%' OR metadata LIKE '%%%s%%') AND tags LIKE '%%%s%%'`
-	QQueryBookmarksByTagFuzzy = `(fuzzy('%s', URL) OR fuzzy('%s', metadata)) AND tags LIKE '%%%s%%'`
-)
+type QueryResult struct {
+	Bookmarks []*gosuki.Bookmark
+	Total     uint
+}
+
+func DefaultPagination() *PaginationParams {
+	return &PaginationParams{1, 50}
+}
 
 func (raws RawBookmarks) AsBookmarks() []*gosuki.Bookmark {
 	res := []*Bookmark{}
 	for _, raw := range raws {
 		tags := TagsFromString(raw.Tags, TagSep)
 		res = append(res, &Bookmark{
-			URL:   raw.URL,
-			Title: raw.Metadata,
-			Tags:  tags.Get(),
-			Desc:  raw.Desc,
+			URL:    raw.URL,
+			Title:  raw.Metadata,
+			Tags:   tags.Get(),
+			Desc:   raw.Desc,
+			Module: raw.Module,
 		})
 	}
 
@@ -73,49 +99,67 @@ func QueryBookmarksByTag(
 	query,
 	tag string,
 	fuzzy bool,
-) ([]*Bookmark, error) {
+	pagination *PaginationParams,
+) (*QueryResult, error) {
 	query = strings.TrimSpace(query)
 	tag = strings.TrimSpace(tag)
+
+	if pagination == nil {
+		return nil, errors.New("nil: *PaginationParams")
+	}
 
 	if tag == "" || query == "" {
 		return nil, errors.New("cannot use empty query or tags")
 	}
 
-	sqlPrelude := `SELECT URL, METADATA, tags FROM bookmarks WHERE `
-	sqlQuery := sqlPrelude + QQueryBookmarksByTag
-	if fuzzy {
-		sqlQuery = sqlPrelude + QQueryBookmarksByTagFuzzy
-	}
-
-	var rawBooks RawBookmarks
-	err := DiskDB.Handle.SelectContext(ctx, &rawBooks, fmt.Sprintf(sqlQuery, query, query, tag))
-	if err != nil {
-		return nil, err
-	}
-
-	return rawBooks.AsBookmarks(), nil
-}
-
-func QueryBookmarks(ctx context.Context, query string, fuzzy bool) ([]*Bookmark, error) {
-
-	sqlPrelude := `SELECT URL, METADATA, tags FROM bookmarks WHERE `
-
-	sqlQuery := sqlPrelude + QQueryBookmarks
-	if fuzzy {
-		sqlQuery = sqlPrelude + QQueryBookmarksFuzzy
-	}
+	sqlQuery := buildSelectQuery(query, fuzzy, tag, pagination)
 
 	rawBooks := RawBookmarks{}
-	err := DiskDB.Handle.SelectContext(ctx, &rawBooks,
-		fmt.Sprintf(sqlQuery, query, query, query))
+	err := DiskDB.Handle.SelectContext(ctx, &rawBooks, sqlQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	return rawBooks.AsBookmarks(), nil
+	var total uint
+	err = DiskDB.Handle.GetContext(ctx, &total,
+		fmt.Sprintf(buildCountQuery(tag, fuzzy), query, query, query))
+	if err != nil {
+		return nil, err
+	}
+
+	return &QueryResult{rawBooks.AsBookmarks(), total}, nil
 }
 
-func BookmarksByTag(ctx context.Context, tag string) ([]*Bookmark, error) {
+func QueryBookmarks(
+	ctx context.Context,
+	query string,
+	fuzzy bool,
+	pagination *PaginationParams,
+) (*QueryResult, error) {
+
+	if query == "" {
+		return nil, errors.New("cannot use empty query or tags")
+	}
+
+	sqlQuery := buildSelectQuery(query, fuzzy, "", pagination)
+
+	rawBooks := RawBookmarks{}
+	err := DiskDB.Handle.SelectContext(ctx, &rawBooks, sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	var total uint
+	err = DiskDB.Handle.GetContext(ctx, &total,
+		fmt.Sprintf(buildCountQuery("", fuzzy), query, query, query))
+	if err != nil {
+		return nil, err
+	}
+
+	return &QueryResult{rawBooks.AsBookmarks(), total}, nil
+}
+
+func BookmarksByTag(ctx context.Context, tag string) (*QueryResult, error) {
 	query := "SELECT * FROM bookmarks WHERE"
 	tagsCondition := ""
 	if len(tag) > 0 {
@@ -132,19 +176,96 @@ func BookmarksByTag(ctx context.Context, tag string) ([]*Bookmark, error) {
 		return nil, err
 	}
 
-	return rawBooks.AsBookmarks(), nil
+	return &QueryResult{rawBooks.AsBookmarks(), uint(len(rawBooks))}, nil
 }
 
-func ListBookmarks(ctx context.Context) ([]*Bookmark, error) {
+func ListBookmarks(
+	ctx context.Context,
+	pagination *PaginationParams,
+) (*QueryResult, error) {
 	rawBooks := RawBookmarks{}
 	err := DiskDB.Handle.SelectContext(
 		ctx,
 		&rawBooks,
-		"SELECT * FROM bookmarks",
+		fmt.Sprintf("SELECT * FROM bookmarks LIMIT %d OFFSET %d",
+			pagination.Size,
+			(pagination.Page-1)*pagination.Size,
+		),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return rawBooks.AsBookmarks(), nil
+	total, err := CountTotalBookmarks(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("counting urls: %w", err)
+	}
+
+	return &QueryResult{rawBooks.AsBookmarks(), total}, nil
+}
+
+func CountTotalBookmarks(ctx context.Context) (uint, error) {
+	var count uint
+	err := DiskDB.Handle.GetContext(ctx, &count, "SELECT COUNT(*) FROM bookmarks LIMIT 1")
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func buildSelectQuery(
+	query string,
+	fuzzy bool,
+	tag string,
+	pagination *PaginationParams,
+) string {
+
+	if pagination == nil {
+		log.Fatal("nil pagination")
+	}
+
+	sqlPrelude := `
+		SELECT URL, metadata, tags, module
+		FROM bookmarks
+		WHERE 
+	`
+
+	sqlQuery := fmt.Sprintf(
+		"%s %s %s",
+		sqlPrelude,
+		buildWhereClause(tag, fuzzy),
+		QQueryPaginate,
+	)
+
+	return fmt.Sprintf(
+		sqlQuery,
+		query,
+		query,
+		query,
+		pagination.Size,
+		(pagination.Page-1)*pagination.Size,
+	)
+}
+
+func buildWhereClause(tag string, fuzzy bool) string {
+
+	sqlQuery := WhereQueryBookmarks
+
+	// query by tag
+	if len(tag) > 0 && !fuzzy {
+		sqlQuery = WhereQueryBookmarksByTag
+	} else if len(tag) > 0 && fuzzy {
+		sqlQuery = WhereQueryBookmarksByTagFuzzy
+	} else if fuzzy {
+		sqlQuery = WhereQueryBookmarksFuzzy
+	}
+
+	return sqlQuery
+}
+
+func buildCountQuery(tag string, fuzzy bool) string {
+	query := fmt.Sprintf(`SELECT COUNT(*) FROM bookmarks WHERE %s LIMIT 1`,
+		buildWhereClause(tag, fuzzy),
+	)
+	return query
 }

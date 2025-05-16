@@ -1,6 +1,7 @@
 {{ define "header" }}
 
 {{ $tagQuery := .QueryParams.Tag }}
+{{ $total := .Total }}
 
 <header>
 <a id="logo" href="/">
@@ -30,26 +31,29 @@
         hx-trigger="keyup changed delay:800ms from:input,change from:(#search-form input) delay:500ms" 
         action="/"
         method="get"
-        hx-params="*">
+        hx-params="not page">
 
-        {{ if $tagQuery }}
-        <input type="hidden" name="tag" value="{{ $tagQuery | urlquery }}" />
-        {{ end }}
-        <input id="search-input" type="search" name="query"
-            value="{{.QueryParams.Query}}"
-            aria-label="Search"
-            hx-on:keyup="updateFuzzy(this)"
-            placeholder=""
-        >
-        <div id="search-opts"> 
-        <input id="fuzzy" type="checkbox" name="fuzzy" {{if .QueryParams.Fuzzy}}checked{{end}} />
-        <label for="fuzzy">fuzzy (~query)</label>
-        <input id="no-hl" type="checkbox" name="no-hl" {{if .QueryParams.NoHighlight}}checked{{end}} />
-        <label for="no-hl">no highlight</label>
-        </div>
-        <noscript>
-            <input class="nojs-submit secondary" type="submit" value="search" />
-        </noscript>
+        <fieldset role="search">
+
+            {{ if $tagQuery }}
+            <input type="hidden" name="tag" value="{{ $tagQuery | urlquery }}" />
+            {{ end }}
+            <input id="search-input" type="search" name="query"
+                value="{{.QueryParams.Query}}"
+                aria-label="Search"
+                hx-on:keyup="updateFuzzy(this)"
+                placeholder=""
+            >
+            <div id="search-opts"> 
+                <div id="stats">results: {{ $total }}</div>
+                <input type="hidden" name="page" value="{{ .QueryParams.PaginationParams.Page }}" />
+                <input id="fuzzy" type="checkbox" name="fuzzy" {{if .QueryParams.Fuzzy}}checked{{end}} />
+                <label for="fuzzy">fuzzy (~query)</label>
+                <input id="no-hl" type="checkbox" name="no-hl" {{if .QueryParams.NoHighlight}}checked{{end}} />
+                <label for="no-hl">no highlight</label>
+            </div>
+            <input class="submit secondary pico-background-indigo-500" type="submit" value="search" />
+        </fieldset>
     </form>
 </div>
 </header>

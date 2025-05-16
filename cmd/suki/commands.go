@@ -103,18 +103,26 @@ func formatPrint(ctx *cli.Context, marks []*gosuki.Bookmark) error {
 }
 
 func listBookmarks(ctx *cli.Context) error {
-	marks, err := db.ListBookmarks(ctx.Context)
+	pageParms := db.PaginationParams{
+		Page: 1,
+		Size: -1,
+	}
+	result, err := db.ListBookmarks(ctx.Context, &pageParms)
 	if err != nil {
 		return err
 	}
 
-	return formatPrint(ctx, marks)
+	return formatPrint(ctx, result.Bookmarks)
 }
 
 func searchBookmarks(ctx *cli.Context, opts searchOpts, keyword ...string) error {
-	marks, err := db.QueryBookmarks(ctx.Context, keyword[0], opts.fuzzy)
+	pageParms := db.PaginationParams{
+		Page: 1,
+		Size: -1,
+	}
+	result, err := db.QueryBookmarks(ctx.Context, keyword[0], opts.fuzzy, &pageParms)
 	if err != nil {
 		return err
 	}
-	return formatPrint(ctx, marks)
+	return formatPrint(ctx, result.Bookmarks)
 }

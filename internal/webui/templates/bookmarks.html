@@ -1,26 +1,88 @@
 {{ block "bookmarks" . }}
 
-{{ $nohl := .QueryParams.NoHighlight }}
+    {{ $nohl := .QueryParams.NoHighlight }}
 
-<div class="stats">
-    Results: {{ .Bookmarks | len }}
-</div>
-<ul id="contentArea">
-    {{ range .Bookmarks }}
-        <li class="bookmark {{if $nohl}}no-hl{{end}}">
-            <a class="title" href="{{ .URL }}" target="_blank">{{ .Title }}</a>
-            <a class="url" href="{{ .URL }}" target="_blank">{{ .DisplayURL }}</a>
-            {{ if .Tags }}
-                <div class="tags">
-                    {{ range .Tags }}
-                    <button class="secondary pico-background-sand-100">
-                        <a href="/?tag={{. | urlquery }}">{{.}}</a>
-                    </button>
-                    {{ end }}
-                </div>
-            {{ end }}
-        </li>
+    {{ $page := .QueryParams.Page }}
+    {{ $perPage := .QueryParams.Size }}
+    {{ $total := .Total }}
+    {{ $totalPages := div $total $perPage | ceil  }}
+
+    <!-- <div class="stats"> -->
+    <!--     Results: {{ $total }} -->
+    <!---->
+    <!--     <span id="debug" style="display: none;"> -->
+    <!--         {{/* -->
+    <!--         {{ printf "page: %d\n" $page }} -->
+    <!--         {{ printf "perPage: %d" $perPage }} -->
+    <!--         {{ printf "pages: %d" $totalPages }} -->
+    <!--         */}} -->
+    <!--     </span> -->
+    <!---->
+    <!-- </div> -->
+
+
+    <ul id="contentArea">
+        {{ range .Bookmarks }}
+            <li class="bookmark {{if $nohl}}no-hl{{end}}">
+                <a class="title" href="{{ .URL }}" target="_blank">{{ .Title }}</a>
+                <a class="url" href="{{ .URL }}" target="_blank">{{ .DisplayURL }}</a>
+                {{ if .Tags }}
+                    <div class="tags">
+                        {{ range .Tags }}
+                        <button class="secondary pico-background-sand-100">
+                            <a href="/?tag={{. | urlquery }}">{{.}}</a>
+                        </button>
+                        {{ end }}
+                        {{ if .Module }}
+                        <button disabled class="pico-background-sand-200">
+                            <a href="/?module={{.Module }}">{{.Module}}</a>
+                        </button>
+                        {{ end }}
+                    </div>
+                {{ end }}
+            </li>
+        {{ end }}
+    </ul>
+
+  <div class="pagination" hx-boost="true" hx-params="not page" hx-include="#search-form">
+
+    {{ if gt $totalPages 10 }}
+      <a class="secondary all" href="?page={{sub $page 1}}&per_page=-1">All</a>
     {{ end }}
-</ul>
+
+    {{ if gt $page 1 }}
+      <a class="secondary" href="?page={{sub $page 1}}">Prev</a>
+    {{ end }}
+
+    <div class="numbers">
+    {{ if gt $totalPages 10 }}
+        {{ range $i := head ( seq 1 $totalPages ) 3 }}
+          <a href="?page={{ $i }}"  class="secondary {{ if eq $i $page }}active{{ end }}">{{ $i }}</a>
+        {{ end }}
+
+        {{ if and ( gt $page 3 ) ( le $page ( sub $totalPages 3 )) }}
+            <a href="?page={{$page}}"  class="secondary active">{{$page}}</a>
+        {{ end }}
+
+        {{ range $i := tail ( seq 1 $totalPages ) 3 }}
+          <a href="?page={{ $i }}"  class="secondary {{ if eq $i $page }}active{{ end }}">{{ $i }}</a>
+        {{ end }}
+
+    {{ else }}
+        {{ range $i := seq 1 $totalPages }}
+          <a  href="?page={{ $i }}"  class="secondary {{ if eq $i $page }}active{{ end }}">{{ $i }}</a>
+        {{ end }}
+    {{ end }}
+    </div>
+
+    {{ if lt $page $totalPages }}
+      <a class="secondary" href="?page={{ add $page 1 }}">Next</a>
+    {{ end }}
+
+  </div>
+
+<noscript>
+    <div id="stats" hx-swap-oob="true">results: {{ $total }}</div>
+</noscript>
 
 {{ end }}

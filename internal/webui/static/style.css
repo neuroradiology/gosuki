@@ -2,9 +2,48 @@
     --main-color:#6f00ff;
 }
 
-main.container-fluid {
+main.container-fluid #contentArea {
     padding-left: 70px;
 }
+
+#bookmarks {
+    display: flex;
+    flex-direction: column;
+}
+
+/* #bookmarks .stats { */
+/*     margin-bottom: 20px; */
+/* } */
+
+#bookmarks .pagination {
+    display: flex;
+    justify-content: space-between;
+    min-width: 50vw;
+    align-self: center;
+    align-items: center;
+    margin: 30px 0;
+}
+
+#bookmarks .pagination .numbers {
+    display: flex;
+    flex-grow: 1;
+    justify-content: center;
+}
+
+#bookmarks .pagination .numbers a {
+    padding: 0 1rem;
+}
+
+#bookmarks .pagination a.active {
+    font-weight: bold;
+    text-decoration: none;
+    color: var(--pico-color-indigo-700);
+}
+
+#bookmarks .pagination a.all {
+    margin-right: 1.5rem;
+}
+
 #bookmarks  ul {
     padding-left: 0;
 }
@@ -35,6 +74,11 @@ main.container-fluid {
     color: var(--pico-color-grey-850);
 }
 
+@media only screen and (prefers-color-scheme: dark) {
+    #bookmarks li .title {
+        color: var(--pico-color-grey-150);
+    }
+}
 
 #bookmarks li.bookmark:not(.no-hl) a em {
     background: yellow;
@@ -60,6 +104,26 @@ main.container-fluid {
     text-decoration: none;
 }
 
+@media only screen and (prefers-color-scheme: dark) {
+    #bookmarks .tags button {
+        background: var(--pico-color-grey-700);
+    }
+
+    #bookmarks .tags button a {
+        color: var(--pico-color-slate-100);
+        font-size: .7rem;
+    }
+
+    #bookmarks .tags button:hover {
+        background: var(--pico-color-grey-500);
+    }
+
+    #bookmarks li .url {
+        color: var(--pico-color-indigo-500);
+    }
+
+}
+
 /* HEADER AND SEARCH BAR */
 
 
@@ -75,13 +139,18 @@ header {
 header #search {
     flex: 1;
     display: flex;
+    justify-content: center;;
 }
 
 header #search-form {
     display: flex;
     position: relative;
-    width: 70%;
-    margin-left: 4rem;
+    min-width: 60vw;
+    /* margin-left: 4rem; */
+}
+
+header #search-form fieldset {
+    margin-bottom: 0;
 }
 
 header #search-form .nojs-submit {
@@ -89,9 +158,18 @@ header #search-form .nojs-submit {
 }
 
 header #search-form #search-opts {
+    display: flex;
+    justify-content: end;
+    width: 100%;
     position: absolute;
     top: 110%;
     right: 0;
+    margin-right: 20px;
+}
+
+header #search-form #search-opts #stats {
+    flex-grow: 2;
+    margin-left: 2rem;;
 }
 
 header #search input {
@@ -118,3 +196,4 @@ header #logo {
     color: var(--pico-h6-color);
 }
 
+    

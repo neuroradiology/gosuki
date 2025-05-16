@@ -26,11 +26,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"regexp"
 	"strings"
 	"text/template"
 
+	"github.com/blob42/gosuki/internal/api"
 	db "github.com/blob42/gosuki/internal/database"
 	"github.com/go-chi/chi/v5"
 
@@ -39,65 +41,41 @@ import (
 	"github.com/blob42/gosuki"
 )
 
+var (
+	templates *template.Template
+	// templates = template.Must(template.ParseFS(
+	// 	Templates,
+	// 	"templates/*.html",
+	// 	"templates/**/*.html",
+	// ))
+	views = template.Must(template.ParseFS(
+		Views,
+		"views/*.html",
+	))
+	previousQuery = ""
+)
+
 type QueryParams struct {
 	Query       string
 	Tag         string
 	Fuzzy       bool
 	NoHighlight bool
+	*db.PaginationParams
 }
 
 func DefaultQueryParams() QueryParams {
-	return QueryParams{}
+	return QueryParams{PaginationParams: db.DefaultPagination()}
 }
-
-type reqIsFuzzy struct{}
 
 type MarksContext struct {
 	Bookmarks []*UIBookmark
+	Total     int // total number of results for query (excluding pagination)
+	Pages     int
 	QueryParams
 }
 
-var (
-	templates = template.Must(template.ParseFS(
-		Templates,
-		"templates/*.html",
-		"templates/**/*.html",
-	))
-	views = template.Must(template.ParseFS(
-		Views,
-		"views/*.html",
-	))
-)
-
-func isFuzzy(r *http.Request) bool {
-	fuzzy := r.Context().Value(reqIsFuzzy{})
-
-	if v, ok := fuzzy.(bool); ok && v {
-		return true
-	}
-
-	return false
-}
-
-// Find and add fuzzy search parameter to the request context
-func trackFuzzySearch(r *http.Request) *http.Request {
-	var fuzzy bool
-
-	query := r.URL.Query().Get("query")
-
-	if fuzzyParam := r.URL.Query().Get("fuzzy"); fuzzyParam != "" {
-		fuzzy = true
-	}
-
-	// Check if the first character of query is `~`
-	if len(query) > 0 && query[0] == '~' {
-		fuzzy = true
-	}
-
-	rCtx := context.WithValue(r.Context(), reqIsFuzzy{}, fuzzy)
-	return r.WithContext(rCtx)
-}
-
+// order of query param handling is important
+// changing the order breaks the api
 func fillQueryParms(r *http.Request) QueryParams {
 	res := DefaultQueryParams()
 
@@ -115,9 +93,11 @@ func fillQueryParms(r *http.Request) QueryParams {
 		res.NoHighlight = true
 	}
 
-	if isFuzzy(r) {
+	if api.IsFuzzy(r) {
 		res.Fuzzy = true
 	}
+
+	res.PaginationParams = api.GetPaginationParams(r)
 
 	return res
 }
@@ -143,45 +123,12 @@ func NamedView(name string) http.HandlerFunc {
 	}
 }
 
-// WIP: refactor query -> QueryBookmarks / ListBookmarks
-func getBookmarks(r *http.Request) ([]*gosuki.Bookmark, error) {
-	var bookmarks []*gosuki.Bookmark
-	var err error
-
-	urlQuery := r.URL.Query()
-
-	if tag := chi.URLParam(r, "tag"); tag != "" {
-		urlQuery.Add("tag", tag)
-	}
-
-	// Handle query by tag/query
-	query := urlQuery.Get("query")
-	tag := urlQuery.Get("tag")
-
-	// Check if the first character of query is `~`
-	if len(query) > 0 && query[0] == '~' {
-		query = query[1:] // Trim the first character
-	}
-
-	if query != "" && tag != "" {
-		bookmarks, err = db.QueryBookmarksByTag(r.Context(), query, tag, isFuzzy(r))
-	} else if tag != "" {
-		bookmarks, err = db.BookmarksByTag(r.Context(), tag)
-	} else if query != "" {
-		bookmarks, err = db.QueryBookmarks(r.Context(), query, isFuzzy(r))
-	} else {
-		bookmarks, err = db.ListBookmarks(r.Context())
-	}
-
-	return bookmarks, err
-}
-
 func highlightQuery(r *http.Request, marks []*UIBookmark) error {
 	if query := r.URL.Query().Get("query"); query != "" {
 		//compile regex from query
 		regex, err := regexp.Compile(`(?i)` + query)
 		if err != nil {
-			return errors.New("Invalid regex pattern")
+			return errors.New("invalid regex pattern")
 		}
 
 		// highlight match
@@ -203,12 +150,22 @@ func highlightQuery(r *http.Request, marks []*UIBookmark) error {
 	return nil
 }
 
+func preprocessQuery(r *http.Request) *http.Request {
+	userQuery := r.URL.Query().Get("query")
+	if userQuery != previousQuery {
+		r = r.WithContext(context.WithValue(r.Context(), api.ResetPage{}, true))
+	}
+	return r
+}
+
 func ListBookmarks(w http.ResponseWriter, r *http.Request) {
 	var bookmarks []*gosuki.Bookmark
 	var err error
+	var total uint
 
-	r = trackFuzzySearch(r)
-	bookmarks, err = getBookmarks(r)
+	r = preprocessQuery(r)
+
+	bookmarks, total, err = api.GetBookmarks(r)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf(
@@ -225,8 +182,12 @@ func ListBookmarks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// queryParams := fillQueryParms(r)
+	// fmt.Printf("%#v\n", queryParams.PaginationParams)
+
 	templates.ExecuteTemplate(w, "bookmarks.html",
 		MarksContext{
+			Total:       int(total),
 			Bookmarks:   uiBookmarks,
 			QueryParams: fillQueryParms(r),
 		})
@@ -234,6 +195,7 @@ func ListBookmarks(w http.ResponseWriter, r *http.Request) {
 
 func IndexView(w http.ResponseWriter, r *http.Request) {
 	var bookmarks []*gosuki.Bookmark
+	var total uint
 
 	v, err := templates.ParseFS(
 		Views,
@@ -244,8 +206,7 @@ func IndexView(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "parsing template: %s", err)
 		return
 	}
-	r = trackFuzzySearch(r)
-	bookmarks, err = getBookmarks(r)
+	bookmarks, total, err = api.GetBookmarks(r)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -255,9 +216,13 @@ func IndexView(w http.ResponseWriter, r *http.Request) {
 	uiBookmarks := Bookmarks(bookmarks).UIBookmarks()
 	highlightQuery(r, uiBookmarks)
 
+	queryParams := fillQueryParms(r)
+
 	v.Execute(w, MarksContext{
+		Total:       int(total),
+		Pages:       int(math.Ceil(float64(total) / float64(queryParams.Size))),
 		Bookmarks:   uiBookmarks,
-		QueryParams: fillQueryParms(r),
+		QueryParams: queryParams,
 	})
 }
 
@@ -279,4 +244,50 @@ func Testview(w http.ResponseWriter, r *http.Request) {
 		Foo string
 		MarksContext
 	}{Foo: "This is FOO"})
+}
+
+func init() {
+	var err error
+	templates, err = template.New("base.html").Funcs(map[string]any{
+		"ceil": func(x float64) int {
+			return int(math.Ceil(x))
+		},
+		"div": func(x, y int) float64 {
+			return float64(x) / float64(y)
+		},
+		"sub": func(x, y int) int {
+			return x - y
+		},
+		// returns a slice of integers from i to j inclusive
+		"seq": func(i, j int) []int {
+			if i > j {
+				return []int{}
+			}
+			seq := make([]int, j-i+1)
+			for k := range seq {
+				seq[k] = i + k
+			}
+			return seq
+		},
+		"add": func(x, y int) int {
+			return x + y
+		},
+		"int": func(x float64) int {
+			return int(x)
+		},
+		"head": func(arr []int, to int) []int {
+			return arr[:to]
+		},
+		"tail": func(arr []int, last int) []int {
+			return arr[len(arr)-last:]
+		},
+	}).ParseFS(Templates,
+		"templates/*.html",
+		"templates/**/*.html",
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
 }
