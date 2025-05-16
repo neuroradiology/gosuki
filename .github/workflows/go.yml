@@ -1,28 +1,33 @@
 # This workflow will build a golang project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-name: Go
+name: Go test
 
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    branches:
+      - master
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: https://github.com/actions/checkout@v4
+      with:
+        fetch-depth: '0'
+        fetch-tags: '0'
+
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: https://github.com/actions/setup-go@v4
       with:
         go-version: '1.23'
 
-    - name: Build
+    - name: build
       run: make
 
-    - name: Test
-      run: make test
+    - name: build-systray
+      run: make SYSTRAY=true
+
+    - name: test
+      run: make ci-test
