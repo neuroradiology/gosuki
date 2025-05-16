@@ -21,44 +21,75 @@
 
 //go:build linux
 
+// This is an example implementation of a hook that simply sends a notification using the
+// notification daemon of the system.
 package hooks
-
-// Hooks to exececute host system commands
 
 import (
 	"regexp"
+	"slices"
 
 	"github.com/0xAX/notificator"
 
+	"github.com/blob42/gosuki"
 	"github.com/blob42/gosuki/pkg/parsing"
 	"github.com/blob42/gosuki/pkg/tree"
 )
 
+// DEBUG:
 // Hook that sends a system notification using notify-send (Linux).
 // To enable notification a tag must be presetn in the name with the form: `#tag:notify`
 // Requires notify-send to be installed
-func NotifySend(node *tree.Node) error {
-	// if node.Name has a tag of the form #tag:notify
-
+// if node.Name has a tag of the form #tag:notify
+func notifySend(item any) error {
+	var url string
 	regex := regexp.MustCompile(parsing.ReNotify)
-	
-	if !regex.MatchString(node.Name) {
-		return nil
+
+	switch v := item.(type) {
+	case *tree.Node:
+		if !regex.MatchString(v.Title) && !slices.ContainsFunc(v.Tags, func(t string) bool {
+			return regex.MatchString(t)
+		}) {
+			return nil
+		}
+		url = v.URL
+
+	case *gosuki.Bookmark:
+
+		// if mytag:notify is in title or any of the bookmark tags
+		if !regex.MatchString(v.Title) && !slices.ContainsFunc(v.Tags, func(t string) bool {
+			return regex.MatchString(t)
+		}) {
+			return nil
+		}
+		url = v.URL
+	default:
+		panic("hook: unknown type")
 	}
 
 	notify := notificator.New(notificator.Options{
 		AppName: "gosuki",
 	})
-	return notify.Push("new bookmark", node.URL, "", notificator.UR_NORMAL)
+	return notify.Push("new bookmark", url, "", notificator.UR_NORMAL)
 }
 
-func init(){
-	regHook(Hook{
-		Name: "notify-send",
-		Func: NotifySend,
-	})
+func NodeNotifySend(n *tree.Node) error {
+	return notifySend(n)
 }
 
+func BkNotifySend(b *gosuki.Bookmark) error {
+	return notifySend(b)
+}
 
-
-
+func init() {
+	regHook(
+		Hook[*tree.Node]{
+			name: "node_notify_send",
+			Func: NodeNotifySend,
+		},
+		Hook[*gosuki.Bookmark]{
+			name: "bk_notify_send",
+			Func: BkNotifySend,
+		},
+	)
+}

@@ -22,13 +22,13 @@
 package utils
 
 import (
+	"bufio"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 
-	"github.com/blob42/gosuki/internal/logging"
+	"github.com/blob42/gosuki/pkg/logging"
 )
 
 var (
@@ -81,19 +81,51 @@ func CopyFilesToTmpFolder(srcglob string, dst string) error {
 
 }
 
-//FIX: this is not always working as expected
-//TEST:
+// TEST:
+// TODO!: implement windows version
 func CleanFiles() {
 	log.Debugf("Cleaning files <%s>", TMPDIR)
 	err := os.RemoveAll(TMPDIR)
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = filepath.Walk("/tmp", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Ignore errors when accessing files we don't have permission for
+		}
+		if matched, _ := filepath.Match("/tmp/gosuki*", path); matched {
+			log.Debugf("Removing glob file: %s", path)
+			err = os.RemoveAll(path)
+			if err != nil {
+				return nil // Ignore errors when removing files (e.g., permission issues)
+			}
+		}
+		return nil // Ensure only the first match is processed
+	})
+	if err != nil && err != filepath.SkipDir {
+		log.Fatal(err)
+	}
+}
+
+func CountLines(f *os.File) (int, error) {
+	scanner := bufio.NewScanner(f)
+	// 1mb
+	scanner.Buffer([]byte{}, 1073741824)
+	lineCount := 0
+	for scanner.Scan() {
+		lineCount++
+	}
+
+	if err := scanner.Err(); err != nil {
+		return 0, err
+	}
+
+	return lineCount, nil
 }
 
 func init() {
 	var err error
-	TMPDIR, err = ioutil.TempDir("", "gosuki*")
+	TMPDIR, err = os.MkdirTemp("", "gosuki*")
 	if err != nil {
 		log.Fatal(err)
 	}

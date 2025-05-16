@@ -20,19 +20,34 @@
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 
 package hooks
+
 // Global available hooks for browsers to use
 
-import "github.com/blob42/gosuki/pkg/parsing"
+import (
+	"github.com/blob42/gosuki"
+	"github.com/blob42/gosuki/pkg/parsing"
+	"github.com/blob42/gosuki/pkg/tree"
+)
 
-var Predefined = map[string]Hook{
-	"tags_from_name": { 
-		Name: "tags_from_name",
-		Func: parsing.ParseTags,
+type HookMap map[string]interface{}
+
+type WithName interface {
+	Name() string
+}
+
+var Predefined = HookMap{
+	"node_tags_from_name": Hook[*tree.Node]{
+		name: "node_tags_from_name",
+		Func: parsing.ParseNodeTags,
+	},
+	"bk_tags_from_name": Hook[*gosuki.Bookmark]{
+		name: "bk_tags_from_name",
+		Func: parsing.ParseBkTags,
 	},
 }
 
-
-
-func regHook(hook Hook) {
-	Predefined[hook.Name] = hook
+func regHook(hooks ...WithName) {
+	for _, hook := range hooks {
+		Predefined[hook.Name()] = hook
+	}
 }

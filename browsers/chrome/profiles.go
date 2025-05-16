@@ -36,23 +36,24 @@ const StateFile = "Local State"
 
 // Chrome flavour names
 const (
-	ChromeStable = "chrome"
+	ChromeStable   = "chrome"
 	ChromeUnstable = "chrome-unstable"
 	//TODO:
 	// Chromium = "chromium"
 )
 
-
 var (
-	ChromeBrowsers = map[string]profiles.BrowserFlavour{
-		ChromeStable: {ChromeStable, "~/.config/google-chrome" },
+	ChromeBrowsers = map[string]profiles.Flavour{
+		ChromeStable: {
+			Name:    ChromeStable,
+			BaseDir: "~/.config/google-chrome",
+		},
 	}
 )
 
 // Helper struct to manage chrome profiles
 // profiles.ProfileManager is implemented at the browser level
-type ChromeProfileManager struct {}
-
+type ChromeProfileManager struct{}
 
 // Returns all profiles for a given flavour
 func (*ChromeProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, error) {
@@ -75,7 +76,7 @@ func (*ChromeProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, e
 
 	for id, profile := range state.Profile.InfoCache {
 		result = append(result, &profiles.Profile{
-			Id:      id,
+			ID:      id,
 			Name:    profile.Name,
 			Path:    id,
 			BaseDir: f.BaseDir,
@@ -90,8 +91,8 @@ func (*Chrome) GetProfiles(flavour string) ([]*profiles.Profile, error) {
 }
 
 // Returns all flavours supported by this browser
-func (*Chrome) ListFlavours() []profiles.BrowserFlavour {
-	var result []profiles.BrowserFlavour
+func (*Chrome) ListFlavours() []profiles.Flavour {
+	var result []profiles.Flavour
 
 	// detect local flavours
 	for _, v := range ChromeBrowsers {
@@ -103,22 +104,25 @@ func (*Chrome) ListFlavours() []profiles.BrowserFlavour {
 	return result
 }
 
+// get current active flavour
+func (c *Chrome) GetCurFlavour() *profiles.Flavour {
+	return c.activeFlavour
+}
 
 // If should watch all profiles
 func (chrome *Chrome) WatchAllProfiles() bool {
 	return chrome.ChromeConfig.WatchAllProfiles
 }
 
-
 // chrome uses ID to identify the profile path
-func (cpm *ChromeProfileManager) GetProfileByID (flavour string, id string) (*profiles.Profile, error) {
+func (cpm *ChromeProfileManager) GetProfileByID(flavour string, id string) (*profiles.Profile, error) {
 	profiles, err := cpm.GetProfiles(flavour)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, p := range profiles {
-		if p.Id == id {
+		if p.ID == id {
 			return p, nil
 		}
 	}
@@ -127,33 +131,45 @@ func (cpm *ChromeProfileManager) GetProfileByID (flavour string, id string) (*pr
 }
 
 // Notifies the module to use a custom profile
-//NOTE: this is implemented at the browser Level
-func (c *Chrome) UseProfile(p profiles.Profile) error {
-	c.Profile = p.Name
+// NOTE: this is implemented at the browser Level
+func (c *Chrome) UseProfile(p *profiles.Profile, flv *profiles.Flavour) error {
+	if p != nil {
+		c.Profile = p.Name
+		c.activeProfile = p
 
-	// setup the bookmark dir
-	if bookmarkDir, err := p.AbsolutePath(); err != nil {
-		return err
-	} else {
-		c.BkDir = bookmarkDir
-		return nil
+		// setup the bookmark dir
+		if bookmarkDir, err := p.AbsolutePath(); err != nil {
+			return err
+		} else {
+			c.BkDir = bookmarkDir
+			return nil
+		}
 	}
+
+	if flv != nil {
+		c.activeFlavour = flv
+	}
+
+	return nil
+
 }
 
+func (c *Chrome) GetProfile() *profiles.Profile {
+	return c.activeProfile
+}
 
 type StateData struct {
 	LastUsed string
-	Profile struct {
+	Profile  struct {
 		InfoCache map[string]profiles.Profile `json:"info_cache"`
 	}
 }
-
 
 func loadLocalState(path string) (*StateData, error) {
 	var state StateData
 	file, err := os.Open(path)
 	if err != nil {
-	  return nil, err
+		return nil, err
 	}
 
 	defer file.Close()

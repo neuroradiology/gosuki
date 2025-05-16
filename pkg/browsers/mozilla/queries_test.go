@@ -13,8 +13,8 @@ import (
 func Test_loadQueries(t *testing.T) {
 
 	queries := map[string]string{
-		"merged-places-bookmarks": "merged_places_bookmarks.sql",
-		"recursive-all-bookmarks": "recursive_all_bookmarks.sql",
+		"merged-places-bookmarks":      "merged_places_bookmarks.sql",
+		"recursive-all-bookmarks":      "recursive_all_bookmarks.sql",
 		"recursive-modified-bookmarks": "recursive_modified_bookmarks.sql",
 	}
 
@@ -91,18 +91,17 @@ func Test_loadQueries(t *testing.T) {
 			}
 		}
 
-        t.Run("Select bookmarks", func(t *testing.T) {
+		t.Run("Select bookmarks", func(t *testing.T) {
 
-            var bookmarks []*MergedPlaceBookmark
-            err := loadedQueries[queryName].Select(db.Handle, &bookmarks, queryName)
-            if err != nil {
-                t.Error(err)
-            }
+			var bookmarks []*MergedPlaceBookmark
+			err := loadedQueries[queryName].Select(db.Handle, &bookmarks, queryName)
+			if err != nil {
+				t.Error(err)
+			}
 
-            // pretty.Log(bookmarks)
-        })
+			// pretty.Log(bookmarks)
+		})
 	})
-
 
 	t.Run("Scanning recursive-all-bookmarks", func(t *testing.T) {
 		queryName := "recursive-all-bookmarks"
@@ -125,15 +124,15 @@ func Test_loadQueries(t *testing.T) {
 			}
 		}
 
-        t.Run("Select bookmarks", func(t *testing.T) {
+		t.Run("Select bookmarks", func(t *testing.T) {
 
-            var bookmarks []*MozBookmark
-            err := loadedQueries[queryName].Select(db.Handle, &bookmarks, queryName)
-            if err != nil {
-                t.Error(err)
-            }
+			var bookmarks []*MozBookmark
+			err := loadedQueries[queryName].Select(db.Handle, &bookmarks, queryName)
+			if err != nil {
+				t.Error(err)
+			}
 
-            // pretty.Log(bookmarks)
-        })
+			// pretty.Log(bookmarks)
+		})
 	})
 }

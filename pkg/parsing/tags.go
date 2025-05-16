@@ -23,7 +23,12 @@
 package parsing
 
 import (
+	"fmt"
 	"regexp"
+
+	"github.com/blob42/gosuki"
+	"github.com/blob42/gosuki/pkg/logging"
+	"github.com/blob42/gosuki/pkg/tree"
 )
 
 const (
@@ -38,32 +43,55 @@ const (
 	//word in the #middle of sentence
 	//tags with a #dot.caracter
 	//this is a end of sentence #tag
-	ReTags = "\\B#(?P<tag>\\w+\\.?\\w+)"
+	ReTags = `\B#(?P<tag>\w+\.?\w+)`
 
 	// #tag:notify
-	ReNotify = "\\B#(?P<tag>\\w+\\.?\\w+):notify"
+	ReNotify = `\b(?P<tag>\w+\.?\w+):notify`
 )
 
-// ParseTags is a Hook that extracts tags like #tag from the bookmark name.
-// It is stored as a tag in the bookmark metadata.
-func ParseTags(node *Node) error {
-	log.Debugf("running ParseTags hook on node: %s", node.Name)
+var log = logging.GetLogger("PARSE")
 
+// ParseTags is a [gosuki.Hook] that extracts tags like #tag from the title of the bookmark or node.
+// It is stored as a tag in the metadata field of the bookmark or node.
+func parseTags(item any) error {
 	var regex = regexp.MustCompile(ReTags)
-
-	matches := regex.FindAllStringSubmatch(node.Name, -1)
-	for _, m := range matches {
-		if node.Tags == nil {
-			node.Tags = []string{m[1]}
-		} else {
-			node.Tags = append(node.Tags, m[1])
+	switch v := item.(type) {
+	case *tree.Node:
+		// log.Debugf("running ParseTags hook on node: %s", v.URL)
+		matches := regex.FindAllStringSubmatch(v.Title, -1)
+		for _, m := range matches {
+			if v.Tags == nil {
+				v.Tags = []string{m[1]}
+			} else {
+				v.Tags = append(v.Tags, m[1])
+			}
 		}
+		if len(v.Tags) > 0 {
+			log.Debugf("[hook] found following tags: %s", v.Tags)
+		}
+	case *gosuki.Bookmark:
+		// log.Debugf("running ParseTags hook on node: %s", v.URL)
+		matches := regex.FindAllStringSubmatch(v.Title, -1)
+		for _, m := range matches {
+			if v.Tags == nil {
+				v.Tags = []string{m[1]}
+			} else {
+				v.Tags = append(v.Tags, m[1])
+			}
+		}
+		if len(v.Tags) > 0 {
+			log.Debugf("[hook] found following tags: %s", v.Tags)
+		}
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	//res := regex.FindAllStringSubmatch(bk.Metadata, -1)
-
-	if len(node.Tags) > 0 {
-		log.Debugf("[in title] found following tags: %s", node.Tags)
-	}
-
 	return nil
+}
+
+func ParseNodeTags(n *tree.Node) error {
+	return parseTags(n)
+}
+
+func ParseBkTags(b *gosuki.Bookmark) error {
+	return parseTags(b)
 }

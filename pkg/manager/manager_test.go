@@ -1,11 +1,11 @@
 package manager
 
 import (
+	llog "log"
 	"os"
 	"syscall"
 	"testing"
 	"time"
-	llog "log"
 )
 
 var WorkerID int
@@ -44,8 +44,8 @@ func NewWorker() *Worker {
 }
 
 func DoRun(pid chan int,
-				quit chan<- bool,
-				signals ...os.Signal) {
+	quit chan<- bool,
+	signals ...os.Signal) {
 
 	pid <- os.Getpid()
 
@@ -64,18 +64,16 @@ func DoRun(pid chan int,
 	manager.AddUnit(worker2, "")
 
 	// Start the manager
-	go manager.Run()
+	go manager.Start()
 
 	// Wait for all units to shutdown gracefully through their `Shutdown` method
 	quit <- <-manager.Quit
 
 }
 
-
-
 func TestRunMain(t *testing.T) {
 	signals := map[string]os.Signal{
-		"interrupt":  os.Interrupt,
+		"interrupt": os.Interrupt,
 	}
 	mainPid := make(chan int, 1)
 	quit := make(chan bool)

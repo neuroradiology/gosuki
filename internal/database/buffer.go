@@ -29,8 +29,6 @@ import (
 	"github.com/blob42/gosuki/pkg/tree"
 )
 
-
-
 func NewBuffer(name string) (*DB, error) {
 	// add random id to buf name
 	randID := shortid.MustGenerate()
@@ -46,6 +44,9 @@ func NewBuffer(name string) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could initialize buffer schema %w", err)
 	}
+
+	//TEST: sqlite table locked
+	buffer.Handle.SetMaxOpenConns(1)
 
 	return buffer, nil
 }
@@ -64,19 +65,26 @@ func SyncURLIndexToBuffer(urls []string, index Index, buffer *DB) {
 	for _, url := range urls {
 		iNode, exists := index.Get(url)
 		if !exists {
-			log.Warningf("url does not exist in index: %s", url)
+			log.Warnf("url does not exist in index: %s", url)
 			break
 		}
 		node := iNode.(*Node)
 		bk := node.GetBookmark()
-		buffer.UpsertBookmark(bk)
+		err := buffer.UpsertBookmark(bk)
+		if err != nil {
+			log.Errorf("db upsert: %s", bk.URL)
+		}
+
 	}
 }
 
 func SyncTreeToBuffer(node *Node, buffer *DB) {
 	if node.Type == tree.URLNode {
 		bk := node.GetBookmark()
-		buffer.UpsertBookmark(bk)
+		err := buffer.UpsertBookmark(bk)
+		if err != nil {
+			log.Errorf("db upsert: %s", bk.URL)
+		}
 	}
 
 	if len(node.Children) > 0 {

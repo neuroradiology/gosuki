@@ -19,45 +19,49 @@
 // along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
 package config
 
-import "github.com/urfave/cli/v2"
+import (
+	"github.com/gobuffalo/flect"
+	"github.com/urfave/cli/v2"
+)
 
 // Setup cli flag for global options
 func SetupGlobalFlags() []cli.Flag {
 	log.Debugf("Setting up global flags")
 	flags := []cli.Flag{}
 	for k, v := range configs[GlobalConfigName].Dump() {
-		log.Debugf("Registering global flag %s = %v", k, v)
+		optName := flect.Dasherize(k)
+
+		log.Debugf("Registering global flag %s = %v", optName, v)
 
 		// Register the option as a cli flag
 		switch val := v.(type) {
-			case string:
-				flags = append(flags, &cli.StringFlag{
-					Category: "_",
-					Name:  k,
-					Value: val,
-				})
+		case string:
+			flags = append(flags, &cli.StringFlag{
+				Category: "_",
+				Name:     optName,
+				Value:    val,
+			})
 
-			case int:
-				flags = append(flags, &cli.IntFlag{
-					Category: "_",
-					Name: k,
-					Value: val,
-				})
+		case int:
+			flags = append(flags, &cli.IntFlag{
+				Category: "_",
+				Name:     optName,
+				Value:    val,
+			})
 
-			case bool:
-				flags = append(flags, &cli.BoolFlag{
-					Category: "_",
-					Name: k,
-					Value: val,
-				})
+		case bool:
+			flags = append(flags, &cli.BoolFlag{
+				Category: "_",
+				Name:     optName,
+				Value:    val,
+			})
 
-			default:
-				log.Fatalf("unsupported type for global option %s", k)
+		default:
+			log.Fatalf("unsupported type for global option %s", optName)
 		}
 	}
 
 	return flags
 }
-
 
 //TODO: setup module flags

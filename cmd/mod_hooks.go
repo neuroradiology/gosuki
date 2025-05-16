@@ -31,20 +31,20 @@ type Hook func(*cli.Context) error
 var modCmdBeforeHooks = map[string]Hook{}
 
 // Register a module hook to be run in *cli.App.Before
-func RegBeforeHook(modId string, hook Hook) {
+func RegBeforeHook(modID string, hook Hook) {
 	if hook == nil {
-		log.Panicf("cannot register nil hook for <%s>", modId)
+		log.Fatalf("cannot register nil hook for <%s>", modID)
 	}
 
-	if _, ok := modCmdBeforeHooks[modId]; ok {
-		log.Warningf("a hook was already registered for module <%s>", modId)
+	if _, ok := modCmdBeforeHooks[modID]; ok {
+		log.Warnf("a hook was already registered for module <%s>", modID)
 	}
-	modCmdBeforeHooks[modId] = hook
+	modCmdBeforeHooks[modID] = hook
 }
 
 // Return all registered Before hooks for module
-func BeforeHook(modId string) Hook {
-	if hook := modCmdBeforeHooks[modId]; hook != nil {
+func BeforeHook(modID string) Hook {
+	if hook := modCmdBeforeHooks[modID]; hook != nil {
 		return hook
 	}
 	return nil

@@ -17,6 +17,38 @@
 //
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
+
+// Package database provides functionality for managing and synchronizing SQLite databases,
+// specifically for bookmark data. It includes methods for syncing data between databases,
+// caching, and disk persistence.
+//
+// The package supports:
+//   - Syncing data from one database to another (upsert or update)
+//   - Synchronizing in-memory cache databases to disk
+//   - Copying entire databases
+//   - Scheduling periodic sync operations
+//   - Handling SQLite-specific constraints and errors
+//
+// The `SyncTo` method implements a manual UPSERT operation, which attempts to insert
+// records from a source database to a destination database. If an insertion fails due
+// to a constraint (e.g., duplicate URL), it will attempt to update the existing record.
+//
+// The `SyncToDisk` method provides a way to sync a database to a specified disk path,
+// using SQLite's backup API for efficient copying.
+//
+// The `SyncFromDisk` method allows for restoring data from a disk file into a database.
+//
+// The `CopyTo` method is used to copy an entire database from one location to another.
+//
+// The `SyncToCache` method is used to sync a database to an in-memory cache, either by
+// copying the entire database or by performing a sync operation if the cache is not empty.
+//
+// This package also includes a scheduler for debounced sync operations to disk, which
+// prevents excessive disk writes and ensures that syncs happen at regular intervals.
+//
+// The package uses the `sqlx` package for database operations and `log` for logging.
+//
+// See the individual function documentation for more details about their usage and behavior.
 package database
 
 // TODO: add context to all queries
@@ -28,8 +60,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"
-
-	"github.com/blob42/gosuki/pkg/config"
 )
 
 var mu sync.Mutex
@@ -39,22 +69,22 @@ var mu sync.Mutex
 // update it. It means `src` is synced to `dst`
 func (src *DB) SyncTo(dst *DB) {
 	var sqlite3Err sqlite3.Error
-	var existingUrls []*SBookmark
+	var existingUrls []*RawBookmark
 
 	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
 
-	getSourceTable, err := src.Handle.Prepare(`SELECT * FROM bookmarks`)
+	getSourceTable, err := src.Handle.Preparex(`SELECT * FROM bookmarks`)
 	defer func() {
 		err = getSourceTable.Close()
 		if err != nil {
-			log.Critical(err)
+			log.Error(err)
 		}
 	}()
 	if err != nil {
 		log.Error(err)
 	}
 
-	getDstTags, err := dst.Handle.Prepare(
+	getDstTags, err := dst.Handle.Preparex(
 		`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`,
 	)
 
@@ -62,7 +92,7 @@ func (src *DB) SyncTo(dst *DB) {
 		err = getDstTags.Close()
 
 		if err != nil {
-			log.Critical(err)
+			log.Error(err)
 		}
 	}()
 
@@ -70,15 +100,15 @@ func (src *DB) SyncTo(dst *DB) {
 		log.Error(err)
 	}
 
-	tryInsertDstRow, err := dst.Handle.Prepare(
+	tryInsertDstRow, err := dst.Handle.Preparex(
 		`INSERT INTO
-		bookmarks(url, metadata, tags, desc, flags)
-		VALUES (?, ?, ?, ?, ?)`,
+		bookmarks(url, metadata, tags, desc, flags, module)
+		VALUES (?, ?, ?, ?, ?, ?)`,
 	)
 	defer func() {
 		err = tryInsertDstRow.Close()
 		if err != nil {
-			log.Critical(err)
+			log.Error(err)
 		}
 	}()
 
@@ -86,7 +116,7 @@ func (src *DB) SyncTo(dst *DB) {
 		log.Error(err)
 	}
 
-	updateDstRow, err := dst.Handle.Prepare(
+	updateDstRow, err := dst.Handle.Preparex(
 		`UPDATE bookmarks
 		SET (metadata, tags, desc, modified, flags) = (?,?,?,strftime('%s'),?)
 		WHERE url=?
@@ -96,7 +126,7 @@ func (src *DB) SyncTo(dst *DB) {
 	defer func() {
 		err = updateDstRow.Close()
 		if err != nil {
-			log.Critical()
+			log.Error(err)
 		}
 	}()
 
@@ -104,34 +134,34 @@ func (src *DB) SyncTo(dst *DB) {
 		log.Error(err)
 	}
 
-	srcTable, err := getSourceTable.Query()
+	srcTable, err := getSourceTable.Queryx()
 	if err != nil {
 		log.Error(err)
 	}
 
-	log.Debugf("starting transaction")
-	dstTx, err := dst.Handle.Begin()
+	dstTx, err := dst.Handle.Beginx()
 	if err != nil {
 		log.Error(err)
 	}
 
 	// Start syncing all entries from source table
-	log.Debugf("scanning entries in source table")
 	for srcTable.Next() {
 
 		// Fetch on row
-		scan, err := ScanBookmarkRow(srcTable)
+		scan := RawBookmark{}
+		err = srcTable.StructScan(&scan)
 		if err != nil {
 			log.Error(err)
 		}
 
 		// Try to insert to row in dst table
-		_, err = dstTx.Stmt(tryInsertDstRow).Exec(
+		_, err = dstTx.Stmtx(tryInsertDstRow).Exec(
 			scan.URL,
-			scan.metadata,
-			scan.tags,
-			scan.desc,
-			scan.flags,
+			scan.Metadata,
+			scan.Tags,
+			scan.Desc,
+			scan.Flags,
+			scan.Module,
 		)
 
 		if err != nil {
@@ -142,10 +172,9 @@ func (src *DB) SyncTo(dst *DB) {
 			log.Error(err)
 		}
 
-		// Record already exists in dst table, we need to use update
-		// instead.
+		// Record already exists in dst table, we need to use update instead.
 		if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
-			existingUrls = append(existingUrls, scan)
+			existingUrls = append(existingUrls, &scan)
 		}
 	}
 
@@ -155,7 +184,7 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 
 	// Start a new transaction to update the existing urls
-	dstTx, err = dst.Handle.Begin()
+	dstTx, err = dst.Handle.Beginx()
 	if err != nil {
 		log.Error(err)
 	}
@@ -166,14 +195,9 @@ func (src *DB) SyncTo(dst *DB) {
 
 		//log.Debugf("updating existing %s", scan.Url)
 
-		row := getDstTags.QueryRow(
-			scan.URL,
-		)
-		row.Scan(&tags)
+		getDstTags.Get(&tags, scan.URL)
 
-		//log.Debugf("src tags: %v", scan.tags)
-		//log.Debugf("dst tags: %v", dstTags)
-		srcTags := TagsFromString(scan.tags, TagSep)
+		srcTags := TagsFromString(scan.Tags, TagSep)
 
 		dstTags := TagsFromString(tags, TagSep)
 
@@ -191,10 +215,10 @@ func (src *DB) SyncTo(dst *DB) {
 		}
 		newTagsStr := newTags.StringWrap()
 
-		_, err = dstTx.Stmt(updateDstRow).Exec(
-			scan.metadata,
+		_, err = dstTx.Stmtx(updateDstRow).Exec(
+			scan.Metadata,
 			newTagsStr,
-			scan.desc,
+			scan.Desc,
 			0, //flags
 			scan.URL,
 		)
@@ -203,7 +227,6 @@ func (src *DB) SyncTo(dst *DB) {
 			log.Errorf("%s: %s", err, scan.URL)
 		}
 		log.Debugf("synced %s to %s", scan.URL, dst.Name)
-
 	}
 
 	err = dstTx.Commit()
@@ -220,37 +243,21 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 }
 
-var syncQueue = make(chan interface{})
+var syncQueue = make(chan any)
 
 // Sync all databases to disk in a goroutine using a debouncer
-func cacheSyncScheduler(input <-chan interface{}) {
+func cacheSyncScheduler(input <-chan any) {
 	log.Debug("starting cache sync scheduler")
 
-	queue := make(chan interface{}, 100)
+	queue := make(chan any, 100)
 
-	intervalOpt, err := config.GetModuleOption("database", "sync-interval")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	intervalInt, ok := intervalOpt.(int64)
-
-	if !ok {
-		log.Fatalf("sync-interval is not an int")
-	} else {
-		log.Debugf("db sync-interval: %d seconds", intervalInt)
-	}
-
-	interval := time.Duration(intervalInt) * time.Second
-
-	// TODO: set as global options
 	// debounce interval
 	timer := time.NewTimer(0)
 	for {
 		select {
 		case <-input:
 			// log.Debug("debouncing sync to disk")
-			timer.Reset(interval)
+			timer.Reset(dbConfig.SyncInterval)
 			// log.Debugf("sync que len is %d", len(queue))
 			select {
 			case queue <- true:
@@ -266,7 +273,7 @@ func cacheSyncScheduler(input <-chan interface{}) {
 				if Cache.DB == nil {
 					log.Fatalf("cache db is nil")
 				}
-				if err := Cache.DB.SyncToDisk(GetDBFullPath()); err != nil {
+				if err := Cache.SyncToDisk(GetDBFullPath()); err != nil {
 					log.Fatalf("failed to sync cache to disk: %s", err)
 				}
 
@@ -295,7 +302,7 @@ func (src *DB) SyncToDisk(dbpath string) error {
 	log.Debugf("Syncing <%s> to <%s>", src.Name, dbpath)
 	defer func() {
 		if err := recover(); err != nil {
-			log.Critical("Recovered in SyncToDisk", err)
+			log.Error("Recovered in SyncToDisk", err)
 		}
 	}()
 
@@ -326,16 +333,16 @@ func (src *DB) SyncToDisk(dbpath string) error {
 		return err
 	}
 
-	if len(_sql3conns) < 2 {
-		return fmt.Errorf("not enough sql connections for backup call")
+	if len(_sql3BackupConns) < 2 {
+		panic("not enough sql connections for backup call")
 	}
 
-	if _sql3conns[0] == nil {
-		log.Critical("nil sql connection")
+	if _sql3BackupConns[0] == nil {
+		log.Error("nil sql connection")
 		return fmt.Errorf("nil sql connection")
 	}
 
-	bkp, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
+	bkp, err := _sql3BackupConns[1].Backup("main", _sql3BackupConns[0], "main")
 	if err != nil {
 		return err
 	}
@@ -371,7 +378,7 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 	}
 	bkDB.Ping()
 
-	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
+	bk, err := _sql3BackupConns[1].Backup("main", _sql3BackupConns[0], "main")
 	if err != nil {
 		return err
 	}
@@ -397,7 +404,7 @@ func (src *DB) CopyTo(dst *DB) {
 	srcDB, err := sqlx.Open(DriverBackupMode, src.Path)
 	defer func() {
 		srcDB.Close()
-		_sql3conns = _sql3conns[:len(_sql3conns)-1]
+		_sql3BackupConns = _sql3BackupConns[:len(_sql3BackupConns)-1]
 	}()
 	if err != nil {
 		log.Error(err)
@@ -408,14 +415,14 @@ func (src *DB) CopyTo(dst *DB) {
 	dstDB, err := sqlx.Open(DriverBackupMode, dst.Path)
 	defer func() {
 		dstDB.Close()
-		_sql3conns = _sql3conns[:len(_sql3conns)-1]
+		_sql3BackupConns = _sql3BackupConns[:len(_sql3BackupConns)-1]
 	}()
 	if err != nil {
 		log.Error(err)
 	}
 	dstDB.Ping()
 
-	bk, err := _sql3conns[1].Backup("main", _sql3conns[0], "main")
+	bk, err := _sql3BackupConns[1].Backup("main", _sql3BackupConns[0], "main")
 	if err != nil {
 		log.Error(err)
 	}
@@ -429,11 +436,13 @@ func (src *DB) CopyTo(dst *DB) {
 }
 
 func (src *DB) SyncToCache() error {
+	Cache.mu.Lock()
+	defer Cache.mu.Unlock()
 	if Cache.DB == nil {
 		return fmt.Errorf("cache db is nil")
 	}
 
-	empty, err := Cache.DB.IsEmpty()
+	empty, err := Cache.IsEmpty()
 
 	//TODO!: if the error is table is not "non existant table" return the error
 	// otherwise move on and check if error is table does not exist

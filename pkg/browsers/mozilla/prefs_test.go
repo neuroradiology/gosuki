@@ -3,42 +3,39 @@ package mozilla
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
+
 	"os"
 	"testing"
 	"time"
 )
 
 const (
-	TestPrefBool   = "test.pref.bool"
-	TestPrefNumber = "test.pref.number"
-	TestPrefString = "test.pref.string"
-	TempFileName   = "prefs-test.js"
+	TempFileName = "prefs-test.js"
 )
 
 var (
 	TestPrefs = map[string]Pref{
-		"BOOL": Pref{
+		"BOOL": {
 			name:   "test.pref.bool",
 			value:  true,
 			rawval: "true",
 		},
-		"TRUE": Pref{
+		"TRUE": {
 			name:   "test.pref.bool.true",
 			value:  true,
 			rawval: "true",
 		},
-		"FALSE": Pref{
+		"FALSE": {
 			name:   "test.pref.bool.false",
 			value:  false,
 			rawval: "false",
 		},
-		"NUMBER": Pref{
+		"NUMBER": {
 			name:   "test.pref.number",
 			value:  42,
 			rawval: "42",
 		},
-		"STRING": Pref{
+		"STRING": {
 			name:   "test.pref.string",
 			value:  "test string",
 			rawval: "test string",
@@ -55,18 +52,8 @@ var (
 
 type Pref struct {
 	name   string
-	value  interface{}
+	value  any
 	rawval string
-}
-
-func tempFile(name string) *os.File {
-	f, err := ioutil.TempFile("", name)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return f
 }
 
 func writeTestPrefFile(f *os.File, p Pref) {
@@ -246,16 +233,4 @@ func TestHasPref(t *testing.T) {
 		t.Fail()
 	}
 
-}
-
-func TestMain(m *testing.M) {
-
-	prefsTempFile = tempFile(TempFileName)
-
-	code := m.Run()
-
-	prefsTempFile.Close()
-	os.Remove(prefsTempFile.Name())
-
-	os.Exit(code)
 }

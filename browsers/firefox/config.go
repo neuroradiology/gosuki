@@ -27,7 +27,6 @@ import (
 	"github.com/blob42/gosuki/pkg/browsers/mozilla"
 	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/modules"
-	"github.com/blob42/gosuki/pkg/parsing"
 	"github.com/blob42/gosuki/pkg/profiles"
 	"github.com/blob42/gosuki/pkg/tree"
 )
@@ -70,7 +69,7 @@ type FirefoxConfig struct {
 	// Default data source name query options for `places.sqlite` db
 	PlacesDSN database.DsnOptions `toml:"-"`
 
-	modules.ProfilePrefs `toml:"profile_options" mapstructure:"profile_options"`
+	modules.ProfilePrefs `toml:"profile-options" mapstructure:"profile-options"`
 
 	//TEST: ignore this field in config.Configurator interface
 	// Embed base browser config
@@ -84,7 +83,7 @@ func setBookmarkDir(fc *FirefoxConfig) {
 	// load profile from config
 	var profile *profiles.Profile
 	if profile, err = FirefoxProfileManager.GetProfileByName(BrowserName, fc.Profile); err != nil {
-		log.Warning(err)
+		log.Warn(err)
 	} else {
 		bookmarkDir, err := profile.AbsolutePath()
 		if err != nil {
@@ -102,18 +101,17 @@ func NewFirefoxConfig() *FirefoxConfig {
 	cfg := &FirefoxConfig{
 		BrowserConfig: &modules.BrowserConfig{
 			Name:   BrowserName,
-			Type:   modules.TFirefox,
 			BkFile: mozilla.PlacesFile,
 			NodeTree: &tree.Node{
-				Name:   mozilla.RootName,
+				Title:  mozilla.RootName,
 				Parent: nil,
 				Type:   tree.RootNode,
 			},
-			Stats:          &parsing.Stats{},
 			UseFileWatcher: true,
 			// NOTE: see parsing.Hook to add custom parsing logic for each
 			// parsed bookmark node
-			UseHooks: []string{"notify-send"},
+			// UseHooks: []string{"node_notify_send"},
+			UseHooks: []string{"node_tags_from_name", "bk_marktab"},
 		},
 
 		// Default data source name query options for `places.sqlite` db
@@ -129,17 +127,6 @@ func NewFirefoxConfig() *FirefoxConfig {
 	}
 
 	setBookmarkDir(cfg)
-
-	// Set WatchAllProfiles that was set by user in flags
-	// if userConf := config.GetModule(BrowserName); userConf != nil {
-	// 	watchAll, err := userConf.Get("WatchAllProfiles")
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	} else {
-	// 		cfg.WatchAllProfiles = watchAll.(bool)
-	// 	}
-	// }
-	//
 
 	return cfg
 }

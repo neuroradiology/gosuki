@@ -24,6 +24,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 
 	"github.com/blob42/gosuki/internal/utils"
@@ -31,71 +32,70 @@ import (
 	"github.com/blob42/gosuki/pkg/profiles"
 )
 
-
-
 var ProfileCmds = &cli.Command{
-	Name: "profile",
+	Name:    "profile",
 	Aliases: []string{"p"},
-	Usage: "profile commands",
+	Usage:   "profile commands",
 	Subcommands: []*cli.Command{
 		listProfilesCmd,
-		detectInstalledCmd,
+		DetectCmd,
 	},
 }
 
-//TODO: only enable commands when modules which implement profiles interfaces
+// TODO: only enable commands when modules which implement profiles interfaces
 // are available
 var listProfilesCmd = &cli.Command{
-	Name: "list",
+	Name:  "list",
 	Usage: "list all available profiles",
 	Action: func(c *cli.Context) error {
 
-	browsers := modules.GetBrowserModules()
-	for _, br := range browsers {
+		browsers := modules.GetBrowserModules()
+		for _, br := range browsers {
 
-		//Create a browser instance
-		brmod, ok := br.ModInfo().New().(modules.BrowserModule)
-		if !ok {
-			log.Criticalf("<%s> is not a BrowserModule", br.ModInfo().ID)
-		}
-
-		pm, isProfileManager := brmod.(profiles.ProfileManager)
-		if !isProfileManager{
-			log.Warningf("<%s> is not a profile manager", br.ModInfo().ID)
-			continue
-		}
-
-		flavours := pm.ListFlavours()
-		for _, f := range flavours {
-			fmt.Printf("Profiles for <%s> flavour <%s>:\n\n", br.ModInfo().ID, f.Name)
-			if profs, err := pm.GetProfiles(f.Name); err != nil {
-				return err
-			} else {
-				for _, p := range profs {
-					pPath, err := p.AbsolutePath()
-					if err != nil {
-						return err
-					}
-					fmt.Printf("%-10s[id:%s]\t %s\n", p.Name, p.Id, pPath)
-				}
+			//Create a browser instance
+			brmod, ok := br.ModInfo().New().(modules.BrowserModule)
+			if !ok {
+				log.Errorf("<%s> is not a BrowserModule", br.ModInfo().ID)
 			}
-			fmt.Println()
+
+			pm, isProfileManager := brmod.(profiles.ProfileManager)
+			if !isProfileManager {
+				log.Warnf("<%s> is not a profile manager", br.ModInfo().ID)
+				continue
+			}
+
+			flavours := pm.ListFlavours()
+			for _, f := range flavours {
+				fmt.Printf("Profiles for <%s> flavour <%s>:\n\n", br.ModInfo().ID, f.Name)
+				if profs, err := pm.GetProfiles(f.Name); err != nil {
+					return err
+				} else {
+					for _, p := range profs {
+						pPath, err := p.AbsolutePath()
+						if err != nil {
+							return err
+						}
+						fmt.Printf("%-10s[id:%s]\t %s\n", p.Name, p.ID, pPath)
+					}
+				}
+				fmt.Println()
+			}
+
 		}
 
-	}
-
-	return nil
+		return nil
 	},
 }
 
-
-var detectInstalledCmd = &cli.Command{
-	Name: "detect",
-	Aliases: []string{"d"},
-	Usage: "detect installed browsers",
+var DetectCmd = &cli.Command{
+	Name:    "detect",
+	Aliases: []string{"det"},
+	Usage:   "detect installed browsers",
 	Action: func(_ *cli.Context) error {
+		red := color.New(color.FgRed).SprintFunc()
+		green := color.New(color.FgGreen).SprintFunc()
 		mods := modules.GetModules()
-		fmt.Printf("installed browsers:\n\n")
+		fmt.Printf("\n detected browsers:\n\n")
 		for _, mod := range mods {
 			browser, isBrowser := mod.ModInfo().New().(modules.BrowserModule)
 			if !isBrowser {
@@ -103,9 +103,25 @@ var detectInstalledCmd = &cli.Command{
 				continue
 			}
 
+			// Detect using ProfileManager
 			pm, isProf := browser.(profiles.ProfileManager)
 			if !isProf {
 				log.Debugf("module <%s> is not a profile manager", mod.ModInfo().ID)
+
+				d, ok := browser.(modules.Detector)
+				if ok {
+					detected, err := d.Detect()
+					if err != nil {
+						return fmt.Errorf("detecting browser: %w", err)
+					}
+					for _, dbr := range detected {
+						fmt.Printf(" %s %-10s \t %s\n", green(""), dbr.Flavour, dbr.BasePath)
+					}
+
+				} else {
+					fmt.Printf(" %s %-10s\n", red(""), mod.ModInfo().ID)
+				}
+
 				continue
 			}
 
@@ -118,10 +134,11 @@ var detectInstalledCmd = &cli.Command{
 				} else {
 					f.BaseDir = dir
 				}
-				fmt.Printf("-%-10s \t %s\n", f.Name, f.BaseDir)
+				fmt.Printf(" %s %-10s \t %s\n", green(""), f.Name, f.BaseDir)
 			}
 		}
 
+		fmt.Println()
 		return nil
 	},
 }

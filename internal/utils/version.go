@@ -21,9 +21,34 @@
 
 // TODO: get runtime build/git info  see:
 // https://github.com/lightningnetwork/lnd/blob/master/build/version.go#L66
+// https://raw.githubusercontent.com/lightningnetwork/lnd/refs/heads/master/build/version.go
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"runtime/debug"
+	"strings"
+)
+
+// These constants define the application version and follow the semantic
+// versioning 2.0.0 spec (http://semver.org/).
+var (
+	// Commit stores the current commit of this build, which includes the
+	// most recent tag, the number of commits since that tag (if non-zero),
+	// the commit hash, and a dirty marker. This should be set using the
+	// -ldflags during compilation.
+	Commit string
+
+	// CommitHash stores the current commit hash of this build.
+	CommitHash string
+
+	// RawTags contains the raw set of build tags, separated by commas.
+	RawTags string
+
+	// GoVersion stores the go version that the executable was compiled
+	// with.
+	GoVersion string
+)
 
 const (
 	// AppMajor defines the major version of this binary.
@@ -36,6 +61,39 @@ const (
 	AppPatch uint = 0
 )
 
+// Version returns the application version as a properly formed string per the
+// semantic versioning 2.0.0 spec (http://semver.org/).
 func Version() string {
-	return fmt.Sprintf("%d.%d.%d", AppMajor, AppMinor, AppPatch)
+	// Start with the major, minor, and patch versions.
+	version := fmt.Sprintf("%d.%d.%d", AppMajor, AppMinor, AppPatch)
+	if CommitHash != "" {
+		version = fmt.Sprintf("%s-git:%s", version, CommitHash[:8])
+	}
+
+	return version
+}
+
+// Tags returns the list of build tags that were compiled into the executable.
+func Tags() []string {
+	if len(RawTags) == 0 {
+		return nil
+	}
+
+	return strings.Split(RawTags, ",")
+}
+
+// Get build information from the runtime.
+func init() {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		GoVersion = info.GoVersion
+		for _, setting := range info.Settings {
+			switch setting.Key {
+			case "vcs.revision":
+				CommitHash = setting.Value
+
+			case "-tags":
+				RawTags = setting.Value
+			}
+		}
+	}
 }

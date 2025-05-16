@@ -23,17 +23,24 @@
 package watch
 
 import (
+	"fmt"
+	"slices"
 	"time"
 
 	"github.com/blob42/gosuki"
 	"github.com/blob42/gosuki/internal/database"
-	"github.com/blob42/gosuki/internal/logging"
+	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/manager"
+	"github.com/blob42/gosuki/pkg/parsing"
 
 	"github.com/fsnotify/fsnotify"
 )
 
-var log = logging.GetLogger("WATCH")
+var (
+	log = logging.GetLogger("WATCH")
+)
+
+type EventType int
 
 // Modules the implement their bookmark loading through a Run() method with an
 // internal logic of handling bookmarks and direct sync with gosuki DB
@@ -45,6 +52,21 @@ type Runner interface {
 type WatchRunner interface {
 	Watcher
 	Runner
+}
+
+// Loader is an interface for modules that can load bookmarks. It requires the implementation of a Load method,
+// which returns a slice of pointers to gosuki.Bookmark and an error.
+type Loader interface {
+	Load() ([]*gosuki.Bookmark, error)
+}
+
+// WatchLoader is an interface that combines the capabilities of both Watcher and Loader interfaces.
+// It is intended for modules that need to watch for changes and also load bookmarks through the Load method.
+type WatchLoader interface {
+	Watcher
+	Loader
+
+	Name() string // module name
 }
 
 type IntervalFetcher interface {
@@ -73,13 +95,12 @@ type Shutdowner interface {
 	Shutdown() error
 }
 
-// Stats interface can be implemented in modules that keep and track stats
-type Stats interface {
+// StatMaker interface can be implemented in modules that keep and track stats
+type StatMaker interface {
 	ResetStats()
 }
 
-// WatchDescriptor wraps around an fsnotify.Watcher and provides additional
-// functionality for managing file system watches.
+// WatchDescriptor is a warpper around an fsnotify.Watcher that defines watch properties.
 type WatchDescriptor struct {
 	// ID is a unique identifier for the watch descriptor.
 	ID string
@@ -95,6 +116,17 @@ type WatchDescriptor struct {
 
 	// isWatching is a boolean flag that indicates whether this WatchDescriptor is actively watching any file or directory.
 	isWatching bool
+
+	// List of unique event names that where encountered
+	// Useful to track unique filenames in a watched path
+	TrackEventNames bool
+	EventNames      []string
+}
+
+func (w *WatchDescriptor) AddEventName(name string) {
+	if !slices.Contains(w.EventNames, name) {
+		w.EventNames = append(w.EventNames, name)
+	}
 }
 
 func (w WatchDescriptor) hasReducer() bool {
@@ -116,7 +148,7 @@ func NewWatcher(name string, watches ...*Watch) (*WatchDescriptor, error) {
 
 	fswatcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating fsnotify watcher: %w", err)
 	}
 
 	watchedMap := make(map[string]*Watch)
@@ -136,7 +168,7 @@ func NewWatcher(name string, watches ...*Watch) (*WatchDescriptor, error) {
 
 		err = watcher.W.Add(v.Path)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("adding watch path: %s", v.Path)
 		}
 	}
 	return watcher, nil
@@ -146,7 +178,10 @@ func NewWatcher(name string, watches ...*Watch) (*WatchDescriptor, error) {
 type Watch struct {
 	Path       string        // Path to watch for events
 	EventTypes []fsnotify.Op // events to watch for
-	EventNames []string      // event names to watch for (file/dir names)
+
+	// event names to watch for (file/dir names)
+	// use "*" to watch all names
+	EventNames []string
 
 	// Reset the watcher at each event occurence (useful for `create` events)
 	ResetWatch bool
@@ -158,9 +193,43 @@ type WatchWork struct {
 }
 
 func (w WatchWork) Run(m manager.UnitManager) {
+	watchRun(w, m)
+}
+
+func WatchWorkers(m *manager.Manager) []*WatchWork {
+	res := []*WatchWork{}
+	workers := m.Units()
+	for _, w := range workers {
+		ww, ok := w.(WatchWork)
+		if ok {
+			res = append(res, &ww)
+		}
+	}
+	return res
+}
+
+// A module that needs to watch paths to load boomkarks. Browsers SHOULD use
+// WatchRunner instead.
+type WatchLoad struct {
+	WatchLoader
+}
+
+// Implement work unit for watch loaders
+func (w WatchLoad) Run(m manager.UnitManager) {
+	watchRun(w, m)
+}
+
+// shared watch running implementation for all units that rely on FS watching
+func watchRun(w Watcher, m manager.UnitManager) {
 	watcher := w.Watch()
 	if !watcher.isWatching {
-		go WatchLoop(w.WatchRunner)
+		switch w := w.(type) {
+		case WatchLoad:
+			go WatchLoop(w.WatchLoader)
+		case WatchWork:
+			go WatchLoop(w.WatchRunner)
+		}
+
 		watcher.isWatching = true
 
 		for _, watch := range watcher.Watches {
@@ -170,7 +239,9 @@ func (w WatchWork) Run(m manager.UnitManager) {
 
 	// wait for stop signal
 	<-m.ShouldStop()
-	sht, ok := w.WatchRunner.(Shutdowner)
+
+	// if module implements shutdowner
+	sht, ok := w.(Shutdowner)
 	if ok {
 		if err := sht.Shutdown(); err != nil {
 			m.Panic(err)
@@ -181,7 +252,8 @@ func (w WatchWork) Run(m manager.UnitManager) {
 
 // Implement work unit for interval runners
 type IntervalWork struct {
-	Name string
+	Name string //TODO: hide this field from public api
+
 	IntervalFetcher
 }
 
@@ -195,109 +267,91 @@ func (iw IntervalWork) Run(m manager.UnitManager) {
 // Main thread for fetching bookmarks at regular intervals
 // One goroutine spawned per module
 func IntervalLoop(ir IntervalFetcher, modName string) {
-	var err error
-	var buffer *database.DB
 
-	// prepare buffer for module
-	buffer, err = database.NewBuffer(modName)
-	if err != nil {
-		log.Criticalf("could not create buffer for <%s>: %s", modName, err)
-		return
-	}
-	defer buffer.Close()
-
+	log.Debug("interval fetching", "module", modName, "interval", ir.Interval())
 	beat := time.NewTicker(ir.Interval()).C
 
-	loopEval := func() {
-		marks, err := ir.Fetch()
-		if err != nil {
-			log.Errorf("error fetching bookmarks: %s", err)
-		}
-
-		if len(marks) == 0 {
-			log.Warningf("no bookmarks fetched")
-			return
-		}
-
-		for _, mark := range marks {
-			log.Debugf("Fetched bookmark: %s", mark.URL)
-			buffer.UpsertBookmark(mark)
-		}
-		buffer.PrintBookmarks()
-		err = buffer.SyncToCache()
-		if err != nil {
-			log.Errorf("error syncing buffer to cache: %s", err)
-			return
-		}
-		database.ScheduleSyncToDisk()
+	if err := database.LoadBookmarks(ir.Fetch, modName); err != nil {
+		log.Errorf("could not create buffer for <%s>: %s", modName, err)
 	}
-
-	loopEval()
 	for range beat {
-		loopEval()
+		if err := database.LoadBookmarks(ir.Fetch, modName); err != nil {
+			log.Errorf("could not create buffer for <%s>: %s", modName, err)
+		}
 	}
 
 }
 
 // Main thread for watching file changes
-func WatchLoop(w WatchRunner) {
+func WatchLoop(w any) {
+	var watcher Watcher
 
-	watcher := w.Watch()
+	watcher, ok := w.(Watcher)
+	if !ok {
+		log.Errorf("%v does not implement Watcher", w)
+	}
+
+	watch := watcher.Watch()
 	beat := time.NewTicker(1 * time.Second).C
-	log.Debugf("<%s> Started watcher", watcher.ID)
+	log.Debugf("<%s> Started watcher", watch.ID)
 watchloop:
 	for {
 
 		select {
 		case <-beat:
-			// log.Debugf("main watch loop beat %s", watcher.ID)
-		case event := <-watcher.W.Events:
+		// log.Debugf("main watch loop beat %s", watcher.ID)
+		case event := <-watch.W.Events:
 			// Very verbose
-			// log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
+			log.Debug("event", "OP", event.Op, "eventName", event.Name)
 
 			// On Chrome like browsers the bookmarks file is created
 			// at every change.
 
 			/*
-			 * When a file inside a watched directory is renamed/created,
-			 * fsnotify does not seem to resume watching the newly created file, we
-			 * need to destroy and create a new watcher. The ResetWatcher() and
-			 * `break` statement ensure we get out of the `select` block and catch
-			 * the newly created watcher to catch events even after rename/create
-			 *
-			 * NOTE: this does not seem to be an issue anymore. More testing
-			 * and user feedback is needed. Leaving this comment here for now.
+			* When a file inside a watched directory is renamed/created,
+			* fsnotify does not seem to resume watching the newly created file, we
+			* need to destroy and create a new watcher. The ResetWatcher() and
+			* `break` statement ensure we get out of the `select` block and catch
+			* the newly created watcher to catch events even after rename/create op
+			*
+			* NOTE: this does not seem to be an issue anymore.
+			* Leaving comment until further testing
 			 */
 
-			for _, watched := range watcher.Watches {
+			for _, watched := range watch.Watches {
+				if watch.TrackEventNames {
+					watch.AddEventName(event.Name)
+				}
 				for _, watchedEv := range watched.EventTypes {
 					for _, watchedName := range watched.EventNames {
-						// log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
+						log.Debug("event", "OP", event.Op, "eventName", event.Name)
 
 						if event.Op&watchedEv == watchedEv &&
-							event.Name == watchedName {
+							(watchedName == "*" || event.Name == watchedName) {
 
 							// For watchers who use a reducer forward the event
 							// to the reducer channel
-							if watcher.hasReducer() {
-								ch := watcher.eventsChan
+							if watch.hasReducer() {
+								ch := watch.eventsChan
 								ch <- event
 
 								// the reducer will call Run()
 							} else {
 								go func() {
-									w.Run()
-									if stats, ok := w.(Stats); ok {
-										stats.ResetStats()
+									if counter, ok := w.(parsing.Counter); ok {
+										counter.ResetCount()
+									}
+									if runner, ok := w.(Runner); ok {
+										runner.Run()
+									} else if loader, ok := w.(WatchLoader); ok {
+										if err := database.LoadBookmarks(loader.Load, loader.Name()); err != nil {
+											log.Errorf("loading bookmarks: %s", err)
+										}
 									}
 								}()
 							}
 
-							//log.Warningf("event: %v | eventName: %v", event.Op, event.Name)
-
-							//TODO!: remove condition and use interface instead
-							// if the runner inplmenets reset watcher we call
-							// its reset watcher
+							// log.Debug("event", event.Op, "eventName", event.Name)
 							if watched.ResetWatch {
 								log.Debugf("resetting watchers")
 								if r, ok := w.(ResetWatcher); ok {
@@ -305,7 +359,7 @@ watchloop:
 									// break out of watch loop
 									break watchloop
 								} else {
-									log.Fatalf("<%s> does not implement ResetWatcher", watcher.ID)
+									log.Fatalf("<%s> does not implement ResetWatcher", watch.ID)
 								}
 							}
 
@@ -314,16 +368,7 @@ watchloop:
 				}
 			}
 
-			// Firefox keeps the file open and makes changes on it
-			// It needs a debouncer
-			//if event.Name == bookmarkPath {
-			//log.Debugf("event: %v | eventName: %v", event.Op, event.Name)
-			////go debounce(1000*time.Millisecond, spammyEventsChannel, w)
-			//ch := w.EventsChan()
-			//ch <- event
-			////w.Run()
-			//}
-		case err := <-watcher.W.Errors:
+		case err := <-watch.W.Errors:
 			if err != nil {
 				log.Error(err)
 			}

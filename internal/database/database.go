@@ -28,9 +28,16 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
-	"github.com/blob42/gosuki/internal/logging"
+	"github.com/lithammer/fuzzysearch/fuzzy"
+
+	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/config"
+	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/tree"
 
 	"github.com/jmoiron/sqlx"
@@ -40,24 +47,44 @@ import (
 
 var (
 	//TODO!: document this
-	_sql3conns           []*sqlite3.SQLiteConn // Only used for backup hook
 
-	DefaultDBPath = "./"
+	// List of sql connections, used to do a sql backup
+	_sql3BackupConns []*sqlite3.SQLiteConn
+
+	//FIXME: hard coded path
+	DefaultDBPath = "~/.local/share/gosuki/"
+
+	// Handle to on-disk gosuki database
+	DiskDB *DB
+
+	dbConfig *DBConfig
 )
 
+// This is a RedBlack Tree Hashmap that holds in memory the last state of the
+// bookmark tree.It is used as fast db queries.
+// Each URL holds a pointer to a node in [nodeTree]
 type Index = *hashmap.RBTree
+
+// URLTree Node
 type Node = tree.Node
 
-var log = logging.GetLogger("DB")
+var (
+	log = logging.GetLogger("DB")
+
+	// Default sqlite3 driver
+	DriverDefault = "sqlite3_gosuki"
+)
 
 const (
 	DBFileName = "gosuki.db"
 
 	DBTypeFileDSN = "file:%s"
 
+	// Opening DBs with this driver allows to track connections
+	// This is used to perform sqlite backup
 	DriverBackupMode = "sqlite_hook_backup"
-	DriverDefault    = "sqlite3"
-	GosukiMainTable  = "bookmarks"
+
+	GosukiMainTable = "bookmarks"
 )
 
 type DBType int
@@ -89,7 +116,8 @@ const (
 		tags text default '',
 		desc text default '',
 		modified integer default (strftime('%s')),
-		flags integer default 0
+		flags integer default 0,
+		module text default '' 
 	)
     `
 )
@@ -144,7 +172,7 @@ func (o *SQLXDBOpener) Get() *sqlx.DB {
 }
 
 // DB encapsulates an sql.DB struct. All interactions with memory/buffer and
-// disk databases are done through the DB object
+// disk databases are done through the DB instance.
 type DB struct {
 	Name       string
 	Path       string
@@ -152,6 +180,7 @@ type DB struct {
 	EngineMode string
 	AttachedTo []string
 	Type       DBType
+	mu         *sync.RWMutex
 
 	filePath string
 
@@ -191,7 +220,7 @@ func NewDB(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB 
 	var path string
 	var dbType DBType
 
-	// Use name as path for  in memory database
+	// Use name as path for in memory database
 	if dbPath == "" {
 		path = fmt.Sprintf(dbFormat, name)
 		dbType = DBTypeInMemory
@@ -229,6 +258,7 @@ func NewDB(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB 
 		SQLXOpener: &SQLXDBOpener{},
 		Type:       dbType,
 		filePath:   dbPath,
+		mu:         &sync.RWMutex{},
 		LockChecker: &VFSLockChecker{
 			path: dbPath,
 		},
@@ -244,7 +274,7 @@ func (db *DB) Init() (*DB, error) {
 	var err error
 
 	if db.Handle != nil {
-		log.Warningf("%s: already initialized", db)
+		log.Warn("db already initialized", "db", db.Name)
 		return db, nil
 	}
 
@@ -273,7 +303,6 @@ func (db *DB) Init() (*DB, error) {
 	if err != nil {
 		return nil, DBError{DBName: db.Name, Err: err}
 	}
-
 
 	return db, nil
 }
@@ -362,67 +391,87 @@ func (db *DB) CountRows(table string) int {
 	return count
 }
 
-// Struct represetning the schema of `bookmarks` db.
-// The order in the struct respects the columns order
-type SBookmark struct {
-	id       int
-	URL      string
-	metadata string
-	tags     string
-	desc     string
-	modified int64
-	flags    int
-}
+func GetDBPath() string {
+	var err error
 
-// Scans a row into `SBookmark` schema
-func ScanBookmarkRow(row *sql.Rows) (*SBookmark, error) {
-	scan := new(SBookmark)
-	err := row.Scan(
-		&scan.id,
-		&scan.URL,
-		&scan.metadata,
-		&scan.tags,
-		&scan.desc,
-		&scan.modified,
-		&scan.flags,
-	)
-
+	// Check and initialize local db as last step
+	// browser bookmarks should already be in cache
+	dbdir := GetDBDir()
+	err = utils.MkDir(dbdir)
 	if err != nil {
-		return nil, err
+		log.Error(err)
 	}
 
-	return scan, nil
+	dbpath := filepath.Join(dbdir, DBFileName)
+	// Verifiy that local db directory path is writeable
+	err = utils.MkDir(dbdir)
+	if err != nil {
+		log.Error(err)
+	}
+
+	return dbpath
 }
 
-//TODO: doc
+// flushSqliteCon closes a SQLite database connection and removes it from the internal list of connections.
 func flushSqliteCon(con *sqlx.DB) {
 	con.Close()
-	_sql3conns = _sql3conns[:len(_sql3conns)-1]
+	_sql3BackupConns = _sql3BackupConns[:len(_sql3BackupConns)-1]
 	// log.Debugf("Flushed sqlite conns -> %v", _sql3conns)
 }
 
-func registerSqliteHooks() {
+// Testing custom func
+func SQLFuncFoo(in string) string {
+	return strings.ToUpper(in + "foo")
+}
+
+func SQLFuzzy(test, in string) bool {
+	return fuzzy.MatchFold(test, in)
+}
+
+// RegisterSqliteHooks registers a SQLite backup hook with additional connection tracking.
+func RegisterSqliteHooks() {
+
+	sql.Register(DriverDefault,
+		&sqlite3.SQLiteDriver{
+			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+				if err := conn.RegisterFunc("sqlfoo", SQLFuncFoo, true); err != nil {
+					return err
+				}
+
+				if err := conn.RegisterFunc("fuzzy", SQLFuzzy, true); err != nil {
+					return err
+				}
+
+				return nil
+			},
+		})
+
 	// sqlite backup hook
 	// log.Debugf("backup_hook: registering driver %s", DriverBackupMode)
-	// Register the hook
 	sql.Register(DriverBackupMode,
 		&sqlite3.SQLiteDriver{
-			//TODO!: document
-			//add extra connection that are used by the sql.Backup function
+			// ConnectHook is a function that is called when a new connection to the SQLite database is established.
+			// See: https://github.com/mattn/go-sqlite3/blob/82bc911e85b3def2940e41767480745bcbb6ef45/_example/hook/hook.go#L59
+			// See: sync.go: SyncToDisk
 			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
 				//log.Debugf("[ConnectHook] registering new connection")
-				_sql3conns = append(_sql3conns, conn)
+				_sql3BackupConns = append(_sql3BackupConns, conn)
 				// log.Debugf("[ConnectHook] registered new connection")
 				// log.Debugf("%v", _sql3conns)
 				return nil
 			},
 		})
-
 }
 
-//TODO!: manual initialization
-// func init() {
-// 	initCache()
-// 	registerSqliteHooks()
-// 	StartSyncScheduler()
-// }
+type DBConfig struct {
+	SyncInterval time.Duration `toml:"sync-interval" mapstructure:"sync-interval"`
+	DBPath       string        `toml:"db-path" mapstructure:"db-path"`
+}
+
+func init() {
+	dbConfig = &DBConfig{
+		SyncInterval: time.Second * 4,
+		DBPath:       DefaultDBPath,
+	}
+	config.RegisterConfigurator("database", config.AsConfigurator(dbConfig))
+}

@@ -43,8 +43,10 @@ import (
 
 	"github.com/blob42/gosuki/hooks"
 	"github.com/blob42/gosuki/internal/database"
-	"github.com/blob42/gosuki/internal/logging"
+	"github.com/blob42/gosuki/pkg/events"
+	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/modules"
+	"github.com/blob42/gosuki/pkg/parsing"
 	"github.com/blob42/gosuki/pkg/profiles"
 	"github.com/blob42/gosuki/pkg/tree"
 	"github.com/blob42/gosuki/pkg/watch"
@@ -69,7 +71,7 @@ var jsonNodePaths = struct {
 
 // type used to store json nodes in memory for parsing.
 type RawNode struct {
-	name         []byte
+	title        []byte
 	nType        []byte
 	url          []byte
 	children     []byte
@@ -88,7 +90,7 @@ func (rawNode *RawNode) parseItems(nodeData []byte) {
 
 	jsonparser.EachKey(nodeData, func(idx int, value []byte, vt jsonparser.ValueType, err error) {
 		if err != nil {
-			log.Critical("error parsing node items")
+			log.Error("error parsing node items")
 		}
 
 		switch idx {
@@ -97,7 +99,7 @@ func (rawNode *RawNode) parseItems(nodeData []byte) {
 
 		case 1: // name or title
 			//currentNode.Name = s(value)
-			rawNode.name = value
+			rawNode.title = value
 		case 2:
 			//currentNode.URL = s(value)
 			rawNode.url = value
@@ -108,15 +110,16 @@ func (rawNode *RawNode) parseItems(nodeData []byte) {
 }
 
 // Returns *tree.Node from *RawNode
-func (rawNode *RawNode) getNode() *tree.Node {
+func (rawNode *RawNode) getNode(browserName string) *tree.Node {
 	node := new(tree.Node)
 	nType, ok := jsonNodeTypes[string(rawNode.nType)]
 	if !ok {
-		log.Criticalf("unknown node type: %s", rawNode.nType)
+		log.Errorf("unknown node type: %s", rawNode.nType)
 	}
 	node.Type = nType
 
-	node.Name = string(rawNode.name)
+	node.Title = string(rawNode.title)
+	node.Module = browserName
 
 	return node
 }
@@ -125,10 +128,17 @@ func (rawNode *RawNode) getNode() *tree.Node {
 type Chrome struct {
 	// holds browsers.BrowserConfig
 	*ChromeConfig
+
+	parsing.Counter
+	lastSentProgress float64
+
+	activeProfile *profiles.Profile
+
+	activeFlavour *profiles.Flavour
 }
 
 func (ch *Chrome) Init(ctx *modules.Context, p *profiles.Profile) error {
-	// if called without profile setup default profile
+	// NOTE: if called without profile setup default profile
 	if p == nil {
 		prof, err := ProfileManager.GetProfileByID(BrowserName, ch.Profile)
 		if err != nil {
@@ -144,7 +154,7 @@ func (ch *Chrome) Init(ctx *modules.Context, p *profiles.Profile) error {
 	}
 
 	ch.ChromeConfig = NewChromeConfig()
-	ch.Profile = p.Id
+	ch.Profile = p.ID
 
 	if bookmarkDir, err := p.AbsolutePath(); err != nil {
 		return err
@@ -225,11 +235,15 @@ func (ch *Chrome) Watch() *watch.WatchDescriptor {
 }
 
 func (ch *Chrome) Run() {
+	ch.run(true)
+}
+
+func (ch *Chrome) run(runTask bool) {
 	startRun := time.Now()
 
 	// Rebuild node tree
 	ch.NodeTree = &tree.Node{
-		Name:   RootNodeName,
+		Title:  RootNodeName,
 		Parent: nil,
 		Type:   tree.RootNode,
 	}
@@ -237,13 +251,7 @@ func (ch *Chrome) Run() {
 	// Load bookmark file
 	bookmarkPath, err := ch.BookmarkPath()
 	if err != nil {
-		log.Critical(err)
-		return
-	}
-
-	f, err := os.ReadFile(bookmarkPath)
-	if err != nil {
-		log.Critical(err)
+		log.Error(err)
 		return
 	}
 
@@ -255,12 +263,12 @@ func (ch *Chrome) Run() {
 		offset int,
 		err error) {
 		if err != nil {
-			log.Panic(err)
+			log.Fatal(err)
 		}
 
 		err = jsonParseRecursive(nil, childVal, dataType, offset)
 		if err != nil {
-			log.Critical(err)
+			log.Error(err)
 		}
 
 	}
@@ -279,13 +287,13 @@ func (ch *Chrome) Run() {
 			return nil
 		}
 
-		ch.CurrentNodeCount++
+		ch.IncNodeCount()
 		rawNode := new(RawNode)
 		rawNode.parseItems(node)
 
 		//log.Debugf("Parsing root folder %s", rawNode.name)
 
-		currentNode := rawNode.getNode()
+		currentNode := rawNode.getNode(ch.Name)
 
 		// Process this node as parent node later
 		parentNodes = append(parentNodes, currentNode)
@@ -310,10 +318,10 @@ func (ch *Chrome) Run() {
 	}
 
 	// Main recursive parsing underneath each root folder
-	jsonParseRecursive = func(key []byte,
+	jsonParseRecursive = func(_ []byte, //key
 		node []byte,
 		dataType jsonparser.ValueType,
-		offset int,
+		_ int, //offset
 	) error {
 
 		// If node type is string ignore (needed for sync_transaction_version)
@@ -321,12 +329,12 @@ func (ch *Chrome) Run() {
 			return nil
 		}
 
-		ch.CurrentNodeCount++
+		ch.IncNodeCount()
 
 		rawNode := new(RawNode)
 		rawNode.parseItems(node)
 
-		currentNode := rawNode.getNode()
+		currentNode := rawNode.getNode(ch.Name)
 		//log.Debugf("parsing node %s", currentNode.Name)
 
 		// if parents array is not empty
@@ -357,15 +365,31 @@ func (ch *Chrome) Run() {
 
 		// if node is url(leaf), handle the url
 		if currentNode.Type == tree.URLNode {
-
 			currentNode.URL = string(rawNode.url)
-			ch.CurrentURLCount++
+			ch.IncURLCount()
+
+			progress := ch.Progress()
+			if progress-ch.lastSentProgress >= 0.05 || progress == 1 {
+				ch.lastSentProgress = progress
+				go func() {
+					msg := events.ProgressUpdateMsg{
+						ID:           ch.ModInfo().ID,
+						Instance:     ch,
+						CurrentCount: ch.URLCount(),
+						Total:        ch.Total(),
+					}
+					if runTask {
+						msg.NewBk = true
+					}
+					events.TUIBus <- msg
+				}()
+			}
 
 			// Check if url-node already in index
 			var nodeVal *tree.Node
 			iVal, found := ch.URLIndex.Get(currentNode.URL)
 
-			nameHash := xxhash.ChecksumString64(currentNode.Name)
+			nameHash := xxhash.ChecksumString64(currentNode.Title)
 
 			// If node url not in index, add it to index
 			if !found {
@@ -395,7 +419,7 @@ func (ch *Chrome) Run() {
 				// hash(name) is different meaning new commands/tags could
 				// be added, we need to process the parsing hoos
 				if nodeVal.NameHash != nameHash {
-					log.Debugf("URL name changed !")
+					// log.Debugf("URL name changed !")
 
 					// Run parse hooks on node
 					ch.CallHooks(currentNode)
@@ -408,12 +432,18 @@ func (ch *Chrome) Run() {
 			//If parent is folder, add it as tag and add current node as child
 			//And add this link as child
 			if currentNode.Parent.Type == tree.FolderNode {
-				log.Debug("Parent is folder, parsing as tag ...")
-				currentNode.Tags = append(currentNode.Tags, currentNode.Parent.Name)
+				// log.Debug("Parent is folder, parsing as tag ...")
+				currentNode.Tags = append(currentNode.Tags, currentNode.Parent.Title)
 			}
 		}
 
 		return nil
+	}
+
+	f, err := os.ReadFile(bookmarkPath)
+	if err != nil {
+		log.Error(err)
+		return
 	}
 
 	// starts from the "roots" key of chrome json bookmark file
@@ -421,8 +451,8 @@ func (ch *Chrome) Run() {
 
 	// Start a new node tree building job
 	jsonparser.ObjectEach(rootsData, jsonParseRoots)
-	ch.LastFullTreeParseTime = time.Since(startRun)
-	log.Debugf("<%s> parsed tree in %s", ch.Name, ch.LastFullTreeParseTime)
+	ch.SetLastTreeParseRuntime(time.Since(startRun))
+	log.Debugf("<%s> parsed tree in %s", ch.Name, ch.LastFullTreeParseRT())
 	// Finished node tree building job
 
 	// Debug walk tree
@@ -432,7 +462,7 @@ func (ch *Chrome) Run() {
 	ch.RebuildIndex()
 
 	// Finished parsing
-	log.Debugf("<%s> parsed %d bookmarks and %d nodes", ch.Name, ch.CurrentURLCount, ch.CurrentNodeCount)
+	log.Debugf("<%s> parsed %d bookmarks and %d nodes", ch.Name, ch.URLCount(), ch.NodeCount())
 
 	//Add nodeTree to Cache
 	//log.Debugf("<%s> buffer content", ch.Name)
@@ -461,24 +491,44 @@ func (ch *Chrome) Run() {
 	// until local db is already populated and preloaded
 	// debugPrint("%d", BufferDB.Count())
 
-	//TODO!: test this code
+	//TODO!: double check syncing
 	if err = ch.BufferDB.SyncToCache(); err != nil {
-		log.Criticalf("<%s>: %w", err)
+		log.Errorf("syncing buffer to cache: %v", err)
 	}
 
 	database.ScheduleSyncToDisk()
-	ch.LastWatchRunTime = time.Since(startRun)
+	ch.SetLastWatchRuntime(time.Since(startRun))
 }
 
-// Load() will be called right after a browser is initialized
-func (ch *Chrome) Load() error {
-	go ch.Run()
+// PreLoad() will be called right after a browser is initialized
+func (ch *Chrome) PreLoad(_ *modules.Context) error {
+	bookmarkPath, err := ch.BookmarkPath()
+	if err != nil {
+		log.Error(err)
+	}
+	ch.SetTotal(preCountCountUrls(bookmarkPath))
+
+	// Send total to msg bus
+	go func() {
+		events.TUIBus <- events.StartedLoadingMsg{
+			ID:    modules.ModID(ch.Name),
+			Total: ch.Total(),
+		}
+	}()
+
+	go ch.run(false)
+	return nil
+}
+
+// Implement modules.Shutdowner
+func (ch *Chrome) Shutdown() error {
 	return nil
 }
 
 func NewChrome() *Chrome {
 	return &Chrome{
 		ChromeConfig: ChromeCfg,
+		Counter:      &parsing.BrowserCounter{},
 	}
 }
 
@@ -490,8 +540,8 @@ func init() {
 
 var _ modules.BrowserModule = (*Chrome)(nil)
 var _ modules.ProfileInitializer = (*Chrome)(nil)
-var _ modules.Loader = (*Chrome)(nil)
+var _ modules.PreLoader = (*Chrome)(nil)
 var _ watch.WatchRunner = (*Chrome)(nil)
 var _ hooks.HookRunner = (*Chrome)(nil)
-var _ watch.Stats = (*Chrome)(nil)
+var _ parsing.Counter = (*Chrome)(nil)
 var _ profiles.ProfileManager = (*Chrome)(nil)

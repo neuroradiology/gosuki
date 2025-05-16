@@ -22,12 +22,19 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 
-	"github.com/blob42/gosuki/internal/api"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mattn/go-isatty"
+
 	db "github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/config"
+	"github.com/blob42/gosuki/pkg/events"
+	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/modules"
 	"github.com/blob42/gosuki/pkg/profiles"
 	"github.com/blob42/gosuki/pkg/watch"
@@ -38,9 +45,9 @@ import (
 )
 
 var startDaemonCmd = &cli.Command{
-	Name:    "daemon",
-	Aliases: []string{"d"},
-	Usage:   "run browser watchers",
+	Name:    "start",
+	Aliases: []string{"s"},
+	Usage:   "Starts the gosuki daemon",
 	// Category: "daemon"
 	Action: startDaemon,
 }
@@ -49,67 +56,75 @@ var startDaemonCmd = &cli.Command{
 func runBrowserModule(m *manager.Manager,
 	c *cli.Context,
 	browserMod modules.BrowserModule,
-	p *profiles.Profile) error {
+	pfl *profiles.Profile,
+	flav *profiles.Flavour) error {
 	var profileName string
 	mod := browserMod.ModInfo()
 	// Create context
 	modContext := &modules.Context{
-		Cli: c,
+		Context: context.Background(),
+		Cli:     c,
 	}
 	//Create a browser instance
 	browser, ok := mod.New().(modules.BrowserModule)
 	if !ok {
 		return fmt.Errorf("module <%s> is not a BrowserModule", mod.ID)
 	}
-	log.Debugf("created browser instance <%s>", browser.Config().Name)
+	config := browser.Config()
+	// if flav != nil {
+	// 	config.Flavour = flav
+	// }
+	// if pfl != nil {
+	// 	config.ActiveProfile = pfl
+	// }
+	log.Debugf("created browser instance <%s>", config.Name)
 
 	// shutdown logic
 	_, isShutdowner := browser.(modules.Shutdowner)
 	if !isShutdowner {
-		log.Warningf("browser <%s> does not implement modules.Shutdowner", browser.Config().Name)
+		log.Warn("does not implement modules.Shutdowner", "browser", config.Name)
 	}
 
-	if p != nil {
+	if pfl != nil {
 		bpm, ok := browser.(profiles.ProfileManager)
 		if !ok {
 			err := fmt.Errorf("<%s> does not implement profiles.ProfileManager",
-				browser.Config().Name)
-			log.Critical(err)
+				config.Name)
+			log.Error(err)
 			return err
 		}
-		if err := bpm.UseProfile(*p); err != nil {
-			log.Criticalf("could not use profile <%s>", p.Name)
+		if err := bpm.UseProfile(pfl, flav); err != nil {
+			log.Errorf("could not use profile <%s>", pfl.Name)
 			return err
 		}
-		profileName = p.Name
-	}
-
-	// calls the setup logic for each browser instance which
-	// includes the browsers.Initializer and browsers.Loader interfaces
-	//PERF:
-	err := modules.SetupBrowser(browser, modContext, p)
-	if err != nil {
-		log.Errorf("setting up <%s> %v", browser.Config().Name, err)
-		return err
+		profileName = pfl.Name
 	}
 
 	runner, ok := browser.(watch.WatchRunner)
 	if !ok {
-		err = fmt.Errorf("<%s> must implement watch.WatchRunner interface", browser.Config().Name)
-		log.Critical(err)
+		return errors.New("must implement watch.WatchRunner interface")
+	}
+
+	go func() {
+		events.TUIBus <- events.RunnerStarted{WatchRunner: runner}
+	}()
+
+	// calls the setup logic for each browser instance which
+	// includes the browsers.Initializer and browsers.Loader interfaces
+	//PERF:
+	err := modules.SetupBrowser(browser, modContext, pfl)
+	if err != nil {
 		return err
 	}
 
 	w := runner.Watch()
 	if w == nil {
-		err = fmt.Errorf("<%s> must return a valid watch descriptor", browser.Config().Name)
-		log.Critical(err)
-		return err
+		return errors.New("must return a valid watch descriptor")
 	}
 	log.Debugf("adding watch runner <%s>", runner.Watch().ID)
 
 	// create the worker name
-	unitName := browser.Config().Name
+	unitName := config.Name
 	if len(profileName) > 0 {
 		unitName = fmt.Sprintf("%s(%s)", unitName, profileName)
 	}
@@ -123,13 +138,10 @@ func runBrowserModule(m *manager.Manager,
 	return nil
 }
 
-func startDaemon(c *cli.Context) error {
-	defer utils.CleanFiles()
-	manager := manager.NewManager()
-	manager.ShutdownOn(os.Interrupt)
-
-	api := api.NewApi()
-	manager.AddUnit(api, "api")
+func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
+	defer func(m *manager.Manager) {
+		go m.Start()
+	}(mngr)
 
 	// Initialize sqlite database available in global `cacheDB` variable
 	db.Init()
@@ -148,28 +160,38 @@ func startDaemon(c *cli.Context) error {
 		log.Debugf("starting <%s>", name)
 
 		modContext := &modules.Context{
-			Cli: c,
+			Context: context.Background(),
+			Cli:     c,
+			IsTUI:   c.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()),
 		}
 
-		// generic module need to implement watch.IntervalFetcher
-		ifetcher, ok := modInstance.(watch.IntervalFetcher)
-		if !ok {
-			log.Criticalf("module <%s> does not implement watch.IntervalFetcher", name)
+		// generic modules need to implement either watch.IntervalFetcher or
+		// watch.WatchLoder
+		var worker manager.WorkUnit
+		if ifetcher, ok := modInstance.(watch.IntervalFetcher); ok {
+			// Module implements IntervalFetcher
+			worker = watch.IntervalWork{
+				Name:            string(name),
+				IntervalFetcher: ifetcher,
+			}
+		} else if watchLoader, ok := modInstance.(watch.WatchLoader); ok {
+			// Module implements WatchLoader
+			worker = watch.WatchLoad{
+				WatchLoader: watchLoader,
+			}
+		} else {
+			log.Error("not implement: watch.IntervalFetcher or watch.WatchLoader", "mod", name)
 			continue
 		}
 
 		// Setup module
 		err := modules.SetupModule(mod, modContext)
 		if err != nil {
-			log.Errorf("setting up <%s> %v", name, err)
-			return err
+			log.Error(err, "mod", name)
+			continue
 		}
 
-		worker := watch.IntervalWork{
-			Name:            string(name),
-			IntervalFetcher: ifetcher,
-		}
-		manager.AddUnit(worker, string(name))
+		mngr.AddUnit(worker, string(name))
 	}
 
 	// start all registered browser modules
@@ -178,31 +200,33 @@ func startDaemon(c *cli.Context) error {
 	// instanciate all browsers
 	for _, browserMod := range registeredBrowsers {
 		mod := browserMod.ModInfo()
-		fmt.Printf("starting <%s>\n", mod.ID)
+		log.Infof("starting <%s>", mod.ID)
 
 		//Create a temporary browser instance to check if it implements
 		// the ProfileManager interface
 		browser, ok := mod.New().(modules.BrowserModule)
 		if !ok {
-			log.Criticalf("TODO: module <%s> is not a BrowserModule", mod.ID)
+			log.Fatalf("Module <%s> is not a BrowserModule", mod.ID)
 		}
 
 		// call runModule for each profile
 		bpm, ok := browser.(profiles.ProfileManager)
 		if ok {
-			if c.Bool("watch-all") || bpm.WatchAllProfiles() {
-				falvours := bpm.ListFlavours()
-				for _, f := range falvours {
-					profs, err := bpm.GetProfiles(f.Name)
+			if c.Bool("watch-all") ||
+				(config.GlobalConfig.WatchAll ||
+					bpm.WatchAllProfiles()) {
+				flavours := bpm.ListFlavours()
+				for _, flav := range flavours {
+					profs, err := bpm.GetProfiles(flav.Name)
 					if err != nil {
-						log.Critical("could not get profiles")
+						log.Error("could not get profiles", "browser", flav.Name)
 						continue
 					}
 					for _, p := range profs {
-						log.Debugf("profile: <%s>", p.Name)
-						err = runBrowserModule(manager, c, browserMod, p)
+						log.Debug("", "flavour", flav.Name, "profile", p.Name)
+						err = runBrowserModule(mngr, c, browserMod, p, &flav)
 						if err != nil {
-							log.Critical(err)
+							log.Error(err, "browser", flav.Name)
 							continue
 						}
 					}
@@ -210,25 +234,55 @@ func startDaemon(c *cli.Context) error {
 			} else {
 				log.Debugf("profile manager <%s> not watching all profiles",
 					browser.Config().Name)
-				err := runBrowserModule(manager, c, browserMod, nil)
+				err := runBrowserModule(mngr, c, browserMod, nil, nil)
 				if err != nil {
-					log.Error(err)
+					log.Error(err, "browser", browserMod.Config().Name)
 					continue
 				}
 			}
 		} else {
-			log.Warningf("module <%s> does not implement profiles.ProfileManager",
+			log.Info("not implemented profiles.ProfileManager", "browser",
 				browser.Config().Name)
-			if err := runBrowserModule(manager, c, browserMod, nil); err != nil {
-				log.Error(err)
+			if err := runBrowserModule(mngr, c, browserMod, nil, nil); err != nil {
+				log.Error(err, "browser", browser.Config().Name)
 				continue
 			}
 		}
 	}
 
-	go manager.Run()
+	return nil
+}
 
+func startDaemon(c *cli.Context) error {
+	defer utils.CleanFiles()
+
+	// initialize webui and non module units
+
+	tuiOpts := []tea.ProgramOption{
+		// tea.WithAltScreen(),
+	}
+
+	//TUI MODE
+	if c.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()) {
+		manager := initManager(true)
+
+		tui := NewTUI(func(tea.Model) tea.Cmd {
+			return func() tea.Msg {
+				err := startNormalDaemon(c, manager)
+				if err != nil {
+					return ErrMsg(err)
+				}
+				return DaemonStartedMsg{}
+			}
+		}, manager, tuiOpts...)
+
+		logging.SetTUI(tui.model.logBuffer)
+		return tui.Run()
+	}
+
+	manager := initManager(false)
+
+	startNormalDaemon(c, manager)
 	<-manager.Quit
-
 	return nil
 }

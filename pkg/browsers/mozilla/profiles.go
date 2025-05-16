@@ -26,8 +26,8 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/blob42/gosuki/internal/logging"
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/profiles"
 
 	"github.com/go-ini/ini"
@@ -52,9 +52,9 @@ var (
 
 	//TODO: multi platform
 	// linux mozilla browsers
-	MozBrowsers = map[string]profiles.BrowserFlavour{
-		FirefoxFlavour:   {FirefoxFlavour, "~/.mozilla/firefox"},
-		LibreWolfFlavour: {LibreWolfFlavour, "~/.librewolf"},
+	MozBrowsers = map[string]profiles.Flavour{
+		FirefoxFlavour:   {Name: FirefoxFlavour, BaseDir: "~/.mozilla/firefox"},
+		LibreWolfFlavour: {Name: LibreWolfFlavour, BaseDir: "~/.librewolf"},
 	}
 )
 
@@ -104,7 +104,7 @@ func (pm *MozProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, e
 	for _, section := range sections {
 		if ReIniProfiles.MatchString(section.Name()) {
 			p := &profiles.Profile{
-				Id:      section.Name(),
+				ID:      section.Name(),
 				BaseDir: f.BaseDir,
 			}
 
@@ -148,8 +148,8 @@ func (pm *MozProfileManager) GetProfileByName(flavour string, name string) (*pro
 	return nil, fmt.Errorf("profile %s not found", name)
 }
 
-func (pm *MozProfileManager) ListFlavours() []profiles.BrowserFlavour {
-	var result []profiles.BrowserFlavour
+func (pm *MozProfileManager) ListFlavours() []profiles.Flavour {
+	var result []profiles.Flavour
 
 	// detect local flavours
 	for _, v := range MozBrowsers {

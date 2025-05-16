@@ -26,7 +26,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/blob42/gosuki/internal/logging"
+	"github.com/blob42/gosuki/pkg/logging"
 
 	"github.com/fatih/structs"
 	"github.com/mitchellh/mapstructure"
@@ -48,39 +48,44 @@ const (
 // A Configurator allows multiple packages and modules to set and access configs
 // which can be mapped to any output format (toml, cli flags, env variables ...)
 type Configurator interface {
-	Set(opt string, v interface{}) error
-	Get(opt string) (interface{}, error)
-	Dump() map[string]interface{}
-	MapFrom(interface{}) error
+	Set(string, any) error
+	Get(string) (any, error)
+	Dump() map[string]any
+	MapFrom(any) error
 }
 
 // Global config holder
-type Config map[string]interface{}
+type Config map[string]any
 
-func (c Config) Set(opt string, v interface{}) error {
+func (c Config) Set(opt string, v any) error {
 	c[opt] = v
 	return nil
 }
 
-func (c Config) Get(opt string) (interface{}, error) {
+func (c Config) Get(opt string) (any, error) {
 	return c[opt], nil
 }
 
-func (c Config) Dump() map[string]interface{} {
+func (c Config) Dump() map[string]any {
 	return c
 }
 
 // TODO: document usage, help for implmenters
-// TEST: is this a sane way to use Decode ?
-func (c Config) MapFrom(src interface{}) error {
-	return mapstructure.Decode(src, &c)
+func (c Config) MapFrom(src any) error {
+	mapDecoderConfig.Result = &c
+	decoder, err := mapstructure.NewDecoder(mapDecoderConfig)
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(src)
 }
 
 type AutoConfigurator struct {
-	c interface{}
+	c any
 }
 
-func (ac AutoConfigurator) Set(opt string, v interface{}) error {
+func (ac AutoConfigurator) Set(opt string, v any) error {
 	// log.Debugf("setting option %s = %v", opt, v)
 	s := structs.New(ac.c)
 	f, ok := s.FieldOk(opt)
@@ -91,54 +96,65 @@ func (ac AutoConfigurator) Set(opt string, v interface{}) error {
 	return f.Set(v)
 }
 
-func (ac AutoConfigurator) Get(opt string) (interface{}, error) {
+func (ac AutoConfigurator) Get(opt string) (any, error) {
 	s := structs.New(ac.c)
 	f, ok := s.FieldOk(opt)
 	if !ok {
-		return nil, fmt.Errorf("%s option not defined", opt)
+		return nil, fmt.Errorf("%s : option not defined", opt)
 	}
 
 	return f.Value(), nil
 }
 
-func (ac AutoConfigurator) Dump() map[string]interface{} {
+func (ac AutoConfigurator) Dump() map[string]any {
 	s := structs.New(ac.c)
 	return s.Map()
 }
 
-func (ac AutoConfigurator) MapFrom(src interface{}) error {
-	log.Debugf("mapping from:  %#v ", src)
-	log.Debugf("mapping to:  %#v ", ac.c)
-	return mapstructure.Decode(src, ac.c)
+func (ac AutoConfigurator) MapFrom(src any) error {
+	// log.Debugf("mapping from:  %#v ", src)
+	// log.Debugf("mapping to:  %#v ", ac.c)
+	mapDecoderConfig.Result = &ac.c
+	decoder, err := mapstructure.NewDecoder(mapDecoderConfig)
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(src)
 }
 
 // AsConfigurator generates implements a default Configurator for a given struct
 // or custom type. Use this to handle module options.
-func AsConfigurator(c interface{}) Configurator {
+func AsConfigurator(c any) Configurator {
 	return AutoConfigurator{c}
 }
 
 // Register a global option ie. under [global] in toml file
-func RegisterGlobalOption(key string, val interface{}) {
+func RegisterGlobalOption(key string, val any) {
 	log.Debugf("Registring global option %s = %v", key, val)
 	configs[GlobalConfigName].Set(key, val)
 }
 
+// Get global option
+func GetGlobalOption(key string) (any, error) {
+	return configs[GlobalConfigName].Get(key)
+}
+
 // GetModuleOption returns a module option value given a module name and option name
-func GetModuleOption(module string, opt string) (interface{}, error) {
+func GetModuleOption(module string, opt string) (any, error) {
 	if c, ok := configs[module]; ok {
 		return c.Get(opt)
 	}
 	return nil, fmt.Errorf("module %s not found", module)
 }
 
-// TODO: check if generics can be used here to avoid interface{} type
+// TODO: check if generics can be used here to avoid any type
 // TODO: add support for option description that can be used in cli help
 
 // Register a module option ie. under [module] in toml file
-// If the module is not a configurator, a simple map[string]interface{} will be
+// If the module is not a configurator, a simple map[string]any will be
 // created for it. use [GetModuleOption]
-func RegisterModuleOpt(module string, opt string, val interface{}) error {
+func RegisterModuleOpt(module string, opt string, val any) error {
 	log.Debugf("Setting option for module <%s>: %s = %v", module, opt, val)
 	if _, ok := configs[module]; !ok {
 		log.Debugf("Creating new default config for module <%s>", module)
@@ -152,7 +168,7 @@ func RegisterModuleOpt(module string, opt string, val interface{}) error {
 	return nil
 }
 
-// Get all configs as a map[string]interface{}
+// Get all configs as a map[string]any
 func GetAll() Config {
 	result := make(Config)
 	for k, c := range configs {
@@ -167,6 +183,7 @@ func GetAll() Config {
 	return result
 }
 
+// Get the config of a module.
 func GetModule(module string) Configurator {
 	if c, ok := configs[module]; ok {
 		return c
@@ -200,5 +217,6 @@ func RegisterConfigurator(name string, c Configurator) {
 
 func init() {
 	// Initialize the global config
-	configs[GlobalConfigName] = make(Config)
+	//TODO: use AutoConfigurator
+	configs[GlobalConfigName] = AsConfigurator(&GlobalConfig)
 }

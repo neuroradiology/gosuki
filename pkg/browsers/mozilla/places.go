@@ -29,10 +29,9 @@ import (
 	"github.com/blob42/gosuki/internal/utils"
 )
 
-// Constants representing the meaning if IDs defined in the table
-// moz_bookmarks.id
- const (
-	_           = iota // 0
+// Constants representing the meaning if IDs defined in the table moz_bookmarks.id
+const (
+	_         = iota // 0
 	RootID           // 1
 	MenuID           // 2 Main bookmarks menu
 	ToolbarID        // 3 Bk tookbar that can be toggled under URL zone
@@ -45,38 +44,42 @@ type Sqlid int64
 
 // Represnets the root folder names as shown on Firefox
 var RootFolderTitles = map[Sqlid]string{
-    MenuID: "Bookmarks Menu",
-    ToolbarID: "Bookmarks Toolbar",
-    OtherID: "Other Bookmarks",
-    MobileID: "Mobile Bookmarks",
+	MenuID:    "Bookmarks Menu",
+	ToolbarID: "Bookmarks Toolbar",
+	OtherID:   "Other Bookmarks",
+	MobileID:  "Mobile Bookmarks",
 }
 
 // Some root folders names in the tree
 var RootFolderNames = map[Sqlid]string{
-    RootID: RootName,
-    TagsID: TagsBranchName,
-    MenuID: "menu",
-    ToolbarID: "toolbar",
-    OtherID: "other",
-    MobileID: "mobile",
+	RootID:    RootName,
+	TagsID:    TagsBranchName,
+	MenuID:    "menu",
+	ToolbarID: "toolbar",
+	OtherID:   "other",
+	MobileID:  "mobile",
 }
 
+// Names of the root node in the mozilla bookmark tree. See [RootFolderNames].
 const (
-    // Name of the root node
-    RootName = `ROOT`
+	// Name of the root node
+	RootName = `ROOT`
 
-    // Name of the `Tags` node parent to all tag nodes
-    TagsBranchName = `TAGS`
+	// Name of the `Tags` node parent to all tag nodes
+	TagsBranchName = `TAGS`
 )
 
 type MozFolder struct {
-	Id    Sqlid
-    Parent Sqlid
-	Title string
+	Id     Sqlid
+	Parent Sqlid
+	Title  string
 }
 
-// placeId  title  parentFolderId  folders url plDesc lastModified
-// Type used for scanning from `recursive-all-bookmarks.sql`
+// Columns of the table moz_bookmarks in this order:
+//
+//	placeId  title  parentFolderId  folders url plDesc lastModified
+//
+// This is the typed used when scanning from the query located in `recursive-all-bookmarks.sql`
 type MozBookmark struct {
 	PlId           Sqlid `db:"plId"`
 	Title          string
@@ -123,39 +126,39 @@ func (pb *MergedPlaceBookmark) Datetime() time.Time {
 var CopyJobs []PlaceCopyJob
 
 type PlaceCopyJob struct {
-    Id string
+	Id string
 }
 
 func NewPlaceCopyJob() PlaceCopyJob {
-    pc := PlaceCopyJob{
-        Id: utils.GenStringID(5),
-    }
+	pc := PlaceCopyJob{
+		Id: utils.GenStringID(5),
+	}
 
-    err := pc.makePath()
-    if err != nil {
-      log.Fatal(err)
-    }
+	err := pc.makePath()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    CopyJobs = append(CopyJobs, pc)
+	CopyJobs = append(CopyJobs, pc)
 
-    return pc
+	return pc
 }
 
 func (pc PlaceCopyJob) makePath() error {
-    // make sure TMPDIR is not empty
-    if len(utils.TMPDIR) == 0 {
-        log.Error("missing tmp dir")
-        return nil
-    }
+	// make sure TMPDIR is not empty
+	if len(utils.TMPDIR) == 0 {
+		log.Error("missing tmp dir")
+		return nil
+	}
 
-    return os.Mkdir(path.Join(utils.TMPDIR, pc.Id), 0750)
+	return os.Mkdir(path.Join(utils.TMPDIR, pc.Id), 0750)
 }
 
 func (pc PlaceCopyJob) Path() string {
-    return path.Join(utils.TMPDIR, pc.Id)
+	return path.Join(utils.TMPDIR, pc.Id)
 }
 
 func (pc PlaceCopyJob) Clean() error {
-    log.Debugf("cleaning <%s>", pc.Path())
-    return os.RemoveAll(pc.Path())
+	log.Debugf("cleaning <%s>", pc.Path())
+	return os.RemoveAll(pc.Path())
 }

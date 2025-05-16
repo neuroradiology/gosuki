@@ -28,14 +28,13 @@ import (
 
 	"github.com/blob42/gosuki"
 	"github.com/blob42/gosuki/internal/index"
-	"github.com/blob42/gosuki/internal/logging"
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/logging"
 
 	"github.com/xlab/treeprint"
 )
 
 var log = logging.GetLogger("TREE")
-
 
 type NodeType int
 
@@ -47,28 +46,28 @@ const (
 )
 
 type Node struct {
-	Name       string
+	Title      string
 	Type       NodeType // folder, tag, url
 	URL        string
 	Tags       []string
 	Desc       string
+	Module     string
 	HasChanged bool
 	NameHash   uint64 // hash of the metadata
 	Parent     *Node
 	Children   []*Node
 }
 
-
 func (node *Node) GetRoot() *Node {
-    var n *Node
-    if node.Type == RootNode {
-        return node
-    } 
+	var n *Node
+	if node.Type == RootNode {
+		return node
+	}
 
-    if node.Parent != nil  {
-        n = node.Parent.GetRoot()
-    }
-    return n
+	if node.Parent != nil {
+		n = node.Parent.GetRoot()
+	}
+	return n
 }
 
 // Returns the ancestor of this node
@@ -81,55 +80,58 @@ func Ancestor(node *Node) *Node {
 }
 
 func (node *Node) DirectChildOf(parent *Node) bool {
-    if len(parent.Children) == 0 { return false }
-    var found bool
-    for _, child := range parent.Children {
-        if node == child { found = true }
-    }
+	if len(parent.Children) == 0 {
+		return false
+	}
+	var found bool
+	for _, child := range parent.Children {
+		if node == child {
+			found = true
+		}
+	}
 
-    return found
+	return found
 }
 
 // Get all parents for node by traversing from leaf to root
 func (node *Node) GetFolderParents() []*Node {
-    var parents []*Node
+	var parents []*Node
 
-    if node.Parent == nil {
-        return parents
-    }
+	if node.Parent == nil {
+		return parents
+	}
 
-    if node.Parent.Type == FolderNode {
-        parents = append(parents, node.Parent)
-    }
+	if node.Parent.Type == FolderNode {
+		parents = append(parents, node.Parent)
+	}
 
-    if node.Parent.Type != RootNode {
-        parents = append(parents, node.Parent.GetFolderParents()...)
-    }
+	if node.Parent.Type != RootNode {
+		parents = append(parents, node.Parent.GetFolderParents()...)
+	}
 
-    return parents
+	return parents
 }
 
 // Recursively traverse the tree from a root and find all occurences of [url]
 // whose parent is a folder without using url.Parent as a reference
 // Returns a list of nodes that match the criteria
 func FindParents(root *Node, url *Node, nt NodeType) []*Node {
-    var parents []*Node
+	var parents []*Node
 
-    if root == nil || len(root.Children) <= 0 {
-        return parents
-    }
+	if root == nil || len(root.Children) <= 0 {
+		return parents
+	}
 
-    if root.Type == nt && FindNode(url, root) {
-        parents = append(parents, root)
-    }
+	if root.Type == nt && FindNode(url, root) {
+		parents = append(parents, root)
+	}
 
-    for _, child := range root.Children {
-        parents = append(parents, FindParents(child, url, nt)...)
-    }
+	for _, child := range root.Children {
+		parents = append(parents, FindParents(child, url, nt)...)
+	}
 
-    return parents
+	return parents
 }
-
 
 // Finds a node and the tree starting at root
 func FindNode(node *Node, root *Node) bool {
@@ -137,63 +139,65 @@ func FindNode(node *Node, root *Node) bool {
 	if node == root {
 		return true
 	} else {
-        for _, child := range root.Children {
-            found := FindNode(node, child)
-            if found { return true }
-        }
-    }
+		for _, child := range root.Children {
+			found := FindNode(node, child)
+			if found {
+				return true
+			}
+		}
+	}
 
-    return false
+	return false
 }
 
 func FindNodeByName(name string, root *Node) bool {
 
-	if name == root.Name {
+	if name == root.Title {
 		return true
 	} else {
-        for _, child := range root.Children {
-            found := FindNodeByName(name, child)
-            if found { return true }
-        }
-    }
+		for _, child := range root.Children {
+			found := FindNodeByName(name, child)
+			if found {
+				return true
+			}
+		}
+	}
 
-    return false
+	return false
 }
-
 
 // Inserts child node into parent node. Parent will point to child
 // and child will point to parent EXCEPT when parent is a TAG node.
 // If parent is a Tag node, child should not point back to parent
 // as URL nodes should always point to folder parent nodes only.
 func AddChild(parent *Node, child *Node) {
-	log.Debugf("adding child %v: <%s>", child.Type, child.Name)
-
+	log.Debugf("adding child %v: <%s>", child.Type, child.Title)
 
 	if len(parent.Children) == 0 {
 		parent.Children = []*Node{child}
 
-        // Do not point back to TAG parent node from child
-        if parent.Type != TagNode {
-            child.Parent = parent
-        }
+		// Do not point back to TAG parent node from child
+		if parent.Type != TagNode {
+			child.Parent = parent
+		}
 		return
 	}
 
 	for _, n := range parent.Children {
 		if child == n {
 			// log.Errorf("<%s> Node already exists", child)
-            log.Debugf(pretty.Sprintf("skipping node <%s>, already exists", child.Name))
+			log.Debugf(pretty.Sprintf("skipping node <%s>, already exists", child.Title))
 			// update n with child metadata
-			log.Debugf("updating node <%s> with metadata <%s>", n.Name, child.Name)
-			n.Name = child.Name
+			log.Debugf("updating node <%s> with metadata <%s>", n.Title, child.Title)
+			n.Title = child.Title
 			return
 		}
 	}
 
 	parent.Children = append(parent.Children, child)
-    if parent.Type != TagNode {
-        child.Parent = parent
-    }
+	if parent.Type != TagNode {
+		child.Parent = parent
+	}
 }
 
 func PrintTree(root *Node) {
@@ -205,13 +209,13 @@ func PrintTree(root *Node) {
 	walk = func(node *Node, t treeprint.Tree) {
 
 		if len(node.Children) > 0 {
-			t = t.AddBranch(fmt.Sprintf("%#v <%s>", node.Type, node.Name))
+			t = t.AddBranch(fmt.Sprintf("%#v <%s>", node.Type, node.Title))
 
 			for _, child := range node.Children {
 				walk(child, t)
 			}
 		} else {
-			t.AddNode(fmt.Sprintf("%#v <%s>", node.Type, node.Name))
+			t.AddNode(fmt.Sprintf("%#v <%s>", node.Type, node.Title))
 		}
 	}
 
@@ -243,35 +247,36 @@ func WalkBuildIndex(node *Node, index index.HashTree) {
 // the parent folders and turn them into tags.
 func (node *Node) getTags() []string {
 
-    if node.Type != URLNode {
-        return []string{}
-    }
+	if node.Type != URLNode {
+		return []string{}
+	}
 
-    root := node.GetRoot()
-    parentFolders := FindParents(root, node, FolderNode)
-    parentTags := FindParents(root, node, TagNode)
+	root := node.GetRoot()
+	parentFolders := FindParents(root, node, FolderNode)
+	parentTags := FindParents(root, node, TagNode)
 
-    for _, f := range parentFolders {
-        node.Tags = utils.Extends(node.Tags, f.Name)
-    }
+	for _, f := range parentFolders {
+		node.Tags = utils.Extends(node.Tags, f.Title)
+	}
 
-    for _, t := range parentTags {
-        node.Tags = utils.Extends(node.Tags, t.Name)
-    }
+	for _, t := range parentTags {
+		node.Tags = utils.Extends(node.Tags, t.Title)
+	}
 
-    return node.Tags
+	return node.Tags
 }
 
 func (node *Node) GetBookmark() *gosuki.Bookmark {
 
-    if node.Type != URLNode {
-        return nil
-    }
+	if node.Type != URLNode {
+		return nil
+	}
 
 	return &gosuki.Bookmark{
-		URL:      node.URL,
-		Metadata: node.Name,
-		Desc:     node.Desc,
-		Tags:     node.getTags(),
+		URL:    node.URL,
+		Title:  node.Title,
+		Desc:   node.Desc,
+		Tags:   node.getTags(),
+		Module: node.Module,
 	}
 }

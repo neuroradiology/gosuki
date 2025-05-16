@@ -92,7 +92,7 @@ func DebugPrintRow(rows *sql.Rows) {
 
 	fmt.Fprintf(w, "\n")
 
-	for i, _ := range cols {
+	for i := range cols {
 		valuesPtrs[i] = &values[i]
 	}
 	rows.Scan(valuesPtrs...)

@@ -19,10 +19,9 @@
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 
-// Package hooks packages is the main feature of Gosuki. It permits to register
-// custom hooks that will be called during the parsing process of a bookmark
-// file. Hooks can be used to extract tags, commands or any custom data from a
-// bookmark title or description.
+// Package hooks permits to register custom hooks that will be called during the parsing
+// process of a bookmark file. Hooks can be used to extract tags, commands or other custom
+// data from a bookmark title or description.
 //
 // They can effectively be used as a command line interface to the host system
 // through the browser builtin Ctrl+D bookmark feature.
@@ -31,19 +30,30 @@
 package hooks
 
 import (
+	"github.com/blob42/gosuki"
 	"github.com/blob42/gosuki/pkg/tree"
 )
 
-// A Hook is a function that takes a *Node as input and is called on a bookmark
-// node during the parsing process. It can be used to extract tags from bookmark
-// titles and descriptions. It can also be called to handle commands and
-// messages found in the various fields of a bookmark.
-type Hook struct {
+type Hookable interface {
+	*gosuki.Bookmark | *tree.Node
+}
+
+// A Hook is a function that takes a *Bookmark or *Node and runs an arbitrary process.
+// Hooks are called during the loading or real time detection of bookmarks.
+//
+// For example the TAG extraction process is handled by the ParseXTags hooks.
+//
+// Hooks can also be used handle call custom user commands and messages found in the various fields of a bookmark.
+type Hook[T Hookable] struct {
 	// Unique name of the hook
-	Name string
+	name string
 
 	// Function to call on a node
-	Func func(*tree.Node) error
+	Func func(T) error
+}
+
+func (h Hook[T]) Name() string {
+	return h.name
 }
 
 // Browser who implement this interface will be able to register custom
@@ -52,7 +62,5 @@ type Hook struct {
 type HookRunner interface {
 
 	// Calls all registered hooks on a node
-	CallHooks(*tree.Node) error
+	CallHooks(any) error
 }
-
-

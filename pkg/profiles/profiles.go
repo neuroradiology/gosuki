@@ -23,9 +23,8 @@
 package profiles
 
 import (
-
-	"github.com/blob42/gosuki/internal/logging"
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/logging"
 )
 
 var log = logging.GetLogger("profiles")
@@ -40,17 +39,35 @@ type ProfileManager interface {
 	// If should watch all profiles
 	WatchAllProfiles() bool
 
-	// Notifies the module to use a custom profile
-	UseProfile(p Profile) error
+	// Notifies the module to use a custom profile and flavour
+	UseProfile(p *Profile, f *Flavour) error
+
+	// Get current active profile
+	GetProfile() *Profile
 
 	// Returns all flavours supported by this module
-	ListFlavours() []BrowserFlavour
+	ListFlavours() []Flavour
+
+	// Get current active flavour
+	GetCurFlavour() *Flavour
 }
 
+// Returns flavour of browser given browser BaseDir
+// TEST:
+func GetFlavour(pm ProfileManager, baseDir string) string {
+	flavours := pm.ListFlavours()
+	for _, f := range flavours {
+		if f.BaseDir == baseDir {
+			return f.Name
+		}
+	}
+
+	return ""
+}
 
 type Profile struct {
 	// Unique identifier for the profile
-	Id   string
+	ID string
 
 	// Name of the profile
 	// This is usually the name of the directory where the profile is stored
@@ -63,31 +80,29 @@ type Profile struct {
 	BaseDir string
 }
 
-func (f Profile) AbsolutePath() (string, error) {
-	return utils.ExpandPath(f.BaseDir, f.Path)
+func (p Profile) AbsolutePath() (string, error) {
+	return utils.ExpandPath(p.BaseDir, p.Path)
 }
 
-
-// The BrowserFlavour struct stores the name of the browser and the base
+// The Flavour struct stores the name of the browser and the base
 // directory where the profiles are stored.
 // Example flavours: chrome-stable, chrome-unstable, firefox, firefox-esr, librewolf, etc.
-type BrowserFlavour struct {
-	Name string
+type Flavour struct {
+	Name    string
 	BaseDir string
 }
 
 // Detect if the browser is installed. Returns true if the path exists
-func (b BrowserFlavour) Detect() bool {
+func (b Flavour) Detect() bool {
 	var dir string
 	var err error
 	if dir, err = utils.ExpandPath(b.BaseDir); err != nil {
-		log.Warningf("could not expand path <%s>: %s", b.BaseDir, err)
+		log.Warnf("could not expand path <%s>: %s", b.BaseDir, err)
 		return false
-	} else if _, err = utils.CheckDirExists(dir); err != nil {
-			log.Warningf("could not find browser <%s> at <%s>: %s", b.Name, dir, err)
-			return false
-		}
+	} else if ok, err := utils.DirExists(dir); err != nil || !ok {
+		log.Warnf("could not find browser <%s> at <%s>: %v", b.Name, dir, err)
+		return false
+	}
 
 	return true
 }
-

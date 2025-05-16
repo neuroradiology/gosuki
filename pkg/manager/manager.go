@@ -27,13 +27,16 @@ import (
 	"os/signal"
 	"reflect"
 	"strings"
+	"sync"
 
-	"github.com/blob42/gosuki/internal/logging"
+	"slices"
+
+	"github.com/blob42/gosuki/pkg/logging"
 )
 
 var (
 	idGenerator = genID()
-	log = logging.GetLogger("MNGR")
+	log         = logging.GetLogger("MNGR")
 )
 
 // The WorkUnit interface is used to define a unit of work.
@@ -50,9 +53,12 @@ type UnitManager interface {
 	ShouldStop() <-chan bool
 	Done()
 	Panic(err error)
+
+	RequestShutdown()
 }
 
 type WorkUnitManager struct {
+	name       string
 	stop       chan bool
 	workerQuit chan bool
 	unit       WorkUnit
@@ -72,77 +78,77 @@ func (w *WorkUnitManager) Panic(err error) {
 	w.panic <- err
 	w.isPaniced = true
 	w.workerQuit <- true
-	close(w.stop)
+}
+
+func (m *WorkUnitManager) RequestShutdown() {
+	m.panic <- fmt.Errorf("request for shutdown")
 }
 
 type Manager struct {
-	signalIn chan os.Signal
-
-	shutdownSigs []os.Signal
-
-	workers map[string]*WorkUnitManager
-
-	Quit chan bool
-
-	panic chan error // Used for panicing goroutines
+	signalIn     chan os.Signal              // Channel for incoming system signals
+	shutdownSigs []os.Signal                 // List of accepted OS shutdown signals
+	workers      map[string]*WorkUnitManager // Map of worker units managed by the manager
+	Quit         chan bool                   // Channel to signal that the manager is done
+	ready        chan bool                   // Signal channel indicating all workers are running
+	panic        chan error                  // Channel for panicking goroutines, used to force shutdown
+	mu           sync.Mutex
 }
 
-func (m *Manager) Run() {
-	log.Info("Starting manager ...")
-
-	for unitName, w := range m.workers {
-		log.Infof("Starting <%s>\n", unitName)
-		go w.unit.Run(w)
+func (m *Manager) Shutdown() {
+	<-m.ready
+	// send shutdown event to all worker units
+	for name, w := range m.workers {
+		log.Debugf("shutting down %s\n", name)
+		w.stop <- true
 	}
 
-	fmt.Println("gosuki running ...")
+	// Wait for all units to quit
+	for name, w := range m.workers {
+		<-w.workerQuit
+		log.Debugf("%s down", name)
+	}
+
+	// All workers have shutdown
+	log.Info("all workers down, stopping manager ...")
+
+	m.Quit <- true
+}
+
+func (m *Manager) Start() {
+	log.Debug("starting manager ...")
+
+	// for unitName, w := range m.workers {
+	// 	log.Info("starting", "unit", unitName)
+	// 	go w.unit.Run(w)
+	// }
+
+	m.ready <- true
+
+	log.Info("manager is up")
 
 	for {
 		select {
 		case sig := <-m.signalIn:
+			// log.Debugf("%#v\n", sig)
 
 			if !in(m.shutdownSigs, sig) {
 				break
 			}
 
-			log.Debug("shutting event received ... ")
-
-			// send shutdown event to all worker units
-			for name, w := range m.workers {
-				log.Debugf("shutting down <%s>\n", name)
-				w.stop <- true
-			}
-
-			// Wait for all units to quit
-			for name, w := range m.workers {
-				<-w.workerQuit
-				log.Debugf("<%s> down", name)
-			}
-
-			// All workers have shutdown
-			log.Info("All workers have shutdown, shutting down manager ...")
-
-			m.Quit <- true
+			log.Debug("quit event received ... ")
+			m.Shutdown()
 
 		case p := <-m.panic:
 
 			for name, w := range m.workers {
 				if w.isPaniced {
-					log.Criticalf("Panicing for <%s>: %s", name, p)
-				}
-			}
-
-			for name, w := range m.workers {
-				log.Debugf("shuting down <%s>\n", name)
-				if !w.isPaniced {
+					log.Errorf("Panicing for <%s>: %s", name, p)
+				} else {
+					log.Debugf("shuting down <%s>\n", name)
 					w.stop <- true
+					<-w.workerQuit
+					log.Debugf("<%s> down", name)
 				}
-			}
-
-			// Wait for all units to quit
-			for name, w := range m.workers {
-				<-w.workerQuit
-				log.Debugf("<%s> down", name)
 			}
 
 			// All workers have shutdown
@@ -156,10 +162,8 @@ func (m *Manager) Run() {
 
 func (m *Manager) ShutdownOn(sig ...os.Signal) {
 
-	for _, s := range sig {
-		log.Debugf("Registering shutdown signal: %s\n", s)
-		signal.Notify(m.signalIn, s)
-	}
+	log.Debugf("Registering shutdown signals: %v", sig)
+	signal.Notify(m.signalIn, sig...)
 
 	m.shutdownSigs = append(m.shutdownSigs, sig...)
 }
@@ -179,6 +183,7 @@ func genID() IDGenerator {
 func (m *Manager) AddUnit(unit WorkUnit, name string) {
 
 	workUnitManager := &WorkUnitManager{
+		name:       name,
 		workerQuit: make(chan bool, 1),
 		stop:       make(chan bool, 1),
 		unit:       unit,
@@ -191,8 +196,24 @@ func (m *Manager) AddUnit(unit WorkUnit, name string) {
 	unitID := idGenerator(unitName)
 	unitName = fmt.Sprintf("%s#%d]", unitName, unitID)
 
-	log.Debug("Adding unit ", unitName)
+	log.Debug("Adding unit ", "name", unitName)
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.workers[unitName] = workUnitManager
+
+	// Launch the unit's goroutine *immediatly*
+	go func() {
+		defer func() {
+			// Handle panics within the unit's goroutine
+			if r := recover(); r != nil {
+				m.panic <- fmt.Errorf("unit %s panicked: %v", unitName, r)
+				workUnitManager.isPaniced = true
+			}
+		}()
+		log.Info("starting", "unit", unitName)
+		workUnitManager.unit.Run(workUnitManager)
+	}()
+
 }
 
 func NewManager() *Manager {
@@ -201,15 +222,21 @@ func NewManager() *Manager {
 		Quit:     make(chan bool, 1),
 		workers:  make(map[string]*WorkUnitManager),
 		panic:    make(chan error, 1),
+		ready:    make(chan bool, 1),
 	}
+}
+
+func (m *Manager) Units() map[string]WorkUnit {
+	res := map[string]WorkUnit{}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, workUnit := range m.workers {
+		res[workUnit.name] = workUnit.unit
+	}
+	return res
 }
 
 // Test if signal is in array
 func in(arr []os.Signal, sig os.Signal) bool {
-	for _, s := range arr {
-		if s == sig {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(arr, sig)
 }

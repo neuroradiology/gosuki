@@ -26,45 +26,55 @@ import (
 	_ "io"
 	"path/filepath"
 
+	"github.com/blob42/gosuki/internal/utils"
+
 	"github.com/gchaincl/dotsql"
 	"github.com/swithek/dotsqlx"
 )
 
-func GetDefaultDBPath() string {
-	return DefaultDBPath
+// Get database directory path
+func GetDBDir() string {
+	dbPath := dbConfig.DBPath
+	if len(dbPath) == 0 {
+		dbPath = DefaultDBPath
+	}
+
+	dbPath, err := utils.ExpandOnly(dbPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return dbPath
 }
 
 func GetDBFullPath() string {
-	dbdir := GetDefaultDBPath()
+	dbdir := GetDBDir()
 	dbpath := filepath.Join(dbdir, DBFileName)
 	return dbpath
 }
 
-// Loads a dotsql <file> and, wraps it with dotsqlx 
-func DotxQuery(file string) (*dotsqlx.DotSqlx, error){
-    dot, err := dotsql.LoadFromFile(file)
-    if err != nil {
-      return nil, err
-    }
+// Loads a dotsql <file> and, wraps it with dotsqlx
+func DotxQuery(file string) (*dotsqlx.DotSqlx, error) {
+	dot, err := dotsql.LoadFromFile(file)
+	if err != nil {
+		return nil, err
+	}
 
-    return dotsqlx.Wrap(dot), nil
+	return dotsqlx.Wrap(dot), nil
 }
 
 // Loads a dotsql from an embedded FS
-func DotxQueryEmbedFS(fs embed.FS, filename string) (*dotsqlx.DotSqlx, error){
+func DotxQueryEmbedFS(fs embed.FS, filename string) (*dotsqlx.DotSqlx, error) {
 
-    rawsql, err := fs.ReadFile(filename)
-    if err != nil {
-      return nil, err
-    }
-    
+	rawsql, err := fs.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
 
-    dot, err := dotsql.LoadFromString(string(rawsql))
-    if err != nil {
-      return nil, err
-    }
+	dot, err := dotsql.LoadFromString(string(rawsql))
+	if err != nil {
+		return nil, err
+	}
 
-    return dotsqlx.Wrap(dot), nil
+	return dotsqlx.Wrap(dot), nil
 }
-
-

@@ -29,9 +29,12 @@
 package modules
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"github.com/blob42/gosuki"
+	"github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/pkg/profiles"
 	"github.com/blob42/gosuki/pkg/watch"
 	"github.com/urfave/cli/v2"
@@ -42,7 +45,12 @@ var (
 )
 
 type Context struct {
+	//TODO: use context whenver possible
+	context.Context
+
 	Cli *cli.Context
+
+	IsTUI bool
 }
 
 // Every new module needs to register as a Module using this interface
@@ -73,17 +81,24 @@ type Initializer interface {
 	Init(*Context) error
 }
 
-// Loader is an interface for modules which is run only once when the module
+// PreLoader is an interface for modules which is run only once when the module
 // starts. It should have the same effect as  Watchable.Run().
 // Run() is automatically called for watched events, Load() is called once
 // before starting to watch events.
 //
-// Loader allows modules to do a first pass of Run() logic before the watcher
-// threads is spawned
-type Loader interface {
+// PreLoader allows modules to do a first pass of bookmark loading logic before
+// the watcher threads is spawned
+type PreLoader interface {
 
-	// Load() will be called right after a browser is initialized
-	Load() error
+	// PreLoad() will be called right after a browser is initialized
+	PreLoad(*Context) error
+}
+
+// This type of PreLoader simply returns a list of bookmarks and has no knwoledge
+// of the loading and syncrhonization primitives. Mostly useful for simple
+// modules (see `modules.BookmarksImporter`).
+type DumbPreLoader interface {
+	PreLoad() ([]*gosuki.Bookmark, error)
 }
 
 // ProfileInitializer is similar to Initializer but is called with a profile.
@@ -105,20 +120,42 @@ type Shutdowner interface {
 //
 // 1. [Initializer].Init(): state initialization
 //
-// 2. [Loader].Load(): Initial pre loading of data before any runtime loop
+// 2. [PreLoader].Load(): Initial pre loading of data before any runtime loop
 // TODO!:
 func SetupModule(mod Module, c *Context) error {
 
 	modID := mod.ModInfo().ID
-	log.Infof("setting up module <%s>", modID)
+	log.Info("setting up", "module", modID)
 
 	initializer, okInit := mod.(Initializer)
 	if okInit {
-		log.Debugf("<%s> custom init", modID)
+		log.Debug("custom init", "module", modID)
 		if err := initializer.Init(c); err != nil {
-			return fmt.Errorf("<%s> initialization error: %w", modID, err)
+			return fmt.Errorf("initialization error: %w", err)
 		}
 	}
+
+	// handle PreLoader interface
+	preloader, ok := mod.(PreLoader)
+	if ok {
+		log.Debug("preloading", "module", modID)
+		err := preloader.PreLoad(c)
+		if err != nil {
+			return fmt.Errorf("preloading error <%s>: %v", modID, err)
+		}
+	}
+
+	// handle DumbPreLoader interface
+	dumbPreloader, ok := mod.(DumbPreLoader)
+	if ok {
+		log.Debugf("<%s> preloading", modID)
+		if err := database.LoadBookmarks(dumbPreloader.PreLoad, string(modID)); err != nil {
+			return fmt.Errorf("preloading error <%s>: %v", modID, err)
+		}
+
+		// store bookmarks
+	}
+
 	//TODO: ProfileInitializer
 
 	return nil

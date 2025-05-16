@@ -29,17 +29,32 @@ import (
 	"path/filepath"
 )
 
-func GetDefaultDBPath() string {
-	return "./"
-}
-
-func CheckDirExists(path string) (bool, error) {
+func DirExists(path string) (bool, error) {
 	info, err := os.Stat(path)
-	if err == nil {
-		return info.IsDir(), nil
+	if err != nil {
+		return false, err
 	}
 
-	return false, err
+	return info.IsDir(), nil
+}
+
+func GetDataDir() (string, error) {
+	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
+		return dir, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".local", "share"), nil
+}
+
+func MkGosukiDataDir() error {
+	if dataDir, err := GetDataDir(); err != nil {
+		return err
+	} else {
+		return MkDir(dataDir)
+	}
 }
 
 func CheckFileExists(file string) (bool, error) {
@@ -60,7 +75,11 @@ func CheckFileExists(file string) (bool, error) {
 	return false, err
 }
 
-func CheckWriteable(dir string) error {
+// MkDir checks if a directory is writable by the current user.
+// It returns an error if the directory does not exist and cannot be created,
+// or if it exists but is not writable by the current user. Otherwise it is
+// created.
+func MkDir(dir string) error {
 	_, err := os.Stat(dir)
 	if err == nil {
 		// dir exists, make sure we can write to it
@@ -77,7 +96,8 @@ func CheckWriteable(dir string) error {
 	}
 
 	if os.IsNotExist(err) {
-		// dir doesnt exist, check that we can create it
+		// dir doesnt exist, create it
+
 		return os.Mkdir(dir, 0775)
 	}
 
@@ -93,6 +113,10 @@ func CheckWriteable(dir string) error {
 func ExpandPath(paths ...string) (string, error) {
 	var homedir string
 	var err error
+
+	if len(paths) == 0 {
+		return "", fmt.Errorf("no path provided")
+	}
 	if homedir, err = os.UserHomeDir(); err != nil {
 		return "", err
 	}
@@ -102,4 +126,41 @@ func ExpandPath(paths ...string) (string, error) {
 		path = filepath.Join(homedir, path[1:])
 	}
 	return filepath.EvalSymlinks(path)
+}
+
+func MustExpandPath(paths ...string) string {
+	result, err := ExpandPath(paths...)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
+// ExpandOnly expands a path without following symlinks
+func ExpandOnly(paths ...string) (string, error) {
+	var homedir string
+	var err error
+
+	if len(paths) == 0 {
+		return "", fmt.Errorf("no path provided")
+	}
+	if homedir, err = os.UserHomeDir(); err != nil {
+		return "", err
+	}
+	path := os.ExpandEnv(filepath.Join(paths...))
+
+	if path[0] == '~' {
+		path = filepath.Join(homedir, path[1:])
+	}
+
+	return path, nil
+}
+
+// Check if given path is a symlink
+func IsSymlink(path string) (bool, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return false, err
+	}
+	return info.Mode()&os.ModeSymlink == os.ModeSymlink, nil
 }

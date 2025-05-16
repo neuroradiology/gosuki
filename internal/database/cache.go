@@ -30,14 +30,14 @@ const (
 )
 
 var (
-	// Global cache database
+	// Global in memory cache of gosuki database
 	// Main in memory db, is synced with disc
 	// `CacheDB` is a memory replica of disk db
 	Cache = &CacheDB{}
 )
 
 type CacheDB struct {
-	DB *DB
+	*DB
 }
 
 func GetCacheDB() *CacheDB {
@@ -48,7 +48,7 @@ func GetCacheDB() *CacheDB {
 }
 
 func (c *CacheDB) IsInitialized() bool {
-	return Cache.DB != nil && Cache.DB.Handle != nil
+	return Cache.DB != nil && Cache.Handle != nil
 }
 
 func initCache() {
@@ -61,8 +61,11 @@ func initCache() {
 		log.Fatal(err)
 	}
 
-	err = Cache.DB.InitSchema()
+	err = Cache.InitSchema()
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	//TEST: sqlite table locked
+	// Cache.Handle.SetMaxIdleConns(1)
 }

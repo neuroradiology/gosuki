@@ -17,10 +17,86 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
+
 package main
 
-import "fmt"
+import (
+	"log"
+	"os"
+
+	"github.com/urfave/cli/v2"
+
+	db "github.com/blob42/gosuki/internal/database"
+	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/config"
+	"github.com/blob42/gosuki/pkg/logging"
+)
 
 func main() {
-	fmt.Println("suki bookmark cli!")
+	app := cli.NewApp()
+	app.Version = utils.Version()
+
+	app.Name = "suki"
+	app.Description = "TODO: summary gosuki description"
+	app.Usage = "swiss-knife bookmark manager - cli"
+	app.UsageText = "suki [OPTIONS] [KEYWORD [KEYWORD...]] "
+	app.CustomAppHelpTemplate = AppHelpTemplate
+
+	app.Flags = []cli.Flag{
+		&cli.IntFlag{
+			Name:        "debug",
+			Category:    "",
+			Aliases:     []string{"d"},
+			DefaultText: "0",
+			Usage:       "set debug level. (`0`-3)",
+			EnvVars:     []string{logging.EnvGosukiDebug},
+			Action: func(_ *cli.Context, val int) error {
+				logging.SetLogLevel(val)
+				return nil
+			},
+		},
+		&cli.StringFlag{
+			Name:     "format",
+			Category: "",
+			Usage:    "Format output using a custom template",
+			Aliases:  []string{"f"},
+		},
+	}
+
+	app.Before = func(c *cli.Context) error {
+		config.Init()
+		db.RegisterSqliteHooks()
+		return db.InitDiskConn(db.GetDBPath())
+	}
+
+	app.Commands = []*cli.Command{
+		FuzzySearchCmd,
+	}
+
+	app.Action = func(c *cli.Context) error {
+		// if no argument passed, list all bookmarks
+		//TODO: no arg => interactive cli
+		if c.Args().Len() == 0 {
+			return listBookmarks(c)
+		}
+
+		// use ~ as fuzzy character
+		firstKw := c.Args().First()
+		opts := searchOpts{}
+
+		if firstKw[0] == '~' {
+			opts.fuzzy = true
+			firstKw = firstKw[1:]
+		}
+
+		return searchBookmarks(c, opts, firstKw)
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func init() {
+	config.RegisterModuleOpt("database", "db-path", db.DefaultDBPath)
 }

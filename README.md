@@ -1,5 +1,7 @@
 <h1 align="center">🔖 GoSuki</h1>
 
+![ci-badge](https://git.srv.blob/gosuki/gosuki-priv/actions/workflows/go.yml/badge.svg?branch=master&event=push)
+
 ## Blazing fast, Plugin-Free, Multi-Browser Bookmark Manager
 
 **ALPHA**: This is an early preview work in progress, expect bugs and API changes.
@@ -17,7 +19,8 @@ If you're nodding your head to any of the above, then look no further.
 
 GoSuki is a blazing fast real time bookmark manager with zero plugin
 dependencies and a single binary. It's designed to work in the background and
-manage your bookmarks across all your browsers, profiles.
+manage your bookmarks across all your browsers, profiles and external sources
+through its modular plugin system.
 
 ## Features in a nutshell
 

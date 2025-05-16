@@ -105,7 +105,13 @@ func InitConfigFile() error {
 		return err
 	}
 
-	return nil
+	err = configFile.Close()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("config written to %s\n", configFilePath)
+	return err
 }
 
 // Loads gosuki configuation into the global config

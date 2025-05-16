@@ -22,21 +22,20 @@
 package mozilla
 
 import (
-    "embed"
+	"embed"
 )
 
-
-const(
-    MozBookmarkQueryFile = "recursive_all_bookmarks.sql"
-    MozBookmarkQuery = "recursive-all-bookmarks"
-    MozChangedBookmarkQueryFile = "recursive_modified_bookmarks.sql"
-    MozChangedBookmarkQuery = "recursive-modified-bookmarks"
-) 
+const (
+	MozBookmarkQueryFile        = "recursive_all_bookmarks.sql"
+	MozBookmarkQuery            = "recursive-all-bookmarks"
+	MozChangedBookmarkQueryFile = "recursive_modified_bookmarks.sql"
+	MozChangedBookmarkQuery     = "recursive-modified-bookmarks"
+)
 
 var (
-    //go:embed "recursive_all_bookmarks.sql"
-    //go:embed "recursive_modified_bookmarks.sql"
-    EmbeddedSqlQueries embed.FS
+	//go:embed "recursive_all_bookmarks.sql"
+	//go:embed "recursive_modified_bookmarks.sql"
+	EmbeddedSQLQueries embed.FS
 )
 
 // sql queries

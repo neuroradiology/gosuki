@@ -1,0 +1,26 @@
+{{ block "bookmarks" . }}
+
+{{ $nohl := .QueryParams.NoHighlight }}
+
+<div class="stats">
+    Results: {{ .Bookmarks | len }}
+</div>
+<ul id="contentArea">
+    {{ range .Bookmarks }}
+        <li class="bookmark {{if $nohl}}no-hl{{end}}">
+            <a class="title" href="{{ .URL }}" target="_blank">{{ .Title }}</a>
+            <a class="url" href="{{ .URL }}" target="_blank">{{ .DisplayURL }}</a>
+            {{ if .Tags }}
+                <div class="tags">
+                    {{ range .Tags }}
+                    <button class="secondary pico-background-sand-100">
+                        <a href="/?tag={{. | urlquery }}">{{.}}</a>
+                    </button>
+                    {{ end }}
+                </div>
+            {{ end }}
+        </li>
+    {{ end }}
+</ul>
+
+{{ end }}

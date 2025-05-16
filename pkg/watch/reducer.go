@@ -26,7 +26,7 @@ import "time"
 // Run reducer in its own thread when the watcher is started
 // It receives a struct{event, func} and runs the func only once in the interval
 func ReduceEvents(interval time.Duration,
-				w WatchRunner) {
+	w WatchRunner) {
 	watch := w.Watch()
 	log.Debugf("starting reducer service for %s", watch.ID)
 
@@ -55,7 +55,7 @@ func ReduceEvents(interval time.Duration,
 			}
 		case _, ok := <-eventsIn:
 			if !ok {
-				log.Warningf("Events channel closed for %s", watch.ID)
+				log.Warnf("Events channel closed for %s", watch.ID)
 				return // Exit the function or handle the closed channel case
 			}
 		}

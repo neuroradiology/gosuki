@@ -11,19 +11,20 @@ import (
 
 	"github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/internal/index"
-	"github.com/blob42/gosuki/internal/logging"
-	"github.com/blob42/gosuki/pkg/modules"
+	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/pkg/browsers/mozilla"
+	"github.com/blob42/gosuki/pkg/logging"
+	"github.com/blob42/gosuki/pkg/modules"
 	"github.com/blob42/gosuki/pkg/parsing"
 	"github.com/blob42/gosuki/pkg/profiles"
 	"github.com/blob42/gosuki/pkg/tree"
-	"github.com/blob42/gosuki/internal/utils"
 )
 
 var ff Firefox
 
 func TestMain(m *testing.M) {
 	setupFirefox()
+	database.RegisterSqliteHooks()
 
 	exitVal := m.Run()
 	os.Exit(exitVal)
@@ -34,17 +35,20 @@ func setupFirefox() {
 		FirefoxConfig: &FirefoxConfig{
 			BrowserConfig: &modules.BrowserConfig{
 				Name:     "firefox",
-				Type:     modules.TFirefox,
 				BkFile:   mozilla.PlacesFile,
 				BkDir:    "../../pkg/browsers/mozilla/testdata",
 				BufferDB: &database.DB{},
 				URLIndex: index.NewIndex(),
-				NodeTree: &tree.Node{Name: mozilla.RootName, Parent: nil, Type: tree.RootNode},
-				Stats:    &parsing.Stats{},
+				NodeTree: &tree.Node{
+					Title:  mozilla.RootName,
+					Parent: nil,
+					Type:   tree.RootNode,
+				},
 			},
 		},
 		tagMap:    map[string]*tree.Node{},
 		folderMap: map[sqlid]*tree.Node{},
+		Counter:   &parsing.BrowserCounter{},
 	}
 }
 
@@ -165,7 +169,7 @@ func Test_addFolderNode(t *testing.T) {
 		assert.True(t, created)
 
 		// root folder should have appropriate title
-		assert.Equal(t, fNode.Name, mozilla.RootFolderNames[mozilla.ToolbarID])
+		assert.Equal(t, fNode.Title, mozilla.RootFolderNames[mozilla.ToolbarID])
 
 		// Should be underneath root folder
 		assert.Equal(t, fNode.Parent, ff.NodeTree)
@@ -201,21 +205,21 @@ func Test_addFolderNode(t *testing.T) {
 		assert.NotEqual(t, folderNode.Parent, ff.NodeTree, "wront parent folder")
 
 		// Name of node should match title of scanned folder
-		assert.Equal(t, folderNode.Name, testFolder.Title, "parsing folder name")
+		assert.Equal(t, folderNode.Title, testFolder.Title, "parsing folder name")
 
-        // If we add the same folder with differnt title it should update the folder name
-        renamedFolder := testFolder
-        renamedFolder.Title = "Dev"
-        folderAdded, renamedFolderNode := ff.addFolderNode(renamedFolder)
-        assert.Equal(t, folderNode, renamedFolderNode) // same folder node
-        assert.False(t, folderAdded) // folder node is not created again
-        assert.NotEqual(t, folderNode.Name, testFolder.Title)
+		// If we add the same folder with differnt title it should update the folder name
+		renamedFolder := testFolder
+		renamedFolder.Title = "Dev"
+		folderAdded, renamedFolderNode := ff.addFolderNode(renamedFolder)
+		assert.Equal(t, folderNode, renamedFolderNode) // same folder node
+		assert.False(t, folderAdded)                   // folder node is not created again
+		assert.NotEqual(t, folderNode.Title, testFolder.Title)
 
 	})
 }
 
 func Test_addTagNode(t *testing.T) {
-    setupFirefox()
+	setupFirefox()
 
 	testTag := struct {
 		tagName string
@@ -240,7 +244,7 @@ func Test_addTagNode(t *testing.T) {
 
 		// TagNode should be underneath "tags" branch
 		if tagNode.Parent.Parent != ff.NodeTree &&
-			tagNode.Name != "tags" {
+			tagNode.Title != "tags" {
 			t.Errorf("[%s] wrong parent root for tag", testName)
 		}
 		t.Run("should be in tagMap", func(t *testing.T) {
@@ -255,7 +259,7 @@ func Test_addTagNode(t *testing.T) {
 		})
 
 		t.Run("increment node count", func(t *testing.T) {
-			if ff.CurrentNodeCount != 1 {
+			if ff.NodeCount() != 1 {
 				t.Errorf("wrong node count")
 			}
 		})
@@ -269,7 +273,7 @@ func Test_addTagNode(t *testing.T) {
 		if tagNode == nil {
 			t.Fatalf("[%s] tag node was not returned", testName)
 		}
-		if tagNode.Parent.Name != TagsBranchName {
+		if tagNode.Parent.Title != TagsBranchName {
 			t.Errorf("[%s] wrong parent root for tag", testName)
 		}
 		if ok {
@@ -289,8 +293,8 @@ func Test_PlaceBookmarkTimeParsing(t *testing.T) {
 }
 
 func findTagsInNodeTree(urlNode *tree.Node,
-                        tags []string, // tags to find in tagMap
-                        tagMap map[string]*tree.Node) (bool ,error) {
+	tags []string, // tags to find in tagMap
+	tagMap map[string]*tree.Node) (bool, error) {
 	var foundTagNodeForURL bool
 	for _, tagName := range tags {
 		tagNode, tagNodeExists := ff.tagMap[tagName]
@@ -303,12 +307,29 @@ func findTagsInNodeTree(urlNode *tree.Node,
 		}
 	}
 
-    return foundTagNodeForURL, nil
+	return foundTagNodeForURL, nil
 }
 
 // TODO!: integration test loading firefox bookmarks
+// Test_scanBookmarks tests the scanBookmarks function of the ff module.
+//
+// This test sets up a test environment by loading mock data from the places.sqlite file.
+// It then runs two different test scenarios:
+//
+//  1. Tests that all bookmarks are scanned and loaded correctly into the CacheDB.
+//     Specifically, it checks that:
+//     - All URLs are found in the scan result.
+//     - All folders are found in the scan result.
+//     - All URL-bookmark pairs have their corresponding tags.
+//     - A specific bookmark with a tag "libre" is correctly loaded into the tree node.
+//
+//  2. Tests that all bookmarks are loaded correctly into the tree node.
+//     Specifically, it checks that:
+//     - Every URL is found in the tree node.
+//     - Each URL node has its corresponding tags and is a child of the right tag nodes.
+//     - Each URL node has its corresponding folder and is underneath the right folders.
 func Test_scanBookmarks(t *testing.T) {
-	logging.SetMode(-1)
+	logging.SetLogLevel(-1)
 
 	// expected data from testdata/places.sqlite
 	data := struct {
@@ -369,7 +390,6 @@ func Test_scanBookmarks(t *testing.T) {
 
 			assert.ElementsMatch(t, urls, testUrls)
 
-
 		})
 
 		/*
@@ -395,7 +415,7 @@ func Test_scanBookmarks(t *testing.T) {
 
 			for _, bk := range bookmarks {
 				bkTags[bk.Url] = collection.Collect(strings.Split(bk.Tags, ",")).
-					Unique().Filter(func(_, val interface{}) bool {
+					Unique().Filter(func(_, val any) bool {
 					// Filter out empty ("") strings
 					if v, ok := val.(string); ok {
 						if v == "" {
@@ -426,7 +446,7 @@ func Test_scanBookmarks(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-        ff.loadBookmarksToTree(bookmarks)
+		ff.loadBookmarksToTree(bookmarks, false)
 
 		t.Run("find every url in the node tree", func(t *testing.T) {
 
@@ -452,15 +472,14 @@ func Test_scanBookmarks(t *testing.T) {
 					continue
 				}
 
-                tags := strings.Split(bk.Tags, ",")
-                foundTagNodeForUrl, err := findTagsInNodeTree(urlNode.(*tree.Node),
-                                                              tags, ff.tagMap)
-                if err != nil {
-                  t.Error(err)
-                }
-                
+				tags := strings.Split(bk.Tags, ",")
+				foundTagNodeForURL, err := findTagsInNodeTree(urlNode.(*tree.Node),
+					tags, ff.tagMap)
+				if err != nil {
+					t.Error(err)
+				}
 
-				assert.True(t, foundTagNodeForUrl)
+				assert.True(t, foundTagNodeForURL)
 
 			}
 		})
@@ -488,7 +507,7 @@ func Test_scanBookmarks(t *testing.T) {
 					parentFolder = mozilla.RootFolderNames[mozilla.MobileID]
 				}
 				if urlNode.(*tree.Node).Parent != nil {
-					assert.Equal(t, parentFolder, urlNode.(*tree.Node).Parent.Name, 
+					assert.Equal(t, parentFolder, urlNode.(*tree.Node).Parent.Title,
 						"wrong folder for <%s>", bk.Url)
 				}
 
@@ -559,38 +578,36 @@ func Test_FindModifiedBookmarks(t *testing.T) {
 	// 2. Find new created tags
 	// 3. Find new created folders (even if empty)
 
-    type bkTestData struct {
-        tags []string
-        folders []string
-    }
+	type bkTestData struct {
+		tags    []string
+		folders []string
+	}
 
-    modifiedBookmarks := map[string]bkTestData{
-        "https://go.dev/": {
-            tags:    []string{"language"},
-            folders: []string{mozilla.RootFolderNames[mozilla.OtherID]}, // unfiled folder
-        },
-    }
+	modifiedBookmarks := map[string]bkTestData{
+		"https://go.dev/": {
+			tags:    []string{"language"},
+			folders: []string{mozilla.RootFolderNames[mozilla.OtherID]}, // unfiled folder
+		},
+	}
 
+	newBookmarks := map[string]bkTestData{
+		"https://bitcoinwhitepaper.co/": {
+			tags: []string{"bitcoin"},
+			folders: []string{
+				"Cryptocurrencies",
+				mozilla.RootFolderNames[mozilla.OtherID],
+				mozilla.RootFolderNames[mozilla.ToolbarID],
+			},
+		},
+		"https://lightning.network/": {
+			tags:    []string{"bitcoin", "lightning"},
+			folders: []string{mozilla.RootFolderNames[mozilla.OtherID]},
+		},
+	}
 
-    newBookmarks := map[string]bkTestData{
-        "https://bitcoinwhitepaper.co/": {
-        tags:    []string{"bitcoin"},
-        folders: []string{
-            "Cryptocurrencies",
-            mozilla.RootFolderNames[mozilla.OtherID],
-            mozilla.RootFolderNames[mozilla.ToolbarID],
-        },
+	newFolders := []string{"Cryptocurrencies", "NewFolder"}
 
-        },
-        "https://lightning.network/": {
-        tags:    []string{"bitcoin", "lightning"},
-        folders: []string{mozilla.RootFolderNames[mozilla.OtherID]},
-        },
-    }
-
-    newFolders := []string{"Cryptocurrencies", "NewFolder"}
-
-    //TODO!: modified folders
+	//TODO!: modified folders
 
 	// Setup the appropriate test db
 	ff.BkFile = "places-modified.sqlite"
@@ -601,81 +618,97 @@ func Test_FindModifiedBookmarks(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-        ff.loadBookmarksToTree(bookmarks)
+		ff.loadBookmarksToTree(bookmarks, false)
 
-        t.Run("modified bookmarks", func(t *testing.T){
-            // test that each modified bookmark is is loaded
-            // in the node tree
-            for modUrl, modBk := range modifiedBookmarks {
-                node, exists := ff.URLIndex.Get(modUrl)      
+		t.Run("modified bookmarks", func(t *testing.T) {
+			// test that each modified bookmark is is loaded
+			// in the node tree
+			for modURL, modBk := range modifiedBookmarks {
+				node, exists := ff.URLIndex.Get(modURL)
 				assert.True(t, exists, "url missing in URLIndex")
-                urlNode := node.(*tree.Node)
+				urlNode := node.(*tree.Node)
 
 				assert.True(t, tree.FindNode(node.(*tree.Node), ff.NodeTree), "url node missing from tree")
 
+				// matching tag nodes
+				found, err := findTagsInNodeTree(node.(*tree.Node), modBk.tags, ff.tagMap)
+				if err != nil {
+					t.Error(err)
+				}
 
-                // matching tag nodes
-                found, err := findTagsInNodeTree(node.(*tree.Node), modBk.tags, ff.tagMap)
-                if err != nil {
-                  t.Error(err)
-                }
-                
-                assert.True(t, found, "missing tag")
+				assert.True(t, found, "missing tag")
 
+				// matching folders
+				parentFolders := tree.FindParents(ff.NodeTree, urlNode, tree.FolderNode)
+				pFolderNames := utils.Map(func(node *tree.Node) string {
+					return node.Title
+				}, parentFolders)
 
-                // matching folders
-                parentFolders := tree.FindParents(ff.NodeTree, urlNode, tree.FolderNode)
-                pFolderNames := utils.Map(func(node *tree.Node) string{
-                    return node.Name
-                }, parentFolders)
+				assert.ElementsMatch(t, pFolderNames, modBk.folders)
 
-                assert.ElementsMatch(t, pFolderNames, modBk.folders)
+			}
+		})
 
+		t.Run("new bookmarks", func(t *testing.T) {
+			for newURL, newBk := range newBookmarks {
 
-            }
-        })
-
-        t.Run("new bookmarks", func(t *testing.T){
-            for newURL, newBk := range newBookmarks {
-
-                node, exists := ff.URLIndex.Get(newURL)      
-                urlNode := node.(*tree.Node)
+				node, exists := ff.URLIndex.Get(newURL)
+				urlNode := node.(*tree.Node)
 				assert.True(t, exists, "url missing in URLIndex")
 				assert.True(t, tree.FindNode(urlNode, ff.NodeTree), "url node missing from tree")
 
-                // matching tag nodes
-                found, err := findTagsInNodeTree(urlNode, newBk.tags, ff.tagMap)
-                if err != nil {
-                  t.Error(err)
-                }
+				// matching tag nodes
+				found, err := findTagsInNodeTree(urlNode, newBk.tags, ff.tagMap)
+				if err != nil {
+					t.Error(err)
+				}
 
-                assert.True(t, found, "missing tag")
+				assert.True(t, found, "missing tag")
 
+				parentFolders := tree.FindParents(ff.NodeTree, urlNode, tree.FolderNode)
+				pFolderNames := utils.Map(func(node *tree.Node) string {
+					return node.Title
+				}, parentFolders)
 
-                parentFolders := tree.FindParents(ff.NodeTree, urlNode, tree.FolderNode)
-                pFolderNames := utils.Map(func(node *tree.Node) string{
-                    return node.Name
-                }, parentFolders)
+				assert.ElementsMatch(t, pFolderNames, newBk.folders, fmt.Sprintf("mismatch folder for <%s>", urlNode.URL))
+			}
 
-                assert.ElementsMatch(t, pFolderNames, newBk.folders, fmt.Sprintf("mismatch folder for <%s>", urlNode.URL))
-            }
+		})
 
-        })
+		t.Run("find new folders", func(t *testing.T) {
+			// Make sure the new folders exist in the folder node map
+			var folderNodes []*tree.Node
+			for _, fNode := range ff.folderMap {
+				folderNodes = append(folderNodes, fNode)
+			}
 
-        t.Run("find new folders", func(t *testing.T){
-            // Make sure the new folders exist in the folder node map
-            var folderNodes []*tree.Node
-            for _, fNode := range ff.folderMap {
-                folderNodes = append(folderNodes, fNode)
-            }
+			// Get all folder names in tree
+			folderNames := utils.Map(func(node *tree.Node) string {
+				return node.Title
+			}, folderNodes)
 
-            // Get all folder names in tree
-            folderNames := utils.Map(func(node *tree.Node) string{
-                return node.Name
-            }, folderNodes)
+			assert.Subset(t, folderNames, newFolders)
+		})
 
-            assert.Subset(t, folderNames, newFolders)
-        })
+		// WIP: auto generated, review code
+		// t.Run("modified folders", func(t *testing.T) {
+		// 	for modUrl, modBk := range modifiedBookmarks {
+		// 		node, exists := ff.URLIndex.Get(modUrl)
+		// 		assert.True(t, exists, "url missing in URLIndex")
+		// 		urlNode := node.(*tree.Node)
+		//
+		// 		// Ensure the url node is present in the tree
+		// 		assert.True(t, tree.FindNode(node.(*tree.Node), ff.NodeTree), "url node missing from tree")
+		//
+		// 		// Check for modified folders
+		// 		parentFolders := tree.FindParents(ff.NodeTree, urlNode, tree.FolderNode)
+		// 		pFolderNames := utils.Map(func(node *tree.Node) string {
+		// 			return node.Title
+		// 		}, parentFolders)
+		//
+		// 		assert.ElementsMatch(t, pFolderNames, modBk.folders, fmt.Sprintf("mismatch folder for <%s>", urlNode.URL))
+		// 	}
+		// })
 	})
 }
 
@@ -683,7 +716,6 @@ func TestBrowserImplProfileManager(t *testing.T) {
 	assert.Implements(t, (*profiles.ProfileManager)(nil), NewFirefox())
 }
 
-
-func Test_FindModifiedFolders(t *testing.T) {
-   t.Skip("modified folder names should change the corresponding bookmark tags") 
-}
+// func Test_FindModifiedFolders(t *testing.T) {
+// 	t.Skip("modified folder names should change the corresponding bookmark tags")
+// }

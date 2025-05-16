@@ -41,7 +41,7 @@ var (
 // TODO: use same logic with browser mod registering
 func RegisterModCommand(modID string, cmd *cli.Command) {
 	if cmd == nil {
-		log.Panicf("cannot register nil cmd for <%s>", modID)
+		log.Fatalf("cannot register nil cmd for <%s>", modID)
 	}
 
 	if _, ok := modCommands[modID]; !ok {

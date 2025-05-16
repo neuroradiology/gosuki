@@ -24,7 +24,6 @@ package chrome
 import (
 	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/modules"
-	"github.com/blob42/gosuki/pkg/parsing"
 	"github.com/blob42/gosuki/pkg/profiles"
 	"github.com/blob42/gosuki/pkg/tree"
 )
@@ -36,10 +35,9 @@ const (
 	RootNodeName   = "ROOT"
 )
 
-
 type ChromeConfig struct {
 	*modules.BrowserConfig `toml:"-"`
-	modules.ProfilePrefs `toml:"profile_options" mapstructure:"profile_options"`
+	modules.ProfilePrefs   `toml:"profile_options" mapstructure:"profile_options"`
 }
 
 var (
@@ -53,11 +51,11 @@ func setBookmarkDir(cc *ChromeConfig) {
 
 	// load profile from config
 	var profile *profiles.Profile
-	
+
 	// In chrome we need to identify the profiles by their ID to get the correct
 	// path
 	if profile, err = ProfileManager.GetProfileByID(BrowserName, cc.Profile); err != nil {
-		log.Warning(err)
+		log.Warn(err)
 	} else {
 		bookmarkDir, err := profile.AbsolutePath()
 		if err != nil {
@@ -76,16 +74,14 @@ func NewChromeConfig() *ChromeConfig {
 	config := &ChromeConfig{
 		BrowserConfig: &modules.BrowserConfig{
 			Name:   BrowserName,
-			Type:   modules.TChrome,
 			BkFile: "Bookmarks",
 			NodeTree: &tree.Node{
-				Name:   RootNodeName,
+				Title:  RootNodeName,
 				Parent: nil,
 				Type:   tree.RootNode,
 			},
-			Stats:          &parsing.Stats{},
 			UseFileWatcher: true,
-			UseHooks:       []string{"tags_from_name", "notify-send"},
+			UseHooks:       []string{"node_tags_from_name", "bk_marktab"},
 		},
 		ProfilePrefs: modules.ProfilePrefs{
 			Profile: DefaultProfile,

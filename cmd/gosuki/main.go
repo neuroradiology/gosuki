@@ -23,23 +23,22 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/blob42/gosuki/internal/logging"
 	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/pkg/config"
+	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/modules"
 
 	"github.com/blob42/gosuki/cmd"
-
 	"github.com/urfave/cli/v2"
 
-	// Load firefox browser modules
-	// _ "github.com/blob42/gosuki/browsers/firefox"
-	// Load chrome browser module
 	_ "github.com/blob42/gosuki/browsers/chrome"
-	// github module
-	// _ "gosuki/mod-gh-stars"
+	_ "github.com/blob42/gosuki/browsers/firefox"
+	_ "github.com/blob42/gosuki/browsers/qute"
+
+	_ "github.com/blob42/gosuki/mods"
 )
 
 var log = logging.GetLogger("MAIN")
@@ -52,6 +51,14 @@ func main() {
 	app.Description = "TODO: summary gosuki description"
 	app.Usage = "swiss-knife bookmark manager"
 	app.Version = utils.Version()
+	app.ExitErrHandler = func(ctx *cli.Context, err error) {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+			os.Exit(1)
+		} else {
+			os.Exit(0)
+		}
+	}
 
 	flags := []cli.Flag{
 
@@ -64,15 +71,22 @@ func main() {
 			Category:    "_",
 		},
 
+		&cli.BoolFlag{
+			Name:     "tui",
+			Aliases:  []string{"T"},
+			Category: "_",
+			Value:    false,
+		},
+
 		&cli.IntFlag{
 			Name:        "debug",
+			Aliases:     []string{"D"},
 			Category:    "_",
-			Aliases:     []string{"d"},
 			DefaultText: "0",
 			Usage:       "set debug level. (`0`-3)",
 			EnvVars:     []string{logging.EnvGosukiDebug},
 			Action: func(_ *cli.Context, val int) error {
-				logging.SetMode(val)
+				logging.SetLogLevel(val)
 				return nil
 			},
 		},
@@ -91,14 +105,18 @@ func main() {
 
 		// The order here is important
 		//
-		// 1. we load the file config
+		// 1. load the file config
+		// NOTE: since the parsing of flags is done later, the default config
+		// will not take into consideration the cli flags when generating the
+		// file.
 		// 2. every module has the opprtunity to register its own flags
-		// 3. the modules can run custom code before the CLI is ready but after
+		// 3. the modules can run custom code before the cli is ready but after
 		// the config is ready, using the config hooks.
 		//
 		// Cli flags have the highest priority and override config file values
 
-		initConfig()
+		config.Init()
+		logging.SetLogLevel(logging.DefaultLogLevels[logging.LoggingMode])
 
 		// get all registered browser modules
 		modules := modules.GetModules()
@@ -116,7 +134,7 @@ func main() {
 		}
 
 		// Execute config hooks
-		// DOC: better documentation  of Conf hooks ???
+		// DOC: better documentation of Conf hooks
 		// modules can run custom code before the CLI is ready.
 		// For example read the environment and set configuration options to be
 		// used by the module instances.
@@ -131,8 +149,10 @@ func main() {
 		// main entry point
 		startDaemonCmd,
 		cmd.ConfigCmds,
+		cmd.DetectCmd,
 		cmd.ProfileCmds,
 		cmd.ModuleCmds,
+		cmd.DebugCmd,
 	}
 
 	// Add global flags from registered modules
@@ -165,10 +185,7 @@ func main() {
 }
 
 func init() {
-
-	//TODO: watch all profiles (handled at browser level for now)
-	config.RegisterGlobalOption("watch-all", false)
-
-	// database sync (ie save to disk) interval in seconds
-	config.RegisterModuleOpt("database", "sync-interval", 4)
+	if err := utils.MkGosukiDataDir(); err != nil {
+		log.Fatal(err)
+	}
 }

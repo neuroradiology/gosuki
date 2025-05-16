@@ -30,12 +30,17 @@ import (
 
 type Tags struct {
 	delim string
-	tags []string
+	tags  []string
+}
+
+// Returns the list of tags as slice
+func (t *Tags) Get() []string {
+	return t.tags
 }
 
 // Reads tags from a slice of strings
 func NewTags(tags []string, delim string) *Tags {
- 	return &Tags{delim: delim, tags: tags}
+	return &Tags{delim: delim, tags: tags}
 }
 
 func (t *Tags) Add(tag string) {
@@ -49,7 +54,7 @@ func (t *Tags) Extend(tags []string) *Tags {
 
 // Sanitize the list of tags before saving them to the DB
 func (t *Tags) PreSanitize() *Tags {
-    t.tags = utils.ReplaceInList(t.tags, TagSep, "--")
+	t.tags = utils.ReplaceInList(t.tags, TagSep, "--")
 	return t
 }
 
@@ -72,13 +77,13 @@ func (t Tags) StringWrap() string {
 // It also removes empty tags
 func TagsFromString(s, delim string) *Tags {
 	tagslice := strings.Split(s, delim)
-	tags := slices.DeleteFunc(tagslice, func (s string) bool {
+	tags := slices.DeleteFunc(tagslice, func(s string) bool {
 		return s == ""
 	})
 	return &Tags{delim: delim, tags: tags}
 }
 
-/// Returns a string wrapped with the delim
+// / Returns a string wrapped with the delim
 func delimWrap(token string, delim string) string {
 	if token == "" || strings.TrimSpace(token) == "" {
 		return delim
@@ -94,4 +99,3 @@ func delimWrap(token string, delim string) string {
 
 	return token
 }
-

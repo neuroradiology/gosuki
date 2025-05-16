@@ -1,0 +1,120 @@
+:root {
+    --main-color:#6f00ff;
+}
+
+main.container-fluid {
+    padding-left: 70px;
+}
+#bookmarks  ul {
+    padding-left: 0;
+}
+
+/* #bookmarks li:nth-child(odd) { */
+/*     background: yellow; */
+/* } */
+
+/* #bookmarks li:nth-child(even) { */
+/*     background: var(--pico-color-indigo-150); */
+/* } */
+
+
+#bookmarks li .title, #bookmarks li .url {
+    display: block;
+}
+
+#bookmarks li .url {
+    color: var(--pico-color-indigo-700);
+    text-decoration: none;
+}
+
+#bookmarks li .url {
+    font-size: .9rem;
+}
+#bookmarks li .title {
+    text-decoration: none;
+    color: var(--pico-color-grey-850);
+}
+
+
+#bookmarks li.bookmark:not(.no-hl) a em {
+    background: yellow;
+}
+
+
+#bookmarks li.bookmark {
+    margin: 20px 0;
+    list-style-type: none;
+}
+
+#bookmarks .tags button {
+    font-size: small;
+    padding: 0.1rem;
+    border: none;
+}
+#bookmarks .tags button:hover {
+    background: var(--pico-color-indigo-150);
+}
+
+#bookmarks .tags button a {
+    color: var(--pico-color-grey-850);
+    text-decoration: none;
+}
+
+/* HEADER AND SEARCH BAR */
+
+
+header {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    margin-top: 1.5rem;
+}
+
+header #search {
+    flex: 1;
+    display: flex;
+}
+
+header #search-form {
+    display: flex;
+    position: relative;
+    width: 70%;
+    margin-left: 4rem;
+}
+
+header #search-form .nojs-submit {
+    margin-left: 1rem;
+}
+
+header #search-form #search-opts {
+    position: absolute;
+    top: 110%;
+    right: 0;
+}
+
+header #search input {
+    margin: 0;
+}
+
+header #logo {
+    background: url(/static/url-link.svg);
+    background-repeat: no-repeat;
+    background-size: contain;
+    width: 25px;
+    height: 25px;
+    margin: 0 20px;
+    display: flex;
+    align-items: center;
+}
+
+#logo .logo-text {
+    position: absolute;
+    margin-left: 40px;
+    font-weight: bold;
+    margin-bottom: 0;
+    font-weight: 400;
+    color: var(--pico-h6-color);
+}
+

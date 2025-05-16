@@ -50,7 +50,7 @@ func UnlockPlaces(bkDir string) error {
 
 	// If pref already defined and true raise an error
 	if pref {
-		log.Warningf("pref <%s> already defined as <%v>",
+		log.Warnf("pref <%s> already defined as <%v>",
 			PrefMultiProcessAccess, pref)
 		return nil
 

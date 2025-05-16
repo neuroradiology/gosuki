@@ -1,0 +1,15 @@
+{
+  "profile": {
+    "info_cache": {
+      "Default": {
+        "user_name": "default user"
+      },
+      "Profile 1": {
+        "user_name": "user 1"
+      }
+    },
+    "last_active_profiles": [],
+    "last_used": "Default",
+    "profiles_created": 2
+  }
+}

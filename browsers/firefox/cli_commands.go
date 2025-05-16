@@ -24,11 +24,9 @@
 package firefox
 
 import (
-	"fmt"
-
 	"github.com/blob42/gosuki/cmd"
-	"github.com/blob42/gosuki/internal/logging"
 	"github.com/blob42/gosuki/pkg/browsers/mozilla"
+	"github.com/blob42/gosuki/pkg/logging"
 
 	"github.com/urfave/cli/v2"
 )
@@ -57,21 +55,6 @@ var (
 			&ffCheckVFSCmd,
 		},
 	}
-
-	ffListProfilesCmd = cli.Command{
-		Name:    "list",
-		Aliases: []string{"l"},
-		Action:  ffListProfiles,
-	}
-
-	ffProfilesCmds = cli.Command{
-		Name:    "profiles",
-		Aliases: []string{"p"},
-		Usage:   "Profiles commands",
-		Subcommands: []*cli.Command{
-			&ffListProfilesCmd,
-		},
-	}
 )
 
 var FirefoxCmds = &cli.Command{
@@ -80,9 +63,7 @@ var FirefoxCmds = &cli.Command{
 	Usage:   "firefox related commands",
 	Subcommands: []*cli.Command{
 		&ffVFSCommands,
-		&ffProfilesCmds,
 	},
-	//Action:  unlockFirefox,
 }
 
 func init() {
@@ -90,25 +71,6 @@ func init() {
 }
 
 // TODO: #54 define interface for modules to handle and list profiles
-// FIX: Remove since profile listing is implemented at the main module level
-func ffListProfiles(_ *cli.Context) error {
-	flavours := FirefoxProfileManager.ListFlavours()
-	for _, f := range flavours {
-		profs, err := FirefoxProfileManager.GetProfiles(f.Name)
-		if err != nil {
-			return err
-		}
-		for _, p := range profs {
-			if fullPath, err := p.AbsolutePath(); err != nil {
-				return err
-			} else {
-				fmt.Printf("%-10s \t %s\n", p.Name, fullPath)
-			}
-		}
-	}
-
-	return nil
-}
 
 func ffCheckVFS(_ *cli.Context) error {
 	err := mozilla.CheckVFSLock("path to profile")

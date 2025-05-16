@@ -1,9 +1,10 @@
 package mozilla
 
 import (
+	"testing"
+
 	"github.com/blob42/gosuki/pkg/profiles"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var OkProfile = &profiles.INIProfileLoader{
@@ -28,7 +29,7 @@ var BadProfile = &profiles.INIProfileLoader{
 
 func TestGetProfiles(t *testing.T) {
 	// fake browser flavour
-	MozBrowsers["test"] = profiles.BrowserFlavour{"test", "testdata"}
+	MozBrowsers["test"] = profiles.Flavour{"test", "testdata"}
 	t.Run("OK", func(t *testing.T) {
 		pm := &MozProfileManager{
 			PathResolver: OkProfile,

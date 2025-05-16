@@ -1,0 +1,16 @@
+<!-- main view: bookmark index / search -->
+{{ define "view" }}
+
+
+<span id="debug" style="display: none;">
+    {{ printf "debug: %#v" .QueryParams }}
+</span>
+
+
+<div id="bookmarks">
+    {{ block "bookmarks" . }}
+    {{ end }}
+</div>
+
+{{ end }}
+

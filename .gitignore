@@ -15,3 +15,9 @@ gosuki
 !cmd/gosuki
 gosuki.db
 build
+internal/ui/static/pico-main
+internal/ui/static/main.zip
+.air.toml
+.aider*
+mods/generated_imports.go
+generate/generated_imports.go

@@ -1,0 +1,7 @@
+{{ define "view" }}
+    HOLA TEST
+    <button hx-get="/greet" hx-swap="innerHTML" hx-target="body">Greet</button>
+    <button hx-get="/bookmarks" hx-swap="innerHTML" hx-target="next #bookmarks">Load bookmarks</button>
+    <div id="bookmarks"></div>
+    <p>{{ .Foo }}</p>
+{{ end }}

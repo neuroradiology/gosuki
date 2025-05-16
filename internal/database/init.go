@@ -22,40 +22,44 @@
 package database
 
 import (
-	"path/filepath"
-
 	"github.com/blob42/gosuki/internal/utils"
 )
 
-func Init() {
+// Initialize the connection to ondisk gosuki db
+func InitDiskConn(dbPath string) error {
+	log.Debug("initializing cacheDB")
 	var err error
 
-	registerSqliteHooks()
+	// Initialize connection to gosuki file database
+
+	dsnOpts := DsnOptions{
+		"_journal_mode": "WAL",
+		// see https://github.com/mattn/go-sqlite3/issues/249
+		"_mutex": "no",
+		"cache":  "shared",
+	}
+	DiskDB, err = NewDB("gosuki_db", dbPath, DBTypeFileDSN, dsnOpts).Init()
+
+	return err
+}
+
+func Init() {
+
+	RegisterSqliteHooks()
 	initCache()
 	StartSyncScheduler()
 
-
-	// Check and initialize local db as last step
-	// browser bookmarks should already be in cache
-
-	dbdir := utils.GetDefaultDBPath()
-	dbpath := filepath.Join(dbdir, DBFileName)
-	// Verifiy that local db directory path is writeable
-	err = utils.CheckWriteable(dbdir)
-	if err != nil {
-		log.Critical(err)
-	}
-
+	dbpath := GetDBPath()
 	// If local db exists load it to cacheDB
-	var exists bool
-	if exists, err = utils.CheckFileExists(dbpath); exists {
-		if err != nil {
-			log.Warning(err)
-		}
+	if exists, err := utils.CheckFileExists(dbpath); exists {
 		log.Infof("<%s> exists, preloading to cache", dbpath)
-		er := Cache.DB.SyncFromDisk(dbpath)
-		if er != nil {
-			log.Critical(er)
+		err = InitDiskConn(dbpath)
+		if err != nil {
+			log.Error(err)
+		}
+		err = Cache.SyncFromDisk(dbpath)
+		if err != nil {
+			log.Error(err)
 		}
 	} else {
 		if err != nil {
@@ -74,7 +78,7 @@ func initLocalDB(db *DB, dbpath string) {
 	log.Infof("Initializing local db at '%s'", dbpath)
 	err := db.SyncToDisk(dbpath)
 	if err != nil {
-		log.Critical(err)
+		log.Error(err)
 	}
 
 }

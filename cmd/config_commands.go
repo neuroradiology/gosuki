@@ -22,32 +22,45 @@
 package cmd
 
 import (
-	"github.com/blob42/gosuki/pkg/config"
-	"github.com/blob42/gosuki/internal/logging"
+	"os"
 
+	"github.com/BurntSushi/toml"
+	"github.com/blob42/gosuki/pkg/config"
+	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/kr/pretty"
+
 	"github.com/urfave/cli/v2"
 )
 
 var log = logging.GetLogger("CMD")
 
 var cfgPrintCmd = &cli.Command{
-	Name:    "print",
-	Aliases: []string{"p"},
-	Usage:   "print current config",
+	Name:    "gen",
+	Aliases: []string{"g"},
+	Usage:   "generate a default configuration",
 	Action:  printConfig,
 }
 
+var cfgDebugCmd = &cli.Command{
+	Name:    "debug",
+	Aliases: []string{"d"},
+	Usage:   "verbose debug of the current config",
+	Action: func(_ *cli.Context) error {
+		pretty.Print(config.GetAll())
+		return nil
+	},
+}
+
 var ConfigCmds = &cli.Command{
-	Name:  "config",
-	Usage: "get/set config opetions",
+	Name: "config",
 	Subcommands: []*cli.Command{
 		cfgPrintCmd,
+		cfgDebugCmd,
 	},
 }
 
 func printConfig(_ *cli.Context) error {
-	pretty.Println(config.GetAll())
-
-    return nil
+	tomlEncoder := toml.NewEncoder(os.Stdout)
+	tomlEncoder.Indent = ""
+	return tomlEncoder.Encode(config.GetAll())
 }

@@ -45,12 +45,6 @@ var globalFirefoxFlags = []cli.Flag{
 		Category: "firefox",
 		Usage:    "set the default firefox `PROFILE` to use",
 	},
-	&cli.BoolFlag{
-		Name:     "ff-watch-all-profiles",
-		Category: "firefox",
-		Usage:    "watch all firefox profiles for changes",
-		Aliases:  []string{"ff-watch-all"},
-	},
 }
 
 // Firefox global flags must start with --firefox-<flag name here>
@@ -76,7 +70,7 @@ func globalCommandFlagsManager(c *cli.Context) error {
 		}
 
 		// TEST:
-		// TODO: add doc
+		// TODO!: document
 		// Firefox flags must start with --firefox-<flag name here>
 		// or -ff-<flag name here>
 		if !utils.InList([]string{"firefox", "ff"}, sp[0]) {
@@ -109,7 +103,7 @@ func globalCommandFlagsManager(c *cli.Context) error {
 			optionName, destVal)
 
 		if err != nil {
-			log.Panic(err)
+			log.Fatal(err)
 		}
 	}
 	return nil
