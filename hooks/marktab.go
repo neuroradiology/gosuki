@@ -62,28 +62,41 @@ func marktabHook(item any) error {
 
 	switch v := item.(type) {
 	case *tree.Node:
-	case *gosuki.Bookmark:
-		for _, rule := range marktab.CachedRules.Rules {
-
-			// Spawn a new shell subprocess with the rule's command, passing in
-			// the bookmark details.
-			if rule.Match(v) {
-				cmd := exec.Command("sh", "-c", rule.Command)
-				cmd.Env = append(
-					os.Environ(),
-					"GOSUKI_URL="+v.URL,
-					"GOSUKI_TITLE="+v.Title,
-					"GOSUKI_TAGS="+strings.Join(v.Tags, ","),
-					"GOSUKI_MODULE="+v.Module,
-				)
-				if err := cmd.Start(); err != nil {
-					return fmt.Errorf("failed to start command: %w", err)
-				}
-			}
+		bk := v.GetBookmark()
+		if bk == nil {
+			panic("unexpected nil bookmark")
 		}
+		return processMtabHook(bk)
+	case *gosuki.Bookmark:
+		if v == nil {
+			return nil
+		}
+		return processMtabHook(v)
 	default:
 		panic("hook: unknown type")
 	}
+}
+
+func processMtabHook(bk *gosuki.Bookmark) error {
+	for _, rule := range marktab.CachedRules.Rules {
+
+		// Spawn a new shell subprocess with the rule's command, passing in
+		// the bookmark details.
+		if rule.Match(bk) {
+			cmd := exec.Command("sh", "-c", rule.Command)
+			cmd.Env = append(
+				os.Environ(),
+				"GOSUKI_URL="+bk.URL,
+				"GOSUKI_TITLE="+bk.Title,
+				"GOSUKI_TAGS="+strings.Join(bk.Tags, ","),
+				"GOSUKI_MODULE="+bk.Module,
+			)
+			if err := cmd.Start(); err != nil {
+				return fmt.Errorf("failed to start command: %w", err)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -98,12 +111,17 @@ func BkMktabHook(b *gosuki.Bookmark) error {
 func init() {
 	regHook(
 		Hook[*tree.Node]{
-			name: "node_marktab",
-			Func: NodeMktabHook,
-		},
-		Hook[*gosuki.Bookmark]{
-			name: "bk_marktab",
-			Func: BkMktabHook,
+			name:     "node_marktab",
+			Func:     NodeMktabHook,
+			priority: 10,
 		},
 	)
+	regHook(
+		Hook[*gosuki.Bookmark]{
+			name:     "bk_marktab",
+			Func:     BkMktabHook,
+			priority: 10,
+		},
+	)
+
 }

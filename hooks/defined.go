@@ -29,13 +29,13 @@ import (
 	"github.com/blob42/gosuki/pkg/tree"
 )
 
-type HookMap map[string]interface{}
+type HookMap map[string]NamedHook
 
-type WithName interface {
+type NamedHook interface {
 	Name() string
 }
 
-var Predefined = HookMap{
+var Defined = HookMap{
 	"node_tags_from_name": Hook[*tree.Node]{
 		name: "node_tags_from_name",
 		Func: parsing.ParseNodeTags,
@@ -46,8 +46,8 @@ var Predefined = HookMap{
 	},
 }
 
-func regHook(hooks ...WithName) {
+func regHook[T Hookable](hooks ...Hook[T]) {
 	for _, hook := range hooks {
-		Predefined[hook.Name()] = hook
+		Defined[hook.name] = hook
 	}
 }

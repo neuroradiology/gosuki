@@ -30,6 +30,9 @@
 package hooks
 
 import (
+	"reflect"
+	"sort"
+
 	"github.com/blob42/gosuki"
 	"github.com/blob42/gosuki/pkg/tree"
 )
@@ -48,12 +51,34 @@ type Hook[T Hookable] struct {
 	// Unique name of the hook
 	name string
 
-	// Function to call on a node
+	// Function to call on a node/bookmark
 	Func func(T) error
+
+	priority uint // hook order. Highest == 0
 }
 
 func (h Hook[T]) Name() string {
 	return h.name
+}
+
+func SortByPriority(hooks []NamedHook) {
+	sort.Slice(hooks, func(i, j int) bool {
+		vi := reflect.ValueOf(hooks[i])
+		vj := reflect.ValueOf(hooks[j])
+
+		if vi.Kind() != reflect.Struct || vj.Kind() != reflect.Struct {
+			panic("expected struct")
+		}
+
+		pi := vi.FieldByName("priority")
+		pj := vj.FieldByName("priority")
+
+		if !pi.IsValid() || !pj.IsValid() {
+			panic("missing priority field")
+		}
+
+		return pi.Uint() < pj.Uint()
+	})
 }
 
 // Browser who implement this interface will be able to register custom

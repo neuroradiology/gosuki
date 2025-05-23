@@ -84,12 +84,14 @@ func BkNotifySend(b *gosuki.Bookmark) error {
 func init() {
 	regHook(
 		Hook[*tree.Node]{
-			name: "node_notify_send",
-			Func: NodeNotifySend,
-		},
+			name:     "node_notify_send",
+			Func:     NodeNotifySend,
+			priority: 20,
+		})
+	regHook(
 		Hook[*gosuki.Bookmark]{
-			name: "bk_notify_send",
-			Func: BkNotifySend,
-		},
-	)
+			name:     "bk_notify_send",
+			Func:     BkNotifySend,
+			priority: 20,
+		})
 }
