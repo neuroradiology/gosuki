@@ -53,14 +53,19 @@ type RawBookmarks []*RawBookmark
 type RawBookmark struct {
 	ID  uint64
 	URL string `db:"URL"`
+
 	// Usually used for the bookmark title
 	Metadata string
-	Tags     string
-	Desc     string
+
+	Tags string
+	Desc string
+
 	// Last modified
 	Modified uint64
-	// Not used, keep for buku compatibility
-	Flags  int
+
+	// kept for buku compat, not used for now
+	Flags int
+
 	Module string
 }
 
@@ -159,7 +164,11 @@ func QueryBookmarks(
 	return &QueryResult{rawBooks.AsBookmarks(), total}, nil
 }
 
-func BookmarksByTag(ctx context.Context, tag string) (*QueryResult, error) {
+func BookmarksByTag(
+	ctx context.Context,
+	tag string,
+	pagination *PaginationParams,
+) (*QueryResult, error) {
 	query := "SELECT * FROM bookmarks WHERE"
 	tagsCondition := ""
 	if len(tag) > 0 {
@@ -169,6 +178,7 @@ func BookmarksByTag(ctx context.Context, tag string) (*QueryResult, error) {
 	}
 
 	query = query + " (" + tagsCondition + ")"
+	query += fmt.Sprintf(" "+QQueryPaginate, pagination.Size, (pagination.Page-1)*pagination.Size)
 
 	rawBooks := RawBookmarks{}
 	err := DiskDB.Handle.SelectContext(ctx, &rawBooks, query)
@@ -176,7 +186,17 @@ func BookmarksByTag(ctx context.Context, tag string) (*QueryResult, error) {
 		return nil, err
 	}
 
-	return &QueryResult{rawBooks.AsBookmarks(), uint(len(rawBooks))}, nil
+	var count uint
+	err = DiskDB.Handle.GetContext(
+		ctx,
+		&count,
+		fmt.Sprintf("SELECT COUNT(*) FROM bookmarks WHERE %s", tagsCondition),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &QueryResult{rawBooks.AsBookmarks(), count}, nil
 }
 
 func ListBookmarks(
@@ -237,11 +257,15 @@ func buildSelectQuery(
 		QQueryPaginate,
 	)
 
+	if tag == "" {
+		tag = query
+	}
+
 	return fmt.Sprintf(
 		sqlQuery,
 		query,
 		query,
-		query,
+		tag,
 		pagination.Size,
 		(pagination.Page-1)*pagination.Size,
 	)

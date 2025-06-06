@@ -43,49 +43,52 @@ const (
 	//word in the #middle of sentence
 	//tags with a #dot.caracter
 	//this is a end of sentence #tag
-	ReTags = `\B#(?P<tag>\w+\.?\w+)`
-
+	// ReTags = `\B#(?P<tag>\w+\.?\w+)`
+	ReTags = `#(?P<tag>[a-zA-Z0-9_.-]+)`
 	// #tag:notify
-	ReNotify = `\b(?P<tag>\w+\.?\w+):notify`
+	ReNotify = `\b(?P<tag>[a-zA-Z0-9_.-]+):notify`
 )
 
 var log = logging.GetLogger("PARSE")
 
-// ParseTags is a [gosuki.Hook] that extracts tags like #tag from the title of the bookmark or node.
-// It is stored as a tag in the metadata field of the bookmark or node.
+func stripHashTag(s string) string {
+	return regexp.MustCompile(ReTags).ReplaceAllString(s, "")
+}
+
+// parseTags is a [gosuki.Hook] that extracts tags like #tag from the title of
+// the bookmark or node.
+// It takes an item of type *tree.Node or *gosuki.Bookmark, extracts all tags
+// matching the regex pattern defined in ReTags, appends them to the item's Tags
+// field, and removes the matched tags from the title. If the item is of an
+// unsupported type, it returns an error.
 func parseTags(item any) error {
 	var regex = regexp.MustCompile(ReTags)
 	switch v := item.(type) {
 	case *tree.Node:
-		// log.Debugf("running ParseTags hook on node: %s", v.URL)
-		matches := regex.FindAllStringSubmatch(v.Title, -1)
-		for _, m := range matches {
-			if v.Tags == nil {
-				v.Tags = []string{m[1]}
-			} else {
-				v.Tags = append(v.Tags, m[1])
-			}
+		if v.Tags == nil {
+			v.Tags = []string{}
 		}
-		if len(v.Tags) > 0 {
-			log.Debugf("[hook] found following tags: %s", v.Tags)
-		}
+		processTags(regex, &v.Title, &v.Tags)
 	case *gosuki.Bookmark:
-		// log.Debugf("running ParseTags hook on node: %s", v.URL)
-		matches := regex.FindAllStringSubmatch(v.Title, -1)
-		for _, m := range matches {
-			if v.Tags == nil {
-				v.Tags = []string{m[1]}
-			} else {
-				v.Tags = append(v.Tags, m[1])
-			}
+		if v.Tags == nil {
+			v.Tags = []string{}
 		}
-		if len(v.Tags) > 0 {
-			log.Debugf("[hook] found following tags: %s", v.Tags)
-		}
+		processTags(regex, &v.Title, &v.Tags)
 	default:
 		return fmt.Errorf("unsupported type")
 	}
 	return nil
+}
+
+func processTags(regex *regexp.Regexp, title *string, tags *[]string) {
+	matches := regex.FindAllStringSubmatch(*title, -1)
+	for _, m := range matches {
+		*tags = append(*tags, m[1])
+	}
+	if len(*tags) > 0 {
+		log.Debugf("[hook] found following tags: %s", *tags)
+	}
+	*title = stripHashTag(*title)
 }
 
 func ParseNodeTags(n *tree.Node) error {

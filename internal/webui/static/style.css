@@ -84,6 +84,12 @@ main.container-fluid #contentArea {
     background: yellow;
 }
 
+@media only screen and (prefers-color-scheme: dark) {
+    #bookmarks li.bookmark:not(.no-hl) a em {
+        background: rgba(0, 255, 255, 0.15);
+    }
+}
+
 
 #bookmarks li.bookmark {
     margin: 20px 0;

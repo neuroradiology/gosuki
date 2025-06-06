@@ -240,6 +240,20 @@ func WalkBuildIndex(node *Node, index index.HashTree) {
 	}
 }
 
+// Maps a func(*Node) to any node in the tree starting from node that matches
+// the type nType
+func MapNodeFunc(node *Node, nType NodeType, f func(*Node)) {
+	if node.Type == nType {
+		f(node)
+	}
+
+	if len(node.Children) > 0 {
+		for _, node := range node.Children {
+			MapNodeFunc(node, nType, f)
+		}
+	}
+}
+
 // Get all possible tags for this url node The tags make sense only in the
 // context of a URL node This will traverse the three breadth first to find all
 // parent folders and add them as a tag. URL nodes should already be populated

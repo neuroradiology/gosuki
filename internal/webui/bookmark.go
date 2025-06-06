@@ -23,6 +23,7 @@
 package webui
 
 import (
+	"html/template"
 	"strings"
 
 	"github.com/blob42/gosuki"
@@ -36,6 +37,11 @@ type UIBookmark struct {
 }
 
 func NewUIBookmark(b *gosuki.Bookmark) *UIBookmark {
+
+	// html escape
+	b.Title = template.HTMLEscapeString(b.Title)
+	b.Desc = template.HTMLEscapeString(b.Desc)
+
 	return &UIBookmark{
 		Bookmark:   b,
 		DisplayURL: strings.Clone(b.URL),

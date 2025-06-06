@@ -68,11 +68,6 @@ func (t Tags) String(wrap bool) string {
 	return strings.Join(t.tags, t.delim)
 }
 
-// String representation of the tags. It wraps the tags with the delim.
-func (t Tags) StringWrap() string {
-	return delimWrap(strings.Join(t.tags, t.delim), t.delim)
-}
-
 // Builds a list of tags from a string as a Tags struct.
 // It also removes empty tags
 func TagsFromString(s, delim string) *Tags {
@@ -81,6 +76,11 @@ func TagsFromString(s, delim string) *Tags {
 		return s == ""
 	})
 	return &Tags{delim: delim, tags: tags}
+}
+
+// String representation of the tags. It wraps the tags with the delim.
+func (t Tags) StringWrap() string {
+	return delimWrap(strings.Join(t.tags, t.delim), t.delim)
 }
 
 // / Returns a string wrapped with the delim

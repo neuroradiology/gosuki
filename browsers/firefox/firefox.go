@@ -155,29 +155,28 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark, runTask bool) {
 
 	for _, bkEntry := range bookmarks {
 		// Create/Update URL node and apply tag node
-		ok, urlNode := f.addURLNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
-		if !ok {
+		created, urlNode := f.addURLNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
+		if !created {
 			log.Debugf("url <%s> already in url index", bkEntry.Url)
-		}
-
-		f.IncURLCount()
-
-		//REFACT: same code in all browsers
-		progress := f.Progress()
-		if progress-f.lastSentProgress >= 0.05 || progress == 1 {
-			f.lastSentProgress = progress
-			go func() {
-				msg := events.ProgressUpdateMsg{
-					ID:           f.ModInfo().ID,
-					Instance:     f,
-					CurrentCount: f.URLCount(),
-					Total:        f.Total(),
-				}
-				if runTask {
-					msg.NewBk = true
-				}
-				events.TUIBus <- msg
-			}()
+		} else {
+			f.IncURLCount()
+			//REFACT: same code in all browsers
+			progress := f.Progress()
+			if progress-f.lastSentProgress >= 0.05 || progress == 1 {
+				f.lastSentProgress = progress
+				go func() {
+					msg := events.ProgressUpdateMsg{
+						ID:           f.ModInfo().ID,
+						Instance:     f,
+						CurrentCount: f.URLCount(),
+						Total:        f.Total(),
+					}
+					if runTask {
+						msg.NewBk = true
+					}
+					events.TUIBus <- msg
+				}()
+			}
 		}
 
 		/*
@@ -210,6 +209,10 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark, runTask bool) {
 			tree.AddChild(folderNode, urlNode)
 		}
 
+		err := f.CallHooks(urlNode)
+		if err != nil {
+			log.Errorf("error calling hooks for <%s>: %s", urlNode.URL, err)
+		}
 	}
 }
 
@@ -523,19 +526,36 @@ func (f *Firefox) Shutdown() error {
 // TODO: addUrl and addTag share a lot of code, find a way to reuse shared code
 // and only pass extra details about tag/url along in some data structure
 // PROBLEM: tag nodes use IDs and URL nodes use URL as hashes
+//
+// addURLNode inserts a new URL node into the URL index or updates an existing one if the URL already exists.
+// It constructs the module name based on the Firefox instance's active flavour and profile, if present.
+// Returns true and the created node if a new URL node was added, or false and the existing node if the URL was already present.
+//
+// Returns:
+//   - created: true if a new node was created, false if an existing node was updated.
+//   - node: The tree.Node representing the URL entry, either newly created or existing.
 func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 
 	var urlNode *tree.Node
 	var created bool
 
 	iURLNode, exists := f.URLIndex.Get(url)
+
+	modName := f.Name
+	if f.activeFlavour != nil {
+		modName = fmt.Sprintf("%s_%s", modName, f.activeFlavour.Name)
+	}
+	if f.activeProfile != nil {
+		modName = fmt.Sprintf("%s_%s", modName, f.activeProfile.Name)
+	}
+
 	if !exists {
 		urlNode = &tree.Node{
 			Title:  title,
 			Type:   tree.URLNode,
 			URL:    url,
 			Desc:   desc,
-			Module: f.Name, // module which created this node
+			Module: modName, // module which created this node
 		}
 
 		log.Debugf("inserting url %s in url index", url)
@@ -551,12 +571,6 @@ func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 		// update title and desc
 		urlNode.Title = title
 		urlNode.Desc = desc
-	}
-
-	// Call hooks
-	err := f.CallHooks(urlNode)
-	if err != nil {
-		log.Errorf("error calling hooks for <%s>: %s", url, err)
 	}
 
 	return created, urlNode

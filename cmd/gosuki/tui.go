@@ -319,20 +319,15 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return setupModProgress(m, msg.WatchRunner)
 
 	case events.StartedLoadingMsg:
-		// panic(msg.Total)
-		b, isBr := m.browsers[string(msg.ID)]
+		_, isBr := m.browsers[string(msg.ID)]
 
-		// must be a module
+		// simple module
 		if !isBr {
-			mod, isMod := m.modules[string(msg.ID)]
+			_, isMod := m.modules[string(msg.ID)]
 			if !isMod {
 				errMsg := fmt.Sprintf("%s: module not recognized", msg.ID)
 				panic(errMsg)
 			}
-
-			mod.totalCount += msg.Total
-		} else {
-			b.totalCount = msg.Total
 		}
 
 		return m, nil

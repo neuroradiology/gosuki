@@ -111,7 +111,7 @@ func NewFirefoxConfig() *FirefoxConfig {
 			// NOTE: see parsing.Hook to add custom parsing logic for each
 			// parsed bookmark node
 			// UseHooks: []string{"node_notify_send"},
-			UseHooks: []string{"node_tags_from_name", "bk_marktab"},
+			UseHooks: []string{"node_tags_from_name", "node_marktab"},
 		},
 
 		// Default data source name query options for `places.sqlite` db

@@ -256,11 +256,7 @@ func setupDefaultImportPath() []string {
 
 	importDir := filepath.Join(dataDir, "gosuki/imports")
 	if err = utils.MkDir(importDir); err != nil {
-		log.Fatalf("accessing path: %s: %s ", importDir, err)
-	}
-
-	if err = utils.MkDir(importDir); err != nil {
-		log.Fatalf("%s: %s ", importDir, err)
+		log.Errorf("auto import dir: %s", err)
 	}
 
 	return []string{importDir}

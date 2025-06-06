@@ -17,14 +17,23 @@
 -- every bookmark that has a tag and is inside a folder has three entries:
 
 WITH RECURSIVE
+	-- default mozilla marketing bookmarks
+	marketing_marks(id, url)
+	AS (
+			SELECT moz_bookmarks.id, moz_places.url FROM moz_places
+			JOIN moz_bookmarks ON moz_bookmarks.fk = moz_places.id
+			WHERE moz_bookmarks.id < 20
+			AND moz_places.url LIKE '%mozilla.org%'
+	),
 	folder_marks(bid, type, title, folder, parent) 
 	AS (
 		SELECT id, type, title, title as folder, parent FROM moz_bookmarks 
                 WHERE fk IS NULL and parent not in (4,0) -- get all folders
 		UNION ALL
 		SELECT id, moz_bookmarks.type, moz_bookmarks.title, folder, moz_bookmarks.parent -- get all bookmarks with folder parents
-				FROM  moz_bookmarks JOIN folder_marks ON moz_bookmarks.parent=bid	
-				WHERE id > 12 --ignore native mozilla folders
+				FROM  moz_bookmarks
+				JOIN folder_marks ON moz_bookmarks.parent=bid	
+				WHERE id NOT IN (SELECT id FROM marketing_marks) --ignore native mozilla folders
 	),
 	
 	bk_in_folders(id, type, fk, title, parent) AS(

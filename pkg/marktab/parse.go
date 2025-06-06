@@ -24,12 +24,14 @@
 //
 // # Marktab Format:
 //
-// Each line in a marktab file represents a rule. A rule consists of three fields: trigger, pattern, and command. The syntax for each line is as follows:
+// Each line in a marktab file represents a rule.
+// A rule consists of three fields: trigger, pattern, and command.
+// The syntax for each line is as follows:
 //
 //	#  *  *   *
 //	#  |  |   |_____ shell command to execute
-//	#  |  |_________ pattern to match on the bookmark
-//	#  |____________ trigger keyword to detect on the bookmark tags
+//	#  |  |_________ pattern to match on the url or title
+//	#  |____________ trigger keyword to detect on the tags
 //
 // Example:
 //
@@ -133,10 +135,10 @@ func (mte MarktabError) Error() error {
 		outErr = fmt.Sprintf(" %s\ninvalid rule", mte.Context)
 	}
 	if mte.err != nil {
-		return fmt.Errorf("%s\n%w\n\n", outErr, mte.err)
+		return fmt.Errorf("%s : %w", outErr, mte.err)
 	}
 
-	return fmt.Errorf("%s\n\n", outErr)
+	return fmt.Errorf("%s", outErr)
 }
 
 func PreloadRules() error {
@@ -188,15 +190,14 @@ func parseLine(line string) (Rule, error) {
 	}
 
 	fields := strings.Fields(line)
-	// fmt.Printf("%#v\n", fields)
 
-	if len(fields) != 3 {
-		return Rule{}, errInvalidFormat(line, "wrong number of fields")
-	}
+	// if len(fields) != 3 {
+	// 	return Rule{}, errInvalidFormat(line, "wrong number of fields")
+	// }
 
 	trigger := fields[0]
 	pattern := fields[1]
-	command := fields[2]
+	command := strings.Join(fields[2:], " ")
 
 	// Validate pattern (basic check, can be extended based on requirements)
 	_, err := regexp.Compile(pattern)

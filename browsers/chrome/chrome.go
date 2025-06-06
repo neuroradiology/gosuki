@@ -110,7 +110,7 @@ func (rawNode *RawNode) parseItems(nodeData []byte) {
 }
 
 // Returns *tree.Node from *RawNode
-func (rawNode *RawNode) getNode(browserName string) *tree.Node {
+func (rawNode *RawNode) getNode(ch *Chrome) *tree.Node {
 	node := new(tree.Node)
 	nType, ok := jsonNodeTypes[string(rawNode.nType)]
 	if !ok {
@@ -119,7 +119,16 @@ func (rawNode *RawNode) getNode(browserName string) *tree.Node {
 	node.Type = nType
 
 	node.Title = string(rawNode.title)
-	node.Module = browserName
+	modName := ch.Name
+
+	if ch.activeFlavour != nil {
+		modName = fmt.Sprintf("%s_%s", modName, ch.activeFlavour.Name)
+	}
+	if ch.activeProfile != nil {
+		modName = fmt.Sprintf("%s_%s", modName, ch.activeProfile.Name)
+	}
+
+	node.Module = modName
 
 	return node
 }
@@ -293,7 +302,7 @@ func (ch *Chrome) run(runTask bool) {
 
 		//log.Debugf("Parsing root folder %s", rawNode.name)
 
-		currentNode := rawNode.getNode(ch.Name)
+		currentNode := rawNode.getNode(ch)
 
 		// Process this node as parent node later
 		parentNodes = append(parentNodes, currentNode)
@@ -334,7 +343,7 @@ func (ch *Chrome) run(runTask bool) {
 		rawNode := new(RawNode)
 		rawNode.parseItems(node)
 
-		currentNode := rawNode.getNode(ch.Name)
+		currentNode := rawNode.getNode(ch)
 		//log.Debugf("parsing node %s", currentNode.Name)
 
 		// if parents array is not empty
@@ -355,7 +364,7 @@ func (ch *Chrome) run(runTask bool) {
 			//log.Debugf("Started folder %s", rawNode.name)
 			parentNodes = append(parentNodes, currentNode)
 
-			// Process recursively all child nodes of this folder node
+			// Recursively process all child nodes of this folder node
 			jsonparser.ArrayEach(node, parseChildren, jsonNodePaths.Children)
 
 			//log.Debugf("Finished folder %s", rawNode.name)
@@ -477,7 +486,7 @@ func (ch *Chrome) run(runTask bool) {
 	// database.Cache represents bookmarks across all browsers
 	// From browsers it should support: add/update
 	// Delete method should only be possible through admin interface
-	// We could have an @ignore command to ignore a bookmark
+	//NOTE: We could have an @ignore command to ignore a bookmark
 
 	// URLIndex is a hashmap index of all URLS representing current state
 	// of the browser
@@ -487,11 +496,10 @@ func (ch *Chrome) run(runTask bool) {
 	// Buffer is the current state of the browser represetned by
 	// URLIndex and nodeTree
 
-	// If the cache is empty just copy buffer to cache
-	// until local db is already populated and preloaded
 	// debugPrint("%d", BufferDB.Count())
 
-	//TODO!: double check syncing
+	// If the cache is empty just copy buffer to cache
+	// until local db is already populated and preloaded
 	if err = ch.BufferDB.SyncToCache(); err != nil {
 		log.Errorf("syncing buffer to cache: %v", err)
 	}

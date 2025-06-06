@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
 // PreSanitize the list of tags before saving them to the DB
 // It should replace the delim with a double dash
 func TestTags_PreSanitize(t *testing.T) {
@@ -51,7 +50,86 @@ func TestTags_StringWrap(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Empty tags",
+			fields: fields{
+				delim: "-",
+				tags:  []string{},
+			},
+			want: "-",
+		},
+		{
+			name: "Single tag already wrapped",
+			fields: fields{
+				delim: "-",
+				tags:  []string{"-a-"},
+			},
+			want: "-a-",
+		},
+		{
+			name: "Single tag needs wrapping",
+			fields: fields{
+				delim: "-",
+				tags:  []string{"a"},
+			},
+			want: "-a-",
+		},
+		{
+			name: "Multiple tags, already wrapped",
+			fields: fields{
+				delim: "-",
+				tags:  []string{"-a", "b-"},
+			},
+			want: "-a-b-",
+		},
+		{
+			name: "Multiple tags need wrapping",
+			fields: fields{
+				delim: "-",
+				tags:  []string{"a", "b"},
+			},
+			want: "-a-b-",
+		},
+		{
+			name: "Tags with existing delim characters but not fully wrapped",
+			fields: fields{
+				delim: "-",
+				tags:  []string{"a-", "b"},
+			},
+			want: "-a--b-",
+		},
+		{
+			name: "Delim with multiple characters",
+			fields: fields{
+				delim: ">>",
+				tags:  []string{"a", "b"},
+			},
+			want: ">>a>>b>>",
+		},
+		{
+			name: "Empty token after join",
+			fields: fields{
+				delim: "-",
+				tags:  []string{""},
+			},
+			want: "-",
+		},
+		{
+			name: "Whitespace only tag",
+			fields: fields{
+				delim: "-",
+				tags:  []string{"  "},
+			},
+			want: "-",
+		},
+		{
+			name: "Token with spaces",
+			fields: fields{
+				delim: "-",
+				tags:  []string{"  a  "},
+			},
+			want: "-  a  -",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -69,12 +147,12 @@ func TestTags_StringWrap(t *testing.T) {
 func TestTagsFromString(t *testing.T) {
 	delim := ","
 	type args struct {
-		s     string
+		s string
 	}
 	tests := []struct {
-		name string
+		name   string
 		tagstr string
-		want []string
+		want   []string
 	}{
 		{"case1", "tag1,tag2", []string{"tag1", "tag2"}},
 		{"case2", ",tag1,tag2,,", []string{"tag1", "tag2"}},

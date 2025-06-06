@@ -29,7 +29,8 @@ import (
 )
 
 const (
-	BrowserName    = ChromeStable
+	BrowserName = ChromeStable
+	//FIXME: hardcoded path
 	ChromeBaseDir  = "$HOME/.config/google-chrome"
 	DefaultProfile = "Default"
 	RootNodeName   = "ROOT"
@@ -81,7 +82,7 @@ func NewChromeConfig() *ChromeConfig {
 				Type:   tree.RootNode,
 			},
 			UseFileWatcher: true,
-			UseHooks:       []string{"node_tags_from_name", "bk_marktab"},
+			UseHooks:       []string{"node_tags_from_name", "node_marktab"},
 		},
 		ProfilePrefs: modules.ProfilePrefs{
 			Profile: DefaultProfile,

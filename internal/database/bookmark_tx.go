@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/blob42/gosuki"
+	"github.com/blob42/gosuki/internal/utils"
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
@@ -91,6 +92,10 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 
 	// sanitize urls
 	bk.URL = html.UnescapeString(bk.URL)
+
+	// unescape unicode
+	bk.Title = utils.DecodeUnicodeEscapes(bk.Title)
+	bk.Desc = utils.DecodeUnicodeEscapes(bk.Desc)
 
 	// sanitize tags
 	// avoid using the delim in the query

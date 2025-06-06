@@ -78,7 +78,11 @@ func initLocalDB(db *DB, dbpath string) {
 	log.Infof("Initializing local db at '%s'", dbpath)
 	err := db.SyncToDisk(dbpath)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
+	err = InitDiskConn(dbpath)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -25,8 +25,6 @@
 package gui
 
 import (
-	"fmt"
-
 	"github.com/blob42/gosuki/internal/gui/icon"
 	"github.com/blob42/gosuki/internal/server"
 	"github.com/blob42/gosuki/pkg/manager"
@@ -41,9 +39,16 @@ func onReady() {
 	systray.SetTitle("GoSuki")
 	systray.SetTooltip("GoSuki Bookmark Manager")
 
+	mUI := systray.AddMenuItem("Web UI", "Local Web UI")
+	mUI.Click(func() {
+		open.Run("http://" + server.BindAddr)
+	})
+
+	systray.AddSeparator()
+
 	mHelp := systray.AddMenuItem("Help", "Open Help Page")
 	mHelp.Click(func() {
-		fmt.Println("TODO: systray help")
+		open.Run("http://gosuki.net/docs")
 	})
 
 	systray.AddSeparator()

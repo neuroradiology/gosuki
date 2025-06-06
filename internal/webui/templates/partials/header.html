@@ -45,7 +45,7 @@
                 placeholder=""
             >
             <div id="search-opts"> 
-                <div id="stats">results: {{ $total }}</div>
+                    <div id="stats">results: {{ len .Bookmarks }}/{{ $total }}</div>
                 <input type="hidden" name="page" value="{{ .QueryParams.PaginationParams.Page }}" />
                 <input id="fuzzy" type="checkbox" name="fuzzy" {{if .QueryParams.Fuzzy}}checked{{end}} />
                 <label for="fuzzy">fuzzy (~query)</label>

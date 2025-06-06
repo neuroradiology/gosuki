@@ -82,7 +82,7 @@
   </div>
 
 <noscript>
-    <div id="stats" hx-swap-oob="true">results: {{ $total }}</div>
+    <div id="stats" hx-swap-oob="true">results: {{len .Bookmarks}}/{{ $total }}</div>
 </noscript>
 
 {{ end }}

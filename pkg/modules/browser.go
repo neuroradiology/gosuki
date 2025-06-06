@@ -114,7 +114,7 @@ type BrowserConfig struct {
 	UseHooks []string
 
 	// Registered hooks
-	hooks map[string]hooks.WithName
+	hooks []hooks.NamedHook
 }
 
 func (b *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
@@ -161,15 +161,10 @@ func (b BrowserConfig) CallHooks(obj any) error {
 }
 
 // Registers hooks for this browser. Hooks are identified by their name.
-func (b BrowserConfig) AddHooks(bHooks ...hooks.WithName) {
-	for _, hook := range bHooks {
-		b.hooks[hook.Name()] = hook
-	}
-}
+func (b *BrowserConfig) AddHooks(bHooks ...hooks.NamedHook) {
+	b.hooks = append(b.hooks, bHooks...)
+	hooks.SortByPriority(b.hooks)
 
-func (b BrowserConfig) HasHook(hook hooks.WithName) bool {
-	_, ok := b.hooks[hook.Name()]
-	return ok
 }
 
 // TODO!: use this method instead of manually building bookmark path
@@ -250,13 +245,13 @@ func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error 
 	bConf := browser.Config()
 
 	// Setup registered hooks
-	bConf.hooks = make(map[string]hooks.WithName)
+	bConf.hooks = []hooks.NamedHook{}
 	for _, hookName := range bConf.UseHooks {
-		hook, ok := hooks.Predefined[hookName]
+		hook, ok := hooks.Defined[hookName]
 		if !ok {
 			return fmt.Errorf("hook <%s> not defined", hookName)
 		}
-		bConf.AddHooks(hook.(hooks.WithName))
+		bConf.AddHooks(hook)
 	}
 
 	// Init browsers' BufferDB

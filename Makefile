@@ -9,7 +9,9 @@ GOTEST := go test
 # when calling the external release script. The second parameter can be used to
 # add additional ldflags if needed (currently only used for the release).
 
-make_ldflags = $(1) -X $(PKG)/build.Commit=$(COMMIT)
+VERSION := $(shell git describe --tags --dirty 2>/dev/null || echo "unknown")
+
+make_ldflags = $(1) -X $(PKG)/build.Commit=$(VERSION)
 #https://go.dev/doc/gdb
 # disable gc optimizations
 DEV_GCFLAGS := -gcflags "all=-N -l"
@@ -22,7 +24,6 @@ TAGS := linux
 ifdef SYSTRAY
     TAGS += systray
 endif
-COMMIT := $(shell git describe --tags --dirty)
 
 
 # TODO: remove, needed for testing mvsqlite
@@ -36,10 +37,6 @@ endif
 
 
 all: prepare build
-
-# build dynamically linked against libsqlite3.so 
-# TODO: remove, needed for testing mvsqlite
-# shared: prepare build
 
 prepare:
 	@mkdir -p build
@@ -73,8 +70,20 @@ docs:
 genimports: 
 	@go run generate/imports.go | tee mods/generated_imports.go
 
+# Distribution packaging
+ARCH := x86_64
 
+dist: clean release
+	@mkdir -p dist/$(VERSION)-$(ARCH)
+	@cp build/gosuki dist/$(VERSION)-$(ARCH)/
+	@cp build/suki dist/$(VERSION)-$(ARCH)/
+	@cp -r README.md LICENSE Makefile $(SRC) dist/$(VERSION)-$(ARCH)/
+	@tar -czf dist/$(VERSION)-$(ARCH).tar.gz -C build/ .
 
+	# create the source code zip
+	@rm dist/$(VERSION)-$(ARCH)/{gosuki,suki}
+	@cd dist/ && zip -r $(VERSION)-source.zip $(VERSION)-$(ARCH) && cd -
+	@rm -rf dist/$(VERSION)-$(ARCH)
 testsum:
 ifeq (, $(shell which gotestsum))
 	$(GOINSTALL) gotest.tools/gotestsum@latest
@@ -88,7 +97,7 @@ endif
 	gotestsum -f dots $(TEST_FLAGS) . ./...
 
 clean:
-	rm build/$(BINS)
+	rm -rf build dist
 
 .PHONY: \
  		all \
@@ -101,4 +110,6 @@ clean:
  		ci-test \
  		debug \
  		prepare \
- 		shared
+ 		shared \
+		genimports \
+ 		dist

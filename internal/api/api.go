@@ -143,7 +143,7 @@ func GetBookmarks(r *http.Request) ([]*gosuki.Bookmark, uint, error) {
 	if query != "" && tag != "" {
 		qResult, err = db.QueryBookmarksByTag(r.Context(), query, tag, IsFuzzy(r), pageParams)
 	} else if tag != "" {
-		qResult, err = db.BookmarksByTag(r.Context(), tag)
+		qResult, err = db.BookmarksByTag(r.Context(), tag, pageParams)
 	} else if query != "" {
 		qResult, err = db.QueryBookmarks(r.Context(), query, IsFuzzy(r), pageParams)
 	} else {

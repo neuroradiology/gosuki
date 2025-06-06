@@ -281,6 +281,9 @@ func init() {
 		"tail": func(arr []int, last int) []int {
 			return arr[len(arr)-last:]
 		},
+		"htmlescaper": func(s string) string {
+			return template.HTMLEscapeString(s)
+		},
 	}).ParseFS(Templates,
 		"templates/*.html",
 		"templates/**/*.html",

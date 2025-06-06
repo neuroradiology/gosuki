@@ -97,10 +97,11 @@ func (b Flavour) Detect() bool {
 	var dir string
 	var err error
 	if dir, err = utils.ExpandPath(b.BaseDir); err != nil {
-		log.Warnf("could not expand path <%s>: %s", b.BaseDir, err)
+		log.Infof("expand path: %s: %s", b.BaseDir, err)
+		log.Info("skipping", "flavour", b.Name)
 		return false
 	} else if ok, err := utils.DirExists(dir); err != nil || !ok {
-		log.Warnf("could not find browser <%s> at <%s>: %v", b.Name, dir, err)
+		log.Infof("could not detect <%s>: %s: %s", b.Name, dir, err)
 		return false
 	}
 
