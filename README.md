@@ -1,49 +1,156 @@
-<h1 align="center">🔖 GoSuki</h1>
+<p align="center">
+<img src="internal/webui/static/url-link.svg" height=50>
+<h3 align="center">GoSuki</h3>
+<h4 align="center">Blazing fast, Extension-Free, Multi-Browser Bookmark Manager</h4>
 
-![ci-badge](https://git.srv.blob/gosuki/gosuki-priv/actions/workflows/go.yml/badge.svg?branch=master&event=push)
+ <h4 align="center">
+  <a href="https://gosuki.net/docs/getting_started/quickstart">Documentation</a> |
+  <a href="https://gosuki.net/">Website</a> |
+  <a href="#installation">Install</a>
+</h4>
+ <h4 align="center">
+  <a href="#-in-action">Demo</a> |
+  <a href="#-features">Feautres</a> |
+  <a href="#rationale">Rationale</a>
+</h4>
 
-## Blazing fast, Plugin-Free, Multi-Browser Bookmark Manager
+<br>
+</p>
 
-**ALPHA**: This is an early preview work in progress, expect bugs and API changes.
 
-### What's this ? Oh, just another bookmark manager. No big deal.
 
-- Ever feel like your bookmarks are a chaotic mess ?
-- Ever find yourself swapping browsers when they can't keep up with your demands?
-- Have past bookmark managers let you down, vendor locking or abandoning you in your time of need?
-- Maybe you're cautious about entrusting your bookmarks to unreliable cloud companies?
-- Or perhaps you keep multiple browser profiles for work, research, streaming, and web development?
-- Even pondering about monks who may be using an "obscure" browser that doesn't support extensions?
+<h3 align="center">What's this ? Oh, just another bookmark manager. No big deal.</h3>
 
-If you're nodding your head to any of the above, then look no further. 
+- [x] Ever feel like your bookmarks are a chaotic mess ?
+- [x] Ever find yourself swapping browsers when they can't keep up with your demands?
+- [x] Have past bookmark managers let you down, vendor locking or abandoning you in your time of need?
+- [x] Maybe you would rather avoid entrusting your bookmarks to cloud companies.
+- [x] Perhaps you keep multiple browser profiles for work, research, streaming, and development?
+- [x] Do you use some "obscure" browser that doesn't support extensions?
 
-GoSuki is a blazing fast real time bookmark manager with zero plugin
-dependencies and a single binary. It's designed to work in the background and
-manage your bookmarks across all your browsers, profiles and external sources
-through its modular plugin system.
+- [ ] If you're nodding your head to any of the above, then look no further.
 
-## Features in a nutshell
+**GoSuki** is an **extension-free**, **self-contained**, **real time** bookmark tracker and organizer. It packs everything in a **single binary** and captures all your bookmarks in a **portable database**. 
 
-- 🔌 **Standalone**: Gosuki is a single binary with no dependencies or external extensions necessary. It's designed to just work right out of the box.
-- 🔖 **Quick Bookmarking**: Gosuki leverages the  universal shortcut `ctrl+d` with native bookmarks UI that exists in all browsers.
-- 🏷️ **Tagging**: You can tag your bookmarks in any browser. In Chrome, for example, you can include `#tag1 #tag2` in your bookmark title.
-- 🔎 **Constant Monitoring**: Gosuki keeps track of your bookmarks, spotting any changes as they happen.
-- 🖌️ **Customizable**: You can add commands in your bookmark title to initiate certain Gosuki actions, like archiving a bookmark with `:archive`.
-- 🌎 **Browser Agnostic**: Detects which browsers you have installed and watch changes in all of them.
-- 👤🔀 **Profile Support**: Also handles multiple profiles for each browser.
-- 💾 **Buku Compatibility**: Gosuki is compatible with the [Buku](https://github.com/jarun/buku) sqlite database, you can use any program that was made for buku.
+No subscription, 
+<br>
+<br>
 
-## Quick Start
+## ✨ Features
 
-### Installation
+- 📦 **Standalone**: Gosuki is a single binary with no dependencies or external extensions necessary. It's designed to just work right out of the box
+- ⌨️ **Ctrl+D**: Use the universal shortcut to add bookmarks and call [custom commands](/docs/features/marktab-actions)
+- 🏷️ **Tag Everything**: Tag with **#hashtags** even if your browser does not support it. You can even add tags in the Title. Your folders become tags
+- 🔎 **Real time**: Gosuki keeps track of your bookmarks, spotting any changes as they happen
+- 🖥️ **Web UI + CLI** Builtin, local Web UI. Also works without Javascript. dmenu/rofi compatible CLI.
+- 🧪 **Hackable**: Modular and extensible. Custom scripts and actions per tags and folders.
+- 🌎 **Browser Agnostic**: Detects which browsers you have installed and watch changes in all of them
+- 👤 **Profile Support**: Also handles multiple profiles for each browser
+- 💾 **Buku Compatibility**: Gosuki is compatible with the [Buku](https://github.com/jarun/buku) sqlite database, you can use any program that was made for buku
+- 📡 **External APIs** Consolidate your curated content from external APIs (github, reddit ...)
 
-`go install github.com/blob42/gosuki/cmd/gosuki@latest`
 
-Gosuki currently supports Linux and WSL on Windows. MacOS support is planned for the future.
+## 📸 In Action
 
+<div align="center">
+  <p>
+    <h3><a href="https://github.com/user-attachments/assets/bb5c52f8-4413-4f91-88c7-445834728952">Realtime Bookmark Tracker</a></h3>
+    <video controls muted src="https://github.com/user-attachments/assets/bb5c52f8-4413-4f91-88c7-445834728952"></video>
+  </p>
+
+
+  <p>
+    <h3><a href="https://github.com/user-attachments/assets/2e69940a-2fc3-4108-9b4c-ef324b3d08cd">Marktab Scripts</a></h3>
+    <video controls muted src="https://github.com/user-attachments/assets/2e69940a-2fc3-4108-9b4c-ef324b3d08cd"></video>
+    <p>Note: you can also drop bookmarks in a folder matching an action to execute the script. Folders are tags</p>
+  </p>
+
+    
+  <p>
+    <h3><a href="https://github.com/user-attachments/assets/bf1e7c87-5775-4c54-a428-cfe84757c43e">CLI - Suki</a></h3>
+    <video controls muted src="https://github.com/user-attachments/assets/bf1e7c87-5775-4c54-a428-cfe84757c43e"></video>
+  </p>
+
+</div>
+
+
+
+## Installation
+
+Checkout the [quick start guide](https://gosuki.net/docs/getting_started/quickstart).
+
+### Releases
+
+
+#### From source
+
+```console
+ go install github.com/blob42/gosuki/cmd/gosuki@latest
+```
+
+Gosuki currently supports Linux. MacOS & Windows support are [planned](#roadmap) for the future.
+
+## Running GoSuki
+
+GoSuki is designed to run as a background service for real-time bookmark monitoring. Below are the recommended ways to start and interact with the application.
+
+### As a Service
+Start GoSuki as a persistent service:
+```bash
+gosuki start
+```
+This initializes all configured browsers and begins real-time bookmark tracking.
+
+### Terminal UI (TUI)
+Launch with an interactive terminal interface for real-time parsing overview:
+```bash
+gosuki --tui start
+```
+The TUI displays module status and bookmark processing metrics.
+
+### Debugging
+Enable detailed logging with:
+```bash
+gosuki --debug=3
+```
+Avoid using `--tui` with debug mode for cleaner output.
 
 ## How does it work ?
 
 Gosuki monitors the browser's internal bookmark files for changes. It uses the native OS event notification system to detect changes as they happen. This allows it to be fast and efficient, without the need for any plugins or extensions.
 
+The application maintains a portable database of all tracked bookmarks, accessible via the built-in web UI or CLI.
+
 Curious for more details on the internals ? Checkout the [Architecture](docs/artchitecture.md) file.
+
+## Rationale
+TODO
+Explain the reasons I made gosuki
+Redirect to the comparaison matrix with other projects
+
+## Roadmap
+- [ ] **Platforms** - MacOS and Windows support
+- [ ] **Archival** - Create portable archive format to access any link offline.
+- [ ] **Linkrot** - Automatically identify broken links and replace with web.archive.org alternatives
+- [ ] **Built-in Sync** - Enable secure synchronization between multiple devices
+- [ ] **Tag Refresh** - Automatically clean and update tags/metadata for existing bookmarks
+- [ ] **Simple Cleanup UI** - Intuitive interface for organizing and pruning bookmarks
+- [ ] **Browser Sync** - Push changes back to browsers for consistent bookmark management
+
+## Support
+GoSuki is an open-source project that relies on community support to grow. If you find value in this tool, consider supporting its development through:
+- Financial contributions via [GitHub Sponsors](https://github.com/sponsors/blob42) or [Patreon](https://www.patreon.com/c/GoSuki)
+- Reporting issues and suggesting features
+- Contributing code or documentation
+- Sharing the project with others who might benefit
+
+Your support helps maintain existing features and allows me to develop new capabilities for all users.
+
+## Contributing
+We welcome contributions from the community! To get started:
+1. Fork the repository
+2. Create a new branch for your changes
+3. Submit a pull request with clear documentation
+4. Follow our [code of conduct](CODE_OF_CONDUCT.md)
+
+For bug reports, please provide detailed steps to reproduce the issue.
