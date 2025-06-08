@@ -121,7 +121,7 @@ Gosuki monitors the browser's internal bookmark files for changes. It uses the n
 
 The application maintains a portable database of all tracked bookmarks, accessible via the built-in web UI or CLI.
 
-Curious for more details on the internals ? Checkout the [Architecture](docs/artchitecture.md) file.
+Curious for more details on the internals ? Checkout the [Architecture](docs/internal/architecture.md) file.
 
 ## Rationale
 TODO
