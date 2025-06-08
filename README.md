@@ -1,7 +1,8 @@
 <p align="center">
 <img src="internal/webui/static/url-link.svg" height=50>
 <h3 align="center">GoSuki</h3>
-<h4 align="center">Blazing fast, Extension-Free, Multi-Browser Bookmark Manager</h4>
+<h4 align="center">Multi-browser, standalone, bookmark manager</h4>
+<h5 align="center">No subscription or extension required</h5>
 
  <h4 align="center">
   <a href="https://gosuki.net/docs/getting_started/quickstart">Documentation</a> |
@@ -30,9 +31,7 @@
 
 - [ ] If you're nodding your head to any of the above, then look no further.
 
-**GoSuki** is an **extension-free**, **self-contained**, **real time** bookmark tracker and organizer. It packs everything in a **single binary** and captures all your bookmarks in a **portable database**. 
-
-No subscription, 
+**GoSuki** is an **extension-free**, **self-contained**, **real time** bookmark tracker and organizer. It packs everything in a **single binary** and captures all your bookmarks in a **portable database**.
 <br>
 <br>
 

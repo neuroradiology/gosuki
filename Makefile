@@ -84,6 +84,7 @@ dist: clean release
 	@rm dist/$(VERSION)-$(ARCH)/{gosuki,suki}
 	@cd dist/ && zip -r $(VERSION)-source.zip $(VERSION)-$(ARCH) && cd -
 	@rm -rf dist/$(VERSION)-$(ARCH)
+
 testsum:
 ifeq (, $(shell which gotestsum))
 	$(GOINSTALL) gotest.tools/gotestsum@latest

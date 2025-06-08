@@ -26,7 +26,10 @@ jobs:
         # Optional: Uncomment to build for multiple platforms (see comments below)
 
         # Single-platform build (current OS/arch)
-        make SYSTRAY=true dist
+        make SYSTRAY=true build
+
+    - name: debug env
+      run: echo ${env.ACTIONS_RESULTS_URL}
 
     - name: Upload release assets
       uses: https://gitea.com/actions/upload-artifact@v4
