@@ -2,52 +2,109 @@ name: Release
 
 on:
   push:
-    branches:
-      - master
-    # tags:
-    #   - "v*.*.*" # Triggers on tags like v1.0.0
+    tags:
+      - "v*.*.*" # Triggers on tags like v1.0.0
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+
+    strategy:
+      # https://gist.github.com/asukakenji/f15ba7e588ac42795f421b48b8aede63
+      matrix:
+        arch: [amd64]
+        os: [linux]
+        include:
+          - os: linux
+            runs_on: ubuntu-latest
+            
+
+    runs-on: ${{ matrix.runs_on }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
+    - name: Set Release Version
+      shell: bash
+      run: |
+        ver=${GITHUB_REF##*/}
+        if [[ ! "$ver" =~ [0-9]+.[0-9]+.[0-9]+$ ]]; then
+          echo "Error: Tag format is invalid. Expected format: vX.X.X"
+          exit 1
+        fi
+
+        echo "RELEASE_VERSION=$ver" >> $GITHUB_ENV
+
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.24'
 
-    - name: Build and package
+    # - name: debug env
+    #   run: |
+    #     echo "${{ toJSON(env) }}"
+    #     echo "${{ toJSON(github) }}"
+    #     echo "${{ toJSON(jobs) }}"
+
+
+    - name: Build
       run: |
         # Optional: Uncomment to build for multiple platforms (see comments below)
 
         # Single-platform build (current OS/arch)
-        make SYSTRAY=true build
+        make SYSTRAY=true release
 
-    - name: debug env
-      run: echo ${env.ACTIONS_RESULTS_URL}
 
-    - name: Upload release assets
-      uses: https://gitea.com/actions/upload-artifact@v4
-      with:
-        name: release-assets
-        path: dist/*
+    - name: Prepare package archive
+      id: package
+      env:
+        version: ${{ env.RELEASE_VERSION }}
+      run: |
+        set -euxo pipefail
+
+        # echo "version=${{ steps.check-tag.outputs.version }}"
+        # echo "rc=${{ steps.check-tag.outputs.rc }}"
+
+        bin=${GITHUB_REPOSITORY##*/}
+        dist_dir=`pwd`/dist
+        name=$bin-$version-${{ matrix.os }}-${{ matrix.arch }}
+        echo "RELEASE_NAME=$name" >> $GITHUB_ENV
+
+        mkdir -p $dist_dir/$bin-$version
+
+        cp build/* {LICENSE,README.md} $dist_dir/$bin-$version
+        echo "dist_dir=$dist_dir" >> $GITHUB_OUTPUT
+
+        cd $dist_dir
+
+        archive=$dist_dir/$name.tar.gz
+        tar -czf $archive *
+        echo "archive=dist/$name.tar.gz" >> $GITHUB_OUTPUT
+
+    # - name: (testing) Upload release assets
+    #   uses: https://gitea.com/actions/gitea-upload-artifact@v4
+    #   with:
+    #     name: ${{ env.RELEASE_NAME }}
+    #     path: dist/*
+  
+    # - name: debug env
+    #   run: echo 
 
     - name: Create GitHub Release
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v2
+      if: github.ref_type == 'tag'
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        name: Release ${{ env.RELEASE_VERSION }}
         body: |
           Automated release from CI
         draft: false
         prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        generate_release_notes: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: |
+          ${{ steps.package.outputs.archive }}
 
     # # Cross-platform build (uncomment to use):
     # - name: Cross-platform builds

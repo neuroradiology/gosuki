@@ -51,7 +51,6 @@ const (
 
 var (
 	//RELEASE: Change to Release for release mode
-	// LoggingMode = Dev
 	LoggingMode = Release
 )
 
