@@ -42,6 +42,7 @@ prepare:
 	@mkdir -p build
 
 build: genimports
+	@ sed -i 's/LoggingMode = .*/LoggingMode = Dev/' pkg/logging/log.go
 	@$(call print, "Building debug gosuki and suki.")
 	$(GOBUILD) -tags "$(TAGS)" -o build/gosuki $(DEV_GCFLAGS) $(DEV_LDFLAGS) ./cmd/gosuki
 	$(GOBUILD) -tags "$(TAGS)" -o build/suki $(DEV_GCFLAGS) $(DEV_LDFLAGS) ./cmd/suki
@@ -59,6 +60,7 @@ build: genimports
 # 	@go build -v $(DEV_GCFLAGS) -o build/gosuki ./cmd/gosuki
 
 release:
+	@ sed -i 's/LoggingMode = .*/LoggingMode = Release/' pkg/logging/log.go
 	@$(call print, "Building release gosuki and suki.")
 	$(GOBUILD) -tags "$(TAGS)" -o build/gosuki $(RELEASE_LDFLAGS) ./cmd/gosuki
 	$(GOBUILD) -tags "$(TAGS)" -o build/suki   $(RELEASE_LDFLAGS) ./cmd/suki
