@@ -46,13 +46,6 @@ build: genimports
 	$(GOBUILD) -tags "$(TAGS)" -o build/gosuki $(DEV_GCFLAGS) $(DEV_LDFLAGS) ./cmd/gosuki
 	$(GOBUILD) -tags "$(TAGS)" -o build/suki $(DEV_GCFLAGS) $(DEV_LDFLAGS) ./cmd/suki
 
-# run: gosuki
-#  	@run command
-
-# $(BINS): $(SRC)
-# 	@echo building ... $@
-# 	@# @CGO_CFLAGS=${CGO_CFLAGS} go build -o $@
-# 	@go build -v -tags "$(TAGS)" -o build/$@ ./cmd/$@
 
 # debug: 
 # 	@#dlv debug . -- server
@@ -76,15 +69,19 @@ ARCH := x86_64
 
 dist: clean release
 	@mkdir -p dist/$(VERSION)-$(ARCH)
-	@cp build/gosuki dist/$(VERSION)-$(ARCH)/
-	@cp build/suki dist/$(VERSION)-$(ARCH)/
-	@cp -r README.md LICENSE Makefile $(SRC) dist/$(VERSION)-$(ARCH)/
-	@tar -czf dist/$(VERSION)-$(ARCH).tar.gz -C build/ .
+	@$(eval release_dir=$(VERSION)-$(ARCH))
 
-	# create the source code zip
-	@rm dist/$(VERSION)-$(ARCH)/{gosuki,suki}
-	@cd dist/ && zip -r $(VERSION)-source.zip $(VERSION)-$(ARCH) && cd -
-	@rm -rf dist/$(VERSION)-$(ARCH)
+	# Release package
+	cp build/gosuki dist/$(release_dir)/
+	cp build/suki dist/$(release_dir)/
+	cp -r README.md LICENSE Makefile dist/$(release_dir)/
+	tar -czf dist/gosuki-$(release_dir).tar.gz -C dist/ $(release_dir)
+
+	# Source Code ZIP
+	@rm dist/$(release_dir)/{gosuki,suki}
+	zip -r dist/gosuki-$(VERSION)-source.zip $$(git ls-files) -x .github\*
+	zip -r dist/gosuki-$(VERSION)-source.zip mods/{mod-github-stars,reddit}
+	@rm -rf dist/$(release_dir)
 
 testsum:
 ifeq (, $(shell which gotestsum))
