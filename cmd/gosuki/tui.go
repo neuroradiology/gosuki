@@ -37,6 +37,7 @@ import (
 
 	"github.com/blob42/gosuki/internal/server"
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/build"
 	"github.com/blob42/gosuki/pkg/events"
 	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/manager"
@@ -391,7 +392,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m tuiModel) View() string {
 	doc := strings.Builder{}
 
-	doc.WriteString(titleStyle.Render(fmt.Sprintf("gosuki %s", utils.Version())))
+	doc.WriteString(titleStyle.Render(fmt.Sprintf("gosuki %s", build.Version())))
 
 	// get web UI status
 	var webUIOK bool

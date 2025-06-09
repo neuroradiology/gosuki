@@ -27,6 +27,7 @@ import (
 	"os"
 
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/build"
 	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/modules"
@@ -50,7 +51,7 @@ func main() {
 	app.Name = "gosuki"
 	app.Description = "TODO: summary gosuki description"
 	app.Usage = "swiss-knife bookmark manager"
-	app.Version = utils.Version()
+	app.Version = build.Version()
 	app.ExitErrHandler = func(ctx *cli.Context, err error) {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)

@@ -1,6 +1,5 @@
-//
-// Copyright ⓒ 2023 Chakib Ben Ziane <contact@blob42.xyz> and [`GoSuki` contributors]
-// (https://github.com/blob42/gosuki/graphs/contributors).
+// Copyright (c) 2025 Chakib Ben Ziane <contact@blob42.xyz>  and [`gosuki` contributors](https://github.com/blob42/gosuki/graphs/contributors).
+// All rights reserved.
 //
 // All rights reserved.
 //
@@ -22,7 +21,7 @@
 // TODO: get runtime build/git info  see:
 // https://github.com/lightningnetwork/lnd/blob/master/build/version.go#L66
 // https://raw.githubusercontent.com/lightningnetwork/lnd/refs/heads/master/build/version.go
-package utils
+package build
 
 import (
 	"fmt"
@@ -33,11 +32,11 @@ import (
 // These constants define the application version and follow the semantic
 // versioning 2.0.0 spec (http://semver.org/).
 var (
-	// Commit stores the current commit of this build, which includes the
+	// Describe stores the current commit of this build, which includes the
 	// most recent tag, the number of commits since that tag (if non-zero),
 	// the commit hash, and a dirty marker. This should be set using the
 	// -ldflags during compilation.
-	Commit string
+	Describe string
 
 	// CommitHash stores the current commit hash of this build.
 	CommitHash string
@@ -50,24 +49,17 @@ var (
 	GoVersion string
 )
 
-const (
-	// AppMajor defines the major version of this binary.
-	AppMajor uint = 0
-
-	// AppMinor defines the minor version of this binary.
-	AppMinor uint = 1
-
-	// AppPatch defines the application patch for this binary.
-	AppPatch uint = 0
-)
-
 // Version returns the application version as a properly formed string per the
 // semantic versioning 2.0.0 spec (http://semver.org/).
 func Version() string {
-	// Start with the major, minor, and patch versions.
-	version := fmt.Sprintf("%d.%d.%d", AppMajor, AppMinor, AppPatch)
-	if CommitHash != "" {
-		version = fmt.Sprintf("%s-git:%s", version, CommitHash[:8])
+
+	commit := CommitHash
+	if commit != "" {
+		commit = CommitHash[:8]
+	}
+	version := fmt.Sprintf("%s commit=%s", Describe, commit)
+	if Describe == "" {
+		version = "dev"
 	}
 
 	return version

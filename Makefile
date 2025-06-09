@@ -11,7 +11,7 @@ GOTEST := go test
 
 VERSION := $(shell git describe --tags --dirty 2>/dev/null || echo "unknown")
 
-make_ldflags = $(1) -X $(PKG)/build.Commit=$(VERSION)
+make_ldflags = $(1) -X $(PKG)/pkg/build.Describe=$(VERSION)
 #https://go.dev/doc/gdb
 # disable gc optimizations
 DEV_GCFLAGS := -gcflags "all=-N -l"
@@ -43,7 +43,6 @@ prepare:
 
 build: genimports
 	@ sed -i 's/LoggingMode = .*/LoggingMode = Dev/' pkg/logging/log.go
-	@$(call print, "Building debug gosuki and suki.")
 	$(GOBUILD) -tags "$(TAGS)" -o build/gosuki $(DEV_GCFLAGS) $(DEV_LDFLAGS) ./cmd/gosuki
 	$(GOBUILD) -tags "$(TAGS)" -o build/suki $(DEV_GCFLAGS) $(DEV_LDFLAGS) ./cmd/suki
 
@@ -59,7 +58,7 @@ build: genimports
 # 	@#dlv debug . -- server
 # 	@go build -v $(DEV_GCFLAGS) -o build/gosuki ./cmd/gosuki
 
-release:
+release: genimports
 	@ sed -i 's/LoggingMode = .*/LoggingMode = Release/' pkg/logging/log.go
 	@$(call print, "Building release gosuki and suki.")
 	$(GOBUILD) -tags "$(TAGS)" -o build/gosuki $(RELEASE_LDFLAGS) ./cmd/gosuki

@@ -21,3 +21,4 @@ internal/ui/static/main.zip
 .aider*
 mods/generated_imports.go
 generate/generated_imports.go
+!pkg/build

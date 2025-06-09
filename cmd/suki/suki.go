@@ -27,14 +27,14 @@ import (
 	"github.com/urfave/cli/v2"
 
 	db "github.com/blob42/gosuki/internal/database"
-	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/build"
 	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/logging"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Version = utils.Version()
+	app.Version = build.Version()
 
 	app.Name = "suki"
 	app.Description = "TODO: summary gosuki description"
