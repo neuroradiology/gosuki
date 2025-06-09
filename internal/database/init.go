@@ -39,6 +39,7 @@ func InitDiskConn(dbPath string) error {
 		"cache":  "shared",
 	}
 	DiskDB, err = NewDB("gosuki_db", dbPath, DBTypeFileDSN, dsnOpts).Init()
+	DiskDB.Handle.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
 
 	return err
 }

@@ -97,8 +97,8 @@ jobs:
       if: github.ref_type == 'tag'
       with:
         name: Release ${{ env.RELEASE_VERSION }}
-        body: |
-          Automated release from CI
+        # body: |
+        #   Automated release from CI
         draft: false
         prerelease: false
         generate_release_notes: true
