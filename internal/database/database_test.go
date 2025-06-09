@@ -209,6 +209,7 @@ func TestSyncTo(t *testing.T) {
 	srcDB, dstDB := setupSyncTestDB(t)
 
 	bookmarks := []*RawBookmark{}
+	modified := time.Now().Unix()
 	for i := 1; i <= 10; i++ {
 		url := fmt.Sprintf("http://example.com/bookmark%d", i)
 		_, err := srcDB.Handle.Exec(
@@ -217,7 +218,7 @@ func TestSyncTo(t *testing.T) {
 			"title"+strconv.Itoa(i),
 			"tag"+strconv.Itoa(i),
 			"description"+strconv.Itoa(i),
-			uint64(time.Now().Unix()),
+			modified,
 			0,
 			"module"+strconv.Itoa(i),
 		)
