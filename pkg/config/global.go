@@ -26,5 +26,5 @@ package config
 var GlobalConfig = struct {
 	WatchAll bool `toml:"watch-all" mapstructure:"watch-all"`
 }{
-	false,
+	true,
 }

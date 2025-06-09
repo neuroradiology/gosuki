@@ -122,7 +122,8 @@ func NewFirefoxConfig() *FirefoxConfig {
 		// default profile to use, can be selected as cli argument
 
 		ProfilePrefs: modules.ProfilePrefs{
-			Profile: DefaultProfile,
+			Profile:          DefaultProfile,
+			WatchAllProfiles: true,
 		},
 	}
 

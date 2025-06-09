@@ -85,7 +85,8 @@ func NewChromeConfig() *ChromeConfig {
 			UseHooks:       []string{"node_tags_from_name", "node_marktab"},
 		},
 		ProfilePrefs: modules.ProfilePrefs{
-			Profile: DefaultProfile,
+			Profile:          DefaultProfile,
+			WatchAllProfiles: true,
 		},
 	}
 
