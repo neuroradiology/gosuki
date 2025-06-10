@@ -5,15 +5,15 @@
 <h5 align="center">No subscription or extension required</h5>
 
  <h4 align="center">
-  <a href="https://gosuki.net/docs/getting_started/quickstart">Documentation</a> |
-  <a href="https://gosuki.net/">Website</a> |
-  <a href="#installation">Install</a>
-</h4>
- <h4 align="center">
   <a href="#-in-action">Demo</a> |
-  <a href="#-features">Feautres</a> |
-  <a href="#rationale">Rationale</a>
+  <a href="https://gosuki.net/docs/getting_started/quickstart">Documentation</a> |
+  <a href="https://gosuki.net/">Website</a>
 </h4>
+ <h5 align="center">
+  <a href="#installation">Install</a> |
+  <a href="#-features">Feautres</a>
+  <!-- <a href="#rationale">Rationale</a> -->
+</h5>
 
 <br>
 </p>
@@ -122,10 +122,10 @@ The application maintains a portable database of all tracked bookmarks, accessib
 
 Curious for more details on the internals ? Checkout the [Architecture](docs/internal/architecture.md) file.
 
-## Rationale
-TODO
-Explain the reasons I made gosuki
-Redirect to the comparaison matrix with other projects
+<!-- ## Rationale -->
+<!-- TODO -->
+<!-- Explain the reasons I made gosuki -->
+<!-- Redirect to the comparaison matrix with other projects -->
 
 ## Roadmap
 - [ ] **Platforms** - MacOS and Windows support

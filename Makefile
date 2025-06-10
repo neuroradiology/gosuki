@@ -68,14 +68,14 @@ genimports:
 ARCH := x86_64
 
 dist: clean release
-	@mkdir -p dist/$(VERSION)-$(ARCH)
-	@$(eval release_dir=$(VERSION)-$(ARCH))
+	@$(eval release_dir=gosuki-$(VERSION)-$(ARCH))
+	@mkdir -p dist/$(release_dir)
 
 	# Release package
 	cp build/gosuki dist/$(release_dir)/
 	cp build/suki dist/$(release_dir)/
 	cp -r README.md LICENSE Makefile dist/$(release_dir)/
-	tar -czf dist/gosuki-$(release_dir).tar.gz -C dist/ $(release_dir)
+	tar -czf dist/$(release_dir).tar.gz -C dist/ $(release_dir)
 
 	# Source Code ZIP
 	@rm dist/$(release_dir)/{gosuki,suki}
