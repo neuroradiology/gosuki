@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2024 Chakib Ben Ziane <contact@blob42.xyz>  and [`gosuki` contributors](https://github.com/blob42/gosuki/graphs/contributors).
+//  Copyright (c) 2024-2025 Chakib Ben Ziane <contact@blob42.xyz>  and [`gosuki` contributors](https://github.com/blob42/gosuki/graphs/contributors).
 //  All rights reserved.
 //
 //  SPDX-License-Identifier: AGPL-3.0-or-later
