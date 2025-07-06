@@ -25,7 +25,7 @@ import (
 	"os"
 	"path/filepath"
 
-	psutil "github.com/shirou/gopsutil/process"
+	psutil "github.com/shirou/gopsutil/v4/process"
 )
 
 func FileProcessUsers(path string) (map[int32]*psutil.Process, error) {
