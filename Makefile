@@ -77,7 +77,7 @@ genimports:
 ARCH := x86_64
 
 dist: clean release
-	@$(eval release_dir=gosuki-$(VERSION)-$(ARCH))
+	@$(eval release_dir=gosuki-$(VERSION)-$(OS)-$(ARCH))
 	@mkdir -p dist/$(release_dir)
 
 	# Release package
@@ -91,6 +91,17 @@ dist: clean release
 	zip -r dist/gosuki-$(VERSION)-source.zip $$(git ls-files) -x .github\*
 	zip -r dist/gosuki-$(VERSION)-source.zip mods/{mod-github-stars,reddit}
 	@rm -rf dist/$(release_dir)
+
+dist-macos: clean bundle-macos
+	@$(eval release_dir=gosuki-$(VERSION)-$(OS)-$(ARCH))
+	@mkdir -p dist/$(release_dir)
+
+	# Release package
+	cp -a build/gosuki.app dist/$(release_dir)/
+	cp -r README.md LICENSE dist/$(release_dir)/
+	tar -czf dist/$(release_dir).tar.gz -C dist/ $(release_dir)
+
+
 
 testsum:
 ifeq (, $(shell which gotestsum))
@@ -111,7 +122,7 @@ clean:
 bundle-macos: release
 	@echo "Creating macOS app bundle..."
 	@mkdir -p build/gosuki.app/Contents/{MacOS,Resources}
-	@cp build/gosuki build/gosuki.app/Contents/MacOS/
+	@cp build/{gosuki,suki} build/gosuki.app/Contents/MacOS/
 	@cp scripts/macos/launch.sh build/gosuki.app/Contents/MacOS/
 	@chmod +x build/gosuki.app/Contents/MacOS/launch.sh
 	@cp assets/icon/gosuki.icns build/gosuki.app/Contents/Resources/
@@ -161,4 +172,5 @@ bundle-macos: release
  		shared \
 		genimports \
  		dist \
+		dist-macos \
 		bundle-macos
