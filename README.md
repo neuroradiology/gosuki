@@ -83,11 +83,15 @@ Checkout the [quick start guide](https://gosuki.net/docs/getting_started/quickst
 
 #### From source
 
+##### Dependencies:
+
+- `sqlite3` development library
+
 ```console
  go install github.com/blob42/gosuki/cmd/gosuki@latest
 ```
 
-Gosuki currently supports Linux. MacOS & Windows support are [planned](#roadmap) for the future.
+Gosuki currently supports Linux and MacOS<sub>beta</sub> . More platforms are [planned](#roadmap).
 
 ## Running GoSuki
 
@@ -128,13 +132,13 @@ Curious for more details on the internals ? Checkout the [Architecture](docs/int
 <!-- Redirect to the comparaison matrix with other projects -->
 
 ## Roadmap
-- [ ] **Platforms** - MacOS and Windows support
 - [ ] **Archival** - Create portable archive format to access any link offline.
 - [ ] **Linkrot** - Automatically identify broken links and replace with web.archive.org alternatives
 - [ ] **Built-in Sync** - Enable secure synchronization between multiple devices
 - [ ] **Tag Refresh** - Automatically clean and update tags/metadata for existing bookmarks
 - [ ] **Simple Cleanup UI** - Intuitive interface for organizing and pruning bookmarks
 - [ ] **Browser Sync** - Push changes back to browsers for consistent bookmark management
+- [ ] **Platforms** - FreeBSD, Windows and other platforms
 
 ## Support
 GoSuki is an open-source project that relies on community support to grow. If you find value in this tool, consider supporting its development through:
