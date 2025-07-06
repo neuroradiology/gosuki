@@ -1,5 +1,5 @@
 <p align="center">
-<img src="internal/webui/static/url-link.svg" height=50>
+<img src="internal/webui/static/favicon.svg" height=50>
 <h3 align="center">GoSuki</h3>
 <h4 align="center">Multi-browser, standalone, bookmark manager</h4>
 <h5 align="center">No subscription or extension required</h5>

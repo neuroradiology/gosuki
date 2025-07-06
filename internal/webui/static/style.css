@@ -183,7 +183,7 @@ header #search input {
 }
 
 header #logo {
-    background: url(/static/url-link.svg);
+    background: url(/static/favicon.svg);
     background-repeat: no-repeat;
     background-size: contain;
     width: 25px;
