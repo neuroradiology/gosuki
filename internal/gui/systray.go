@@ -25,6 +25,8 @@
 package gui
 
 import (
+	"runtime"
+
 	"github.com/blob42/gosuki/internal/gui/icon"
 	"github.com/blob42/gosuki/internal/server"
 	"github.com/blob42/gosuki/pkg/manager"
@@ -36,12 +38,14 @@ type Systray struct{}
 
 func onReady() {
 	systray.SetTemplateIcon(icon.Data, icon.Data)
-	systray.SetTitle("GoSuki")
+	if runtime.GOOS != "darwin" {
+		systray.SetTitle("GoSuki")
+	}
 	systray.SetTooltip("GoSuki Bookmark Manager")
 
 	mUI := systray.AddMenuItem("Web UI", "Local Web UI")
 	mUI.Click(func() {
-		open.Run("http://" + server.BindAddr)
+		open.Run("http://127.0.0.1" + server.BindPort)
 	})
 
 	systray.AddSeparator()
@@ -59,7 +63,7 @@ func onReady() {
 	})
 
 	systray.SetOnClick(func(menu systray.IMenu) {
-		open.Run("http://" + server.BindAddr)
+		open.Run("http://127.0.0.1:" + server.BindPort)
 	})
 
 	//NOTE: this is not required, it just allows to mutate the systray after
@@ -71,6 +75,10 @@ func onReady() {
 	// 		open.Run("https://blob42.xyz")
 	// 	})
 	// }()
+}
+
+func RunSystray(m *manager.Manager) {
+	systray.Run(onReady, func() { m.Shutdown() })
 }
 
 func (st *Systray) Run(m manager.UnitManager) {
