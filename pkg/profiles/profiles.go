@@ -24,8 +24,11 @@ package profiles
 
 import (
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/browsers"
 	"github.com/blob42/gosuki/pkg/logging"
 )
+
+type BrowserDef = browsers.BrowserDef
 
 var log = logging.GetLogger("profiles")
 
@@ -40,25 +43,32 @@ type ProfileManager interface {
 	WatchAllProfiles() bool
 
 	// Notifies the module to use a custom profile and flavour
-	UseProfile(p *Profile, f *Flavour) error
+	UseProfile(p *Profile, f *BrowserDef) error
 
 	// Get current active profile
 	GetProfile() *Profile
 
 	// Returns all flavours supported by this module
-	ListFlavours() []Flavour
+	ListFlavours() []BrowserDef
 
 	// Get current active flavour
-	GetCurFlavour() *Flavour
+	GetCurFlavour() *BrowserDef
 }
 
-// Returns flavour of browser given browser BaseDir
 // TEST:
+// DEAD:
+// Returns flavour of browser given a normalized browser base dir
 func GetFlavour(pm ProfileManager, baseDir string) string {
 	flavours := pm.ListFlavours()
 	for _, f := range flavours {
-		if f.BaseDir == baseDir {
-			return f.Name
+		bDir, err := f.ExpandBaseDir()
+		if err != nil {
+			log.Error("expanding basedir", "flavour", f.Flavour, "err", err)
+			return ""
+		}
+
+		if bDir == baseDir {
+			return f.Flavour
 		}
 	}
 
@@ -82,28 +92,4 @@ type Profile struct {
 
 func (p Profile) AbsolutePath() (string, error) {
 	return utils.ExpandPath(p.BaseDir, p.Path)
-}
-
-// The Flavour struct stores the name of the browser and the base
-// directory where the profiles are stored.
-// Example flavours: chrome-stable, chrome-unstable, firefox, firefox-esr, librewolf, etc.
-type Flavour struct {
-	Name    string
-	BaseDir string
-}
-
-// Detect if the browser is installed. Returns true if the path exists
-func (b Flavour) Detect() bool {
-	var dir string
-	var err error
-	if dir, err = utils.ExpandPath(b.BaseDir); err != nil {
-		log.Infof("expand path: %s: %s", b.BaseDir, err)
-		log.Info("skipping", "flavour", b.Name)
-		return false
-	} else if ok, err := utils.DirExists(dir); err != nil || !ok {
-		log.Infof("could not detect <%s>: %s: %s", b.Name, dir, err)
-		return false
-	}
-
-	return true
 }

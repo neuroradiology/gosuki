@@ -69,7 +69,7 @@ type WatchLoader interface {
 	Name() string // module name
 }
 
-type IntervalFetcher interface {
+type Poller interface {
 	Fetcher
 	Interval() time.Duration
 }
@@ -250,25 +250,25 @@ func watchRun(w Watcher, m manager.UnitManager) {
 	m.Done()
 }
 
-// Implement work unit for interval runners
-type IntervalWork struct {
+// Implement work unit for poller runners
+type PollWork struct {
 	Name string //TODO: hide this field from public api
 
-	IntervalFetcher
+	Poller
 }
 
-func (iw IntervalWork) Run(m manager.UnitManager) {
-	go IntervalLoop(iw.IntervalFetcher, iw.Name)
+func (iw PollWork) Run(m manager.UnitManager) {
+	go Poll(iw.Poller, iw.Name)
 	// wait for stop signal
 	<-m.ShouldStop()
 	m.Done()
 }
 
-// Main thread for fetching bookmarks at regular intervals
+// Main gorouting for polling bookmarks at regular intervals
 // One goroutine spawned per module
-func IntervalLoop(ir IntervalFetcher, modName string) {
+func Poll(ir Poller, modName string) {
 
-	log.Debug("interval fetching", "module", modName, "interval", ir.Interval())
+	log.Debug("polling", "module", modName, "interval", ir.Interval())
 	beat := time.NewTicker(ir.Interval()).C
 
 	if err := database.LoadBookmarks(ir.Fetch, modName); err != nil {

@@ -68,7 +68,7 @@ func Version() string {
 // Tags returns the list of build tags that were compiled into the executable.
 func Tags() []string {
 	if len(RawTags) == 0 {
-		return nil
+		return []string{}
 	}
 
 	return strings.Split(RawTags, ",")

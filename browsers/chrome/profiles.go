@@ -26,6 +26,7 @@ import (
 	"os"
 
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/browsers"
 	"github.com/blob42/gosuki/pkg/profiles"
 )
 
@@ -33,23 +34,6 @@ import (
 // The state file is a json file containing the last used profile and the list
 // of profiles. Equivalent to the profiles.ini file for mozilla browsers.
 const StateFile = "Local State"
-
-// Chrome flavour names
-const (
-	ChromeStable   = "chrome"
-	ChromeUnstable = "chrome-unstable"
-	//TODO:
-	// Chromium = "chromium"
-)
-
-var (
-	ChromeBrowsers = map[string]profiles.Flavour{
-		ChromeStable: {
-			Name:    ChromeStable,
-			BaseDir: "~/.config/google-chrome",
-		},
-	}
-)
 
 // Helper struct to manage chrome profiles
 // profiles.ProfileManager is implemented at the browser level
@@ -59,12 +43,18 @@ type ChromeProfileManager struct{}
 func (*ChromeProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, error) {
 	var result []*profiles.Profile
 
-	f, ok := ChromeBrowsers[flavour]
+	flv, ok := browsers.Defined(browsers.ChromeBased)[flavour]
 
 	if !ok {
 		return nil, fmt.Errorf("unknown flavour <%s>", flavour)
 	}
-	statePath, err := utils.ExpandPath(f.BaseDir, StateFile)
+
+	baseDir, err := flv.ExpandBaseDir()
+	if err != nil {
+		return nil, fmt.Errorf("expanding base directory: %w", err)
+	}
+
+	statePath, err := utils.ExpandPath(baseDir, StateFile)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +69,7 @@ func (*ChromeProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, e
 			ID:      id,
 			Name:    profile.Name,
 			Path:    id,
-			BaseDir: f.BaseDir,
+			BaseDir: baseDir,
 		})
 	}
 
@@ -91,11 +81,11 @@ func (*Chrome) GetProfiles(flavour string) ([]*profiles.Profile, error) {
 }
 
 // Returns all flavours supported by this browser
-func (*Chrome) ListFlavours() []profiles.Flavour {
-	var result []profiles.Flavour
+func (*Chrome) ListFlavours() []browsers.BrowserDef {
+	var result []browsers.BrowserDef
 
 	// detect local flavours
-	for _, v := range ChromeBrowsers {
+	for _, v := range browsers.Defined(browsers.ChromeBased) {
 		if v.Detect() {
 			result = append(result, v)
 		}
@@ -105,7 +95,7 @@ func (*Chrome) ListFlavours() []profiles.Flavour {
 }
 
 // get current active flavour
-func (c *Chrome) GetCurFlavour() *profiles.Flavour {
+func (c *Chrome) GetCurFlavour() *browsers.BrowserDef {
 	return c.activeFlavour
 }
 
@@ -132,7 +122,7 @@ func (cpm *ChromeProfileManager) GetProfileByID(flavour string, id string) (*pro
 
 // Notifies the module to use a custom profile
 // NOTE: this is implemented at the browser Level
-func (c *Chrome) UseProfile(p *profiles.Profile, flv *profiles.Flavour) error {
+func (c *Chrome) UseProfile(p *profiles.Profile, flv *browsers.BrowserDef) error {
 	if p != nil {
 		c.Profile = p.Name
 		c.activeProfile = p

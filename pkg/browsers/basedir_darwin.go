@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2024 Chakib Ben Ziane <contact@blob42.xyz>  and [`gosuki` contributors](https://github.com/blob42/gosuki/graphs/contributors).
+//  Copyright (c) 2025 Chakib Ben Ziane <contact@blob42.xyz>  and [`gosuki` contributors](https://github.com/blob42/gosuki/graphs/contributors).
 //  All rights reserved.
 //
 //  SPDX-License-Identifier: AGPL-3.0-or-later
@@ -20,24 +20,23 @@
 //  along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-//go:build (systray && darwin) || !systray
+//go:build darwin
 
-package main
+package browsers
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/blob42/gosuki/internal/server"
-	"github.com/blob42/gosuki/pkg/manager"
+	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/logging"
 )
 
-func initManager(tuiMode bool) *manager.Manager {
-	manager := manager.NewManager()
-	manager.ShutdownOn(os.Interrupt)
+var log = logging.GetLogger("BROWSERS")
 
-	uiServ := server.NewWebUIServer(tuiMode)
-	manager.AddUnit(uiServ, fmt.Sprintf("webui[%s]", server.BindAddr))
+// base directory without normalization
+func (b BrowserDef) BaseDir() string {
+	return b.baseDir
+}
 
-	return manager
+// Expands to the full path of base directory
+func (b BrowserDef) ExpandBaseDir() (string, error) {
+	return utils.ExpandPath(b.baseDir)
 }

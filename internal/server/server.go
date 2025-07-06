@@ -37,8 +37,11 @@ import (
 )
 
 const (
-	BindAddr = "0.0.0.0:2025"
+	BindPort = "2025"
+	BindHost = "0.0.0.0"
 )
+
+var BindAddr = fmt.Sprintf("%s:%s", BindHost, BindPort)
 
 type WebUIServer struct {
 	http.Handler

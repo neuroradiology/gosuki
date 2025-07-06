@@ -19,6 +19,10 @@
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 
+// Package mozilla provides functionality for managing Mozilla-based browser profiles,
+// such as Firefox and LibreWolf. It reads and parses the `profiles.ini` configuration file
+// used by these applications to store profile information, and provides tools to retrieve
+// and manage browser profiles for different flavors (e.g., Firefox, LibreWolf).
 package mozilla
 
 import (
@@ -27,6 +31,7 @@ import (
 	"regexp"
 
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/browsers"
 	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/profiles"
 
@@ -37,11 +42,7 @@ const (
 	ProfilesFile = "profiles.ini"
 )
 
-// Browser flavour names
-const (
-	FirefoxFlavour   = "firefox"
-	LibreWolfFlavour = "librewolf"
-)
+type BrowserDef = browsers.BrowserDef
 
 var (
 	log           = logging.GetLogger("mozilla")
@@ -49,13 +50,6 @@ var (
 
 	ErrProfilesIni      = errors.New("could not parse profiles.ini file")
 	ErrNoDefaultProfile = errors.New("no default profile found")
-
-	//TODO: multi platform
-	// linux mozilla browsers
-	MozBrowsers = map[string]profiles.Flavour{
-		FirefoxFlavour:   {Name: FirefoxFlavour, BaseDir: "~/.mozilla/firefox"},
-		LibreWolfFlavour: {Name: LibreWolfFlavour, BaseDir: "~/.librewolf"},
-	}
 )
 
 type MozProfileManager struct {
@@ -84,17 +78,21 @@ func (pm *MozProfileManager) loadINIProfile(r profiles.PathResolver) (*ini.File,
 	return pFile, nil
 }
 
-// TODO: handle browser flavours (ie. firefox forks )
 func (pm *MozProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, error) {
 	var pFile *ini.File
 	var err error
-	f, ok := MozBrowsers[flavour]
+	flv, ok := browsers.Defined(browsers.Mozilla)[flavour]
 
 	if !ok {
 		return nil, fmt.Errorf("unknown flavour <%s>", flavour)
 	}
 
-	pm.PathResolver.SetBaseDir(f.BaseDir)
+	baseDir, err := flv.ExpandBaseDir()
+	if err != nil {
+		return nil, fmt.Errorf("expanding base directory: %w", err)
+	}
+
+	pm.PathResolver.SetBaseDir(baseDir)
 	if pFile, err = pm.loadINIProfile(pm.PathResolver); err != nil {
 		return nil, err
 	}
@@ -105,7 +103,7 @@ func (pm *MozProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, e
 		if ReIniProfiles.MatchString(section.Name()) {
 			p := &profiles.Profile{
 				ID:      section.Name(),
-				BaseDir: f.BaseDir,
+				BaseDir: baseDir,
 			}
 
 			err := section.MapTo(p)
@@ -124,15 +122,6 @@ func (pm *MozProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, e
 	return result, nil
 }
 
-// TODO!: ConfigDir is stored in the profile, stop using ConfigDir in the base
-// profile manager
-// GetProfilePath returns the absolute directory path to a mozilla profile.
-//TODO!: fix the mess of GetProfilePath and GetProfielPathByName
-// one method has to be moved as a function
-// func (pm *MozProfileManager) GetProfilePath(prof profiles.Profile) (string, error) {
-// 	return utils.ExpandPath(p.BaseDir, p.Path)
-// }
-
 func (pm *MozProfileManager) GetProfileByName(flavour string, name string) (*profiles.Profile, error) {
 	profs, err := pm.GetProfiles(flavour)
 	if err != nil {
@@ -148,11 +137,11 @@ func (pm *MozProfileManager) GetProfileByName(flavour string, name string) (*pro
 	return nil, fmt.Errorf("profile %s not found", name)
 }
 
-func (pm *MozProfileManager) ListFlavours() []profiles.Flavour {
-	var result []profiles.Flavour
+func (pm *MozProfileManager) ListFlavours() []BrowserDef {
+	var result []BrowserDef
 
 	// detect local flavours
-	for _, v := range MozBrowsers {
+	for _, v := range browsers.Defined(browsers.Mozilla) {
 		if v.Detect() {
 			result = append(result, v)
 		}

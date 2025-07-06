@@ -69,7 +69,7 @@ func UnlockPlaces(bkDir string) error {
 			if err != nil {
 				log.Error(err)
 			}
-			return errors.New(fmt.Sprintf("multiprocess not enabled and %s(%d) is running. Close firefox and disable VFS lock", pname, pid))
+			return fmt.Errorf("multiprocess not enabled and %s(%d) is running. Close firefox and disable VFS lock", pname, pid)
 		}
 		// End testing
 

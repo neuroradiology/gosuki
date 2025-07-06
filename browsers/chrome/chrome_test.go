@@ -28,6 +28,7 @@ import (
 	"github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/internal/index"
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/browsers"
 	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/modules"
 	"github.com/blob42/gosuki/pkg/parsing"
@@ -97,14 +98,9 @@ func TestLoadLocalState(t *testing.T) {
 func TestGetProfiles(t *testing.T) {
 	var needle *profiles.Profile
 
-	ChromeBrowsers = map[string]profiles.Flavour{
-		ChromeStable: {
-			Name:    ChromeStable,
-			BaseDir: "testdata",
-		},
-	}
+	browsers.AddBrowserDef(browsers.ChromeBrowser(BrowserName, "testdata", ""))
 	ch := &Chrome{}
-	profiles, err := ch.GetProfiles(ChromeStable)
+	profiles, err := ch.GetProfiles(BrowserName)
 	if err != nil {
 		t.Fatal(err)
 	}

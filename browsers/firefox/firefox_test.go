@@ -159,7 +159,7 @@ func Test_addFolderNode(t *testing.T) {
 
 	t.Run("adding firefox root folder", func(t *testing.T) {
 		testRootFolder := MozFolder{
-			Id:     3,
+			ID:     3,
 			Parent: 1,
 			Title:  "toolbar",
 		}
@@ -178,7 +178,7 @@ func Test_addFolderNode(t *testing.T) {
 
 	t.Run("add non existing folder with no parent", func(t *testing.T) {
 		testFolder := MozFolder{
-			Id:     10,
+			ID:     10,
 			Parent: 3, // folder under the Bookmarks Toolbar
 			Title:  "Programming",
 		}
@@ -379,7 +379,7 @@ func Test_scanBookmarks(t *testing.T) {
 		t.Run("all urls", func(t *testing.T) {
 			var urls []string
 			for _, bk := range bookmarks {
-				urls = utils.Extends(urls, bk.Url)
+				urls = utils.Extends(urls, bk.URL)
 			}
 
 			var testUrls []string
@@ -414,7 +414,7 @@ func Test_scanBookmarks(t *testing.T) {
 			bkTags := map[string][]string{}
 
 			for _, bk := range bookmarks {
-				bkTags[bk.Url] = collection.Collect(strings.Split(bk.Tags, ",")).
+				bkTags[bk.URL] = collection.Collect(strings.Split(bk.Tags, ",")).
 					Unique().Filter(func(_, val any) bool {
 					// Filter out empty ("") strings
 					if v, ok := val.(string); ok {
@@ -431,7 +431,7 @@ func Test_scanBookmarks(t *testing.T) {
 
 			t.Run("should find all bookmarks that have tags AND within folders", func(t *testing.T) {
 				for _, bk := range bookmarks {
-					if bk.Url == "https://www.fsf.org/" {
+					if bk.URL == "https://www.fsf.org/" {
 						// should have `libre` tag and `Mobile Bookmarks` folder
 						assert.Equal(t, bk.ParentFolder, "mobile")
 					}
@@ -451,7 +451,7 @@ func Test_scanBookmarks(t *testing.T) {
 		t.Run("find every url in the node tree", func(t *testing.T) {
 
 			for _, bk := range bookmarks {
-				node, exists := ff.URLIndex.Get(bk.Url)
+				node, exists := ff.URLIndex.Get(bk.URL)
 				assert.True(t, exists, "url missing in URLIndex")
 
 				assert.True(t, tree.FindNode(node.(*tree.Node), ff.NodeTree), "url node missing from tree")
@@ -464,7 +464,7 @@ func Test_scanBookmarks(t *testing.T) {
 			// Go through each tag node
 			for _, bk := range bookmarks {
 
-				urlNode, urlNodeExists := ff.URLIndex.Get(bk.Url)
+				urlNode, urlNodeExists := ff.URLIndex.Get(bk.URL)
 				assert.True(t, urlNodeExists, "url missing in URLIndex")
 
 				// only check bookmarks with tags
@@ -490,10 +490,10 @@ func Test_scanBookmarks(t *testing.T) {
 				//  assert.True(t, folderScanned)
 
 				// Get the folder from tree node
-				folderNode, folderExists := ff.folderMap[bk.ParentId]
+				folderNode, folderExists := ff.folderMap[bk.ParentID]
 				assert.True(t, folderExists)
 
-				urlNode, exists := ff.URLIndex.Get(bk.Url)
+				urlNode, exists := ff.URLIndex.Get(bk.URL)
 				assert.True(t, exists, "url missing in URLIndex")
 
 				// check that url node has the right parent folder node
@@ -508,11 +508,11 @@ func Test_scanBookmarks(t *testing.T) {
 				}
 				if urlNode.(*tree.Node).Parent != nil {
 					assert.Equal(t, parentFolder, urlNode.(*tree.Node).Parent.Title,
-						"wrong folder for <%s>", bk.Url)
+						"wrong folder for <%s>", bk.URL)
 				}
 
 				assert.True(t, urlNode.(*tree.Node).DirectChildOf(folderNode),
-					"missing folder for %s", bk.Url)
+					"missing folder for %s", bk.URL)
 
 			}
 		})

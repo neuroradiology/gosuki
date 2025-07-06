@@ -70,7 +70,7 @@ const (
 )
 
 type MozFolder struct {
-	Id     Sqlid
+	ID     Sqlid
 	Parent Sqlid
 	Title  string
 }
@@ -81,13 +81,13 @@ type MozFolder struct {
 //
 // This is the typed used when scanning from the query located in `recursive-all-bookmarks.sql`
 type MozBookmark struct {
-	PlId           Sqlid `db:"plId"`
+	PlID           Sqlid `db:"plId"`
 	Title          string
 	Tags           string
 	Folders        string
-	ParentId       Sqlid  `db:"parentFolderId"`
+	ParentID       Sqlid  `db:"parentFolderId"`
 	ParentFolder   string `db:"parentFolder"`
-	Url            string
+	URL            string
 	PlDesc         string `db:"plDesc"`
 	BkLastModified Sqlid  `db:"lastModified"`
 }
@@ -95,10 +95,10 @@ type MozBookmark struct {
 // Type is used for scanning from `merged-places-bookmarks.sql`
 // plId  plUrl plDescription bkId  bkTitle bkLastModified  isFolder  isTag  isBk  bkParent
 type MergedPlaceBookmark struct {
-	PlId    Sqlid  `db:"plId"`
-	PlUrl   string `db:"plUrl"`
+	PlID    Sqlid  `db:"plId"`
+	PlURL   string `db:"plUrl"`
 	PlDesc  string `db:"plDescription"`
-	BkId    Sqlid  `db:"bkId"`
+	BkID    Sqlid  `db:"bkId"`
 	BkTitle string `db:"bkTitle"`
 
 	//firefox stores timestamps in milliseconds as integer
@@ -126,12 +126,12 @@ func (pb *MergedPlaceBookmark) Datetime() time.Time {
 var CopyJobs []PlaceCopyJob
 
 type PlaceCopyJob struct {
-	Id string
+	ID string
 }
 
 func NewPlaceCopyJob() PlaceCopyJob {
 	pc := PlaceCopyJob{
-		Id: utils.GenStringID(5),
+		ID: utils.GenStringID(5),
 	}
 
 	err := pc.makePath()
@@ -151,11 +151,11 @@ func (pc PlaceCopyJob) makePath() error {
 		return nil
 	}
 
-	return os.Mkdir(path.Join(utils.TMPDIR, pc.Id), 0750)
+	return os.Mkdir(path.Join(utils.TMPDIR, pc.ID), 0750)
 }
 
 func (pc PlaceCopyJob) Path() string {
-	return path.Join(utils.TMPDIR, pc.Id)
+	return path.Join(utils.TMPDIR, pc.ID)
 }
 
 func (pc PlaceCopyJob) Clean() error {

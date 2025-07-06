@@ -34,6 +34,7 @@ import (
 
 	"github.com/blob42/gosuki/hooks"
 	"github.com/blob42/gosuki/internal/database"
+	"github.com/blob42/gosuki/pkg/browsers"
 	"github.com/blob42/gosuki/pkg/browsers/mozilla"
 	"github.com/blob42/gosuki/pkg/events"
 	"github.com/blob42/gosuki/pkg/logging"
@@ -93,15 +94,15 @@ type Firefox struct {
 
 	activeProfile *profiles.Profile
 
-	activeFlavour *profiles.Flavour
+	activeFlavour *browsers.BrowserDef
 }
 
 // GetCurFlavour implements profiles.ProfileManager.
-func (f *Firefox) GetCurFlavour() *profiles.Flavour {
+func (f *Firefox) GetCurFlavour() *browsers.BrowserDef {
 	return f.activeFlavour
 }
 
-func (firefox *Firefox) ListFlavours() []profiles.Flavour {
+func (firefox *Firefox) ListFlavours() []browsers.BrowserDef {
 	return FirefoxProfileManager.ListFlavours()
 }
 
@@ -136,12 +137,12 @@ func (f *Firefox) scanFolders(since timestamp) ([]*MozFolder, error) {
 
 	// store all folders in a hashmap for easier tree construction
 	for _, folder := range folders {
-		f.folderScanMap[folder.Id] = folder
+		f.folderScanMap[folder.ID] = folder
 	}
 
 	for _, folder := range folders {
 		// Ignore the `tags` virtual folder
-		if folder.Id != 4 {
+		if folder.ID != 4 {
 			f.addFolderNode(*folder)
 		}
 	}
@@ -155,9 +156,9 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark, runTask bool) {
 
 	for _, bkEntry := range bookmarks {
 		// Create/Update URL node and apply tag node
-		created, urlNode := f.addURLNode(bkEntry.Url, bkEntry.Title, bkEntry.PlDesc)
+		created, urlNode := f.addURLNode(bkEntry.URL, bkEntry.Title, bkEntry.PlDesc)
 		if !created {
-			log.Debugf("url <%s> already in url index", bkEntry.Url)
+			log.Debugf("url <%s> already in url index", bkEntry.URL)
 		} else {
 			f.IncURLCount()
 			//REFACT: same code in all browsers
@@ -203,7 +204,7 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark, runTask bool) {
 
 		// Link this URL node to its corresponding folder node if it exists.
 		//TODO: add all parent folders in the tags list of this url node
-		folderNode, fOk := f.folderMap[bkEntry.ParentId]
+		folderNode, fOk := f.folderMap[bkEntry.ParentID]
 		// If we found the parent folder
 		if fOk {
 			tree.AddChild(folderNode, urlNode)
@@ -312,7 +313,7 @@ func (f *Firefox) WatchAllProfiles() bool {
 }
 
 // Use custom profile
-func (f *Firefox) UseProfile(p *profiles.Profile, flv *profiles.Flavour) error {
+func (f *Firefox) UseProfile(p *profiles.Profile, flv *browsers.BrowserDef) error {
 	// update instance profile name
 	if p != nil {
 		f.Profile = p.Name
@@ -543,7 +544,7 @@ func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 
 	modName := f.Name
 	if f.activeFlavour != nil {
-		modName = fmt.Sprintf("%s_%s", modName, f.activeFlavour.Name)
+		modName = fmt.Sprintf("%s_%s", modName, f.activeFlavour.Flavour)
 	}
 	if f.activeProfile != nil {
 		modName = fmt.Sprintf("%s_%s", modName, f.activeProfile.Name)
@@ -624,7 +625,7 @@ func (f *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
 	// use hashmap.RBTree to keep an index of scanned folders pointing
 	// to their corresponding nodes in the tree
 
-	folderNode, seen := f.folderMap[folder.Id]
+	folderNode, seen := f.folderMap[folder.ID]
 
 	if seen {
 		// Update folder name if changed
@@ -632,7 +633,7 @@ func (f *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
 		//TODO!: trigger bookmark tag change in gosuki.db
 		if folderNode.Title != folder.Title &&
 			// Ignore root folders since we use our custom names
-			!utils.InList([]int{2, 3, 5, 6}, int(folder.Id)) {
+			!utils.InList([]int{2, 3, 5, 6}, int(folder.ID)) {
 			log.Debugf("folder node <%s> updated to <%s>", folderNode.Title, folder.Title)
 			folderNode.Title = folder.Title
 		}
@@ -649,8 +650,8 @@ func (f *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
 
 	// If this folders' is a Firefox root folder use the appropriate title
 	// then add it to the root node
-	if utils.InList([]int{2, 3, 5, 6}, int(folder.Id)) {
-		folderNode.Title = mozilla.RootFolderNames[folder.Id]
+	if utils.InList([]int{2, 3, 5, 6}, int(folder.ID)) {
+		folderNode.Title = mozilla.RootFolderNames[folder.ID]
 		tree.AddChild(f.NodeTree, folderNode)
 	} else {
 		folderNode.Title = folder.Title
@@ -674,7 +675,7 @@ func (f *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
 	}
 
 	// Store a pointer to this folder
-	f.folderMap[folder.Id] = folderNode
+	f.folderMap[folder.ID] = folderNode
 	f.IncNodeCount()
 
 	return true, folderNode

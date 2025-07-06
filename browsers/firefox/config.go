@@ -32,12 +32,10 @@ import (
 )
 
 const (
-	//TODO: auto detect firefox base dir based on OS and installed flavors
-	// FirefoxBaseDir = "$HOME/.mozilla/firefox"
 	DefaultProfile = "default"
 
 	// Default flavour to use
-	BrowserName = mozilla.FirefoxFlavour
+	BrowserName = "firefox"
 )
 
 var (

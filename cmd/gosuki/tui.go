@@ -50,7 +50,7 @@ const (
 	maxWidth   = 80
 	padding    = 2
 	tickRate   = 20
-	nLogLines  = 10
+	nLogLines  = 8
 	helpHeight = 3
 	statusChar = "●"
 )
@@ -66,6 +66,7 @@ type module struct {
 type modState struct {
 	totalCount uint
 	curCount   uint
+	enabled    bool
 }
 
 // Meta struct that holds progress for all profiles belonging to
@@ -120,6 +121,14 @@ type winSize struct {
 	height int
 }
 
+type daemonState int
+
+const (
+	DaemonLoading = iota
+	DaemonReady
+	DaemonFail
+)
+
 type tuiModel struct {
 	initFunc    initFunc
 	logBuffer   *logging.TailBuffer
@@ -131,6 +140,7 @@ type tuiModel struct {
 	windowSize  winSize
 	keymap      keymap
 	help        help.Model
+	daemon      daemonState
 }
 
 type keymap struct {
@@ -157,8 +167,8 @@ var (
 	logSectionStyle = lipgloss.NewStyle().
 		// Background(lipgloss.Color("22")).
 		MarginTop(2).
-		Padding(1, 0, 0, 4).
-		Render
+		Padding(1, 0, 0, 2).
+		Width(maxWidth)
 
 	titleStyle = defaultTextColor.
 			PaddingLeft(2).
@@ -192,8 +202,9 @@ var (
 
 	ProgressSectionStyle = lipgloss.NewStyle().
 				MarginTop(2)
+		// Background(lipgloss.Color("24"))
+		// Width(60)
 		// MarginBottom(1)
-	// Background(lipgloss.Color("24"))
 
 	ProgressBarStyle = lipgloss.NewStyle().
 				PaddingLeft(2)
@@ -238,10 +249,10 @@ func setupModProgress(m tuiModel, r watch.WatchRunner) (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
+
+	id := string(mod.ModInfo().ID)
 	br, isB := mod.(modules.BrowserModule)
 	if isB {
-		config := br.Config()
-		id := config.Name
 		// _, isProfMgr := br.(profiles.ProfileManager)
 
 		if _, exists := m.browsers[id]; !exists {
@@ -266,12 +277,17 @@ func setupModProgress(m tuiModel, r watch.WatchRunner) (tea.Model, tea.Cmd) {
 		// init profile state
 		m.browsers[id].profileStates[br] = &modState{}
 	} else {
-		m.modules[string(mod.ModInfo().ID)] = &module{
+		if _, exists := m.modules[id]; !exists {
+			panic("missing module map entry")
+		}
+
+		m.modules[id] = &module{
 			Module:   mod,
 			progress: progress.New(progressOpts...),
 			id:       mod.ModInfo().ID,
 		}
 	}
+
 	return m, nil
 }
 
@@ -329,6 +345,9 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				errMsg := fmt.Sprintf("%s: module not recognized", msg.ID)
 				panic(errMsg)
 			}
+			m.modules[string(msg.ID)].enabled = true
+		} else {
+			m.browsers[string(msg.ID)].enabled = true
 		}
 
 		return m, nil
@@ -342,6 +361,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// simple module
 		} else if mod, ok := m.modules[string(msg.ID)]; ok {
+			m.modules[string(msg.ID)].enabled = true
 			mod.curCount = msg.CurrentCount
 			mod.totalCount = msg.Total
 			percent := float64(mod.curCount) / float64(mod.totalCount)
@@ -354,17 +374,27 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		titleStyle = titleStyle.Width(msg.Width)
 
 		// TODO: responsive
-		// for _, m := range m.modules {
-		// 	m.progress.Width = min(int(math.Min(float64(msg.Width-padding*2-20), 80)), maxWidth)
-		// }
+		for _, m := range m.browsers {
+			m.progress.Width = min(int(math.Min(float64(msg.Width/2), 80)), maxWidth)
+		}
+
+		for _, m := range m.modules {
+			m.progress.Width = min(int(math.Min(float64(msg.Width/2), 80)), maxWidth)
+		}
 
 		m.windowSize.height = msg.Height
 		m.windowSize.width = msg.Width
+
+		logSectionStyle = logSectionStyle.Width(msg.Width)
+		// ProgressSectionStyle = ProgressBarStyle.Width(msg.Width - 10)
 		return m, nil
 
 	case ErrMsg:
 		fmt.Printf("tui error: %s", msg.Error())
 		return m, tea.Quit
+
+	case DaemonStartedMsg:
+		m.daemon = DaemonReady
 
 	case progress.FrameMsg:
 		cmds := []tea.Cmd{}
@@ -425,7 +455,7 @@ func (m tuiModel) View() string {
 	// Browser modules
 	for _, name := range m.browserKeys {
 		br, ok := m.browsers[name]
-		if !ok {
+		if !ok || !br.enabled {
 			continue
 		}
 		totalURLCount += uint(br.totalCount)
@@ -469,6 +499,9 @@ func (m tuiModel) View() string {
 	// Simple modules
 	for _, name := range m.modKeys {
 		mod := m.modules[name]
+		if !mod.enabled {
+			continue
+		}
 		totalURLCount += uint(mod.totalCount)
 		progressSection.WriteString(labelStyle.Render(name))
 		progressSection.WriteString(ProgressBarStyle.
@@ -491,7 +524,7 @@ func (m tuiModel) View() string {
 	doc.WriteString(totalLabelStyle.Render(fmt.Sprintf("%d bookmarks loaded", totalURLCount)))
 	// doc.WriteString(fmt.Sprintf("%d", totalUrlCount))
 
-	doc.WriteString(logSectionStyle(strings.Join(m.logBuffer.Lines(), "\n")) + "\n")
+	doc.WriteString(logSectionStyle.Render(strings.Join(m.logBuffer.Lines(), "\n")) + "\n")
 
 	doc.WriteString(helpStyle.Render(m.HelpView()))
 	return doc.String()
@@ -508,9 +541,6 @@ func NewTUI(
 	opts ...tea.ProgramOption,
 ) *tui {
 
-	//WIP: better algorithm to detect how many watching units are running
-	//NOTE: use a channel in manager? to communicate when watch work units
-	//are ready. Pass which unit mod in the message.
 	mods := map[string]*module{}
 	browsers := make(map[string]*browser)
 	browserKeys := []string{}
@@ -523,14 +553,6 @@ func NewTUI(
 		// Extract module/browser name, convert flavours to name as well
 		b, isBrowser := modInfo.New().(modules.BrowserModule)
 		if isBrowser {
-			// pm, isProfMgr := b.(profiles.ProfileManager)
-			// if isProfMgr {
-			// 	// pretty.Print(b.Config())
-			// 	flavour := profiles.GetFlavour(pm, b.Config().BaseDir)
-			// 	if flavour != "" && flavour != name {
-			// 		name = flavour
-			// 	}
-			// }
 			browserKeys = append(browserKeys, b.Config().Name)
 			browsers[b.Config().Name] = &browser{
 				id:       b.Config().Name,
@@ -550,7 +572,7 @@ func NewTUI(
 
 		modLabelWidth := labelStyle.GetWidth()
 		modLabelWidth = int(math.Max(float64(modLabelWidth), float64(len(name))))
-		labelStyle = labelStyle.Width(modLabelWidth + padding)
+		labelStyle = labelStyle.Width(modLabelWidth)
 	}
 
 	return &tui{
@@ -569,7 +591,8 @@ func NewTUI(
 					key.WithHelp("q/esc", "quit"),
 				),
 			},
-			help: help.New(),
+			help:   help.New(),
+			daemon: DaemonLoading,
 		},
 		opts: opts,
 	}

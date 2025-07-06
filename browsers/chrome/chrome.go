@@ -43,6 +43,7 @@ import (
 
 	"github.com/blob42/gosuki/hooks"
 	"github.com/blob42/gosuki/internal/database"
+	"github.com/blob42/gosuki/pkg/browsers"
 	"github.com/blob42/gosuki/pkg/events"
 	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/modules"
@@ -122,7 +123,7 @@ func (rawNode *RawNode) getNode(ch *Chrome) *tree.Node {
 	modName := ch.Name
 
 	if ch.activeFlavour != nil {
-		modName = fmt.Sprintf("%s_%s", modName, ch.activeFlavour.Name)
+		modName = fmt.Sprintf("%s_%s", modName, ch.activeFlavour.Flavour)
 	}
 	if ch.activeProfile != nil {
 		modName = fmt.Sprintf("%s_%s", modName, ch.activeProfile.Name)
@@ -143,7 +144,7 @@ type Chrome struct {
 
 	activeProfile *profiles.Profile
 
-	activeFlavour *profiles.Flavour
+	activeFlavour *browsers.BrowserDef
 }
 
 func (ch *Chrome) Init(ctx *modules.Context, p *profiles.Profile) error {

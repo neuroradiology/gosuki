@@ -125,7 +125,7 @@ func SetPrefBool(path string, name string, val bool) error {
 		}
 
 		re := regexp.MustCompile(fmt.Sprintf(REFirefoxPrefs, name))
-		template := []byte(fmt.Sprintf("user_pref(\"$option\", %t) ;\n", val))
+		template := fmt.Appendf(nil, "user_pref(\"$option\", %t) ;\n", val)
 		text, err := io.ReadAll(f)
 		if err != nil {
 			return err

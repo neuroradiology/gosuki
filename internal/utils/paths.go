@@ -131,7 +131,7 @@ func ExpandPath(paths ...string) (string, error) {
 func MustExpandPath(paths ...string) string {
 	result, err := ExpandPath(paths...)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return result
 }
@@ -144,6 +144,11 @@ func ExpandOnly(paths ...string) (string, error) {
 	if len(paths) == 0 {
 		return "", fmt.Errorf("no path provided")
 	}
+
+	if len(paths[0]) == 0 {
+		return "", fmt.Errorf("no path provided")
+	}
+
 	if homedir, err = os.UserHomeDir(); err != nil {
 		return "", err
 	}

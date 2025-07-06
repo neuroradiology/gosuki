@@ -29,9 +29,7 @@ import (
 )
 
 const (
-	BrowserName = ChromeStable
-	//FIXME: hardcoded path
-	ChromeBaseDir  = "$HOME/.config/google-chrome"
+	BrowserName    = "chrome" // Default flavour to use
 	DefaultProfile = "Default"
 	RootNodeName   = "ROOT"
 )

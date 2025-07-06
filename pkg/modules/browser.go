@@ -23,6 +23,7 @@ package modules
 
 import (
 	"fmt"
+	"io/fs"
 	"time"
 
 	"github.com/blob42/gosuki"
@@ -207,7 +208,7 @@ func (b BrowserConfig) RebuildIndex() {
 func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error {
 
 	browserID := browser.ModInfo().ID
-	log.Infof("setting up browser <%s>", browserID)
+	log.Info("setting up", "browser", browserID)
 
 	// Handle Initializers custom Init from Browser module
 	initializer, okInit := browser.(Initializer)
@@ -224,6 +225,9 @@ func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error 
 	if okInit {
 		log.Debugf("<%s> custom init", browserID)
 		if err := initializer.Init(c); err != nil {
+			if _, pathErr := err.(*fs.PathError); pathErr {
+				return &ModDisabledError{MissingPath, err}
+			}
 			return fmt.Errorf("initialization error: %w", err)
 		}
 	}
@@ -329,17 +333,23 @@ func SetupWatchersWithReducer(browserConf *BrowserConfig,
 
 }
 
-func RegisterBrowser(browserMod BrowserModule) {
-	if err := verifyModule(browserMod); err != nil {
+func RegisterBrowser(bm BrowserModule) {
+	if err := verifyModule(bm); err != nil {
 		panic(err)
 	}
 
-	registeredBrowsers = append(registeredBrowsers, browserMod)
+	registeredBrowsers = append(registeredBrowsers, bm)
 
 	// A browser module is also a module
-	registeredModules = append(registeredModules, browserMod)
+	registeredModules = append(registeredModules, bm)
 }
 
 func GetBrowserModules() []BrowserModule {
-	return registeredBrowsers
+	var result []BrowserModule
+	for _, browser := range registeredBrowsers {
+		if !disabledMods[browser.ModInfo().ID] {
+			result = append(result, browser)
+		}
+	}
+	return result
 }

@@ -27,7 +27,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 
-	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/pkg/modules"
 	"github.com/blob42/gosuki/pkg/profiles"
 )
@@ -66,8 +65,8 @@ var listProfilesCmd = &cli.Command{
 
 			flavours := pm.ListFlavours()
 			for _, f := range flavours {
-				fmt.Printf("Profiles for <%s> flavour <%s>:\n\n", br.ModInfo().ID, f.Name)
-				if profs, err := pm.GetProfiles(f.Name); err != nil {
+				fmt.Printf("Profiles for <%s> flavour <%s>:\n\n", br.ModInfo().ID, f.Flavour)
+				if profs, err := pm.GetProfiles(f.Flavour); err != nil {
 					return err
 				} else {
 					for _, p := range profs {
@@ -127,14 +126,13 @@ var DetectCmd = &cli.Command{
 
 			flavours := pm.ListFlavours()
 			for _, f := range flavours {
-				log.Debugf("found flavour <%s> for <%s>", f.Name, mod.ModInfo().ID)
-				if dir, err := utils.ExpandPath(f.BaseDir); err != nil {
-					log.Errorf("could not expand path <%s> for flavour <%s>", f.BaseDir, f.Name)
+				log.Debugf("considering flavour <%s> of <%s>", f.Flavour, mod.ModInfo().ID)
+				if dir, err := f.ExpandBaseDir(); err != nil {
+					log.Warn("expanding base directory", "path", f.BaseDir(), "flavour", f.Flavour)
 					continue
 				} else {
-					f.BaseDir = dir
+					fmt.Printf(" %s %-10s \t %s\n", green(""), f.Flavour, dir)
 				}
-				fmt.Printf(" %s %-10s \t %s\n", green(""), f.Name, f.BaseDir)
 			}
 		}
 

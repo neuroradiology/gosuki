@@ -42,6 +42,7 @@ import (
 
 var (
 	registeredModules []Module
+	disabledMods      = map[ModID]bool{}
 )
 
 type Context struct {
@@ -193,7 +194,7 @@ func RegisterModule(module Module) {
 
 	//WIP: custom handling of watcher types
 	// switch module.(type) {
-	// case watch.IntervalFetcher:
+	// case watch.Poller:
 	// 	fmt.Println("this is interval fetcher")
 	//
 	// case watch.WatchRunner:
@@ -201,7 +202,21 @@ func RegisterModule(module Module) {
 	// }
 }
 
-// Returns a list of registerd browser modules
+// Returns a list of registerd modules
 func GetModules() []Module {
-	return registeredModules
+	var result []Module
+	for _, mod := range registeredModules {
+		if !disabledMods[mod.ModInfo().ID] {
+			result = append(result, mod)
+		}
+	}
+	return result
+}
+
+func Disable(id ModID) {
+	disabledMods[id] = true
+}
+
+func Disabled(id ModID) bool {
+	return disabledMods[id]
 }

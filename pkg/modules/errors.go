@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2024 Chakib Ben Ziane <contact@blob42.xyz>  and [`gosuki` contributors](https://github.com/blob42/gosuki/graphs/contributors).
+//  Copyright (c) 2025 Chakib Ben Ziane <contact@blob42.xyz>  and [`gosuki` contributors](https://github.com/blob42/gosuki/graphs/contributors).
 //  All rights reserved.
 //
 //  SPDX-License-Identifier: AGPL-3.0-or-later
@@ -20,24 +20,21 @@
 //  along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-//go:build (systray && darwin) || !systray
+package modules
 
-package main
+import "fmt"
 
-import (
-	"fmt"
-	"os"
+type FailureReason string
 
-	"github.com/blob42/gosuki/internal/server"
-	"github.com/blob42/gosuki/pkg/manager"
+const (
+	MissingPath FailureReason = "path error" // non existing path or path error
 )
 
-func initManager(tuiMode bool) *manager.Manager {
-	manager := manager.NewManager()
-	manager.ShutdownOn(os.Interrupt)
+type ModDisabledError struct {
+	Reason FailureReason
+	Err    error
+}
 
-	uiServ := server.NewWebUIServer(tuiMode)
-	manager.AddUnit(uiServ, fmt.Sprintf("webui[%s]", server.BindAddr))
-
-	return manager
+func (e *ModDisabledError) Error() string {
+	return fmt.Sprintf("ModDisabledError: %v - %v", e.Reason, e.Err)
 }

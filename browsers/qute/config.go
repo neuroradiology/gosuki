@@ -23,13 +23,15 @@
 package qute
 
 import (
+	"github.com/blob42/gosuki/pkg/browsers"
 	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/modules"
 )
 
+var QuteBrowser = browsers.QuteBrowser
+
 const (
 	BrowserName    = "qutebrowser"
-	QuteBaseDir    = "$HOME/.config/qutebrowser"
 	DefaultProfile = "Default"
 )
 
@@ -46,13 +48,15 @@ type QuteConfig struct {
 
 func NewQuteConfig() *QuteConfig {
 
+	baseDir := QuteBrowser.BaseDir()
+
 	config := &QuteConfig{
-		quickmarksPath: QuteBaseDir + "/quickmarks",
+		quickmarksPath: baseDir + "/quickmarks",
 		BrowserConfig: &modules.BrowserConfig{
 			Name:           BrowserName,
 			BkFile:         "urls",
-			BkDir:          QuteBaseDir + "/bookmarks",
-			BaseDir:        QuteBaseDir,
+			BkDir:          baseDir + "/bookmarks",
+			BaseDir:        baseDir,
 			UseFileWatcher: true,
 			UseHooks:       []string{"bk_tags_from_name", "bk_marktab"},
 		},

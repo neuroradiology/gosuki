@@ -27,14 +27,12 @@ import (
 	"fmt"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mattn/go-isatty"
 
 	db "github.com/blob42/gosuki/internal/database"
-	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/browsers"
 	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/events"
-	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/modules"
 	"github.com/blob42/gosuki/pkg/profiles"
 	"github.com/blob42/gosuki/pkg/watch"
@@ -57,7 +55,7 @@ func runBrowserModule(m *manager.Manager,
 	c *cli.Context,
 	browserMod modules.BrowserModule,
 	pfl *profiles.Profile,
-	flav *profiles.Flavour) error {
+	flav *browsers.BrowserDef) error {
 	var profileName string
 	mod := browserMod.ModInfo()
 	// Create context
@@ -65,18 +63,13 @@ func runBrowserModule(m *manager.Manager,
 		Context: context.Background(),
 		Cli:     c,
 	}
+
 	//Create a browser instance
 	browser, ok := mod.New().(modules.BrowserModule)
 	if !ok {
 		return fmt.Errorf("module <%s> is not a BrowserModule", mod.ID)
 	}
 	config := browser.Config()
-	// if flav != nil {
-	// 	config.Flavour = flav
-	// }
-	// if pfl != nil {
-	// 	config.ActiveProfile = pfl
-	// }
 	log.Debugf("created browser instance <%s>", config.Name)
 
 	// shutdown logic
@@ -165,14 +158,13 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 			IsTUI:   c.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()),
 		}
 
-		// generic modules need to implement either watch.IntervalFetcher or
-		// watch.WatchLoder
+		// generic modules need to implement either watch.Poller or watch.WatchLoader
 		var worker manager.WorkUnit
-		if ifetcher, ok := modInstance.(watch.IntervalFetcher); ok {
-			// Module implements IntervalFetcher
-			worker = watch.IntervalWork{
-				Name:            string(name),
-				IntervalFetcher: ifetcher,
+		if ipoller, ok := modInstance.(watch.Poller); ok {
+			// Module implements Poller
+			worker = watch.PollWork{
+				Name:   string(name),
+				Poller: ipoller,
 			}
 		} else if watchLoader, ok := modInstance.(watch.WatchLoader); ok {
 			// Module implements WatchLoader
@@ -180,7 +172,7 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 				WatchLoader: watchLoader,
 			}
 		} else {
-			log.Error("not implement: watch.IntervalFetcher or watch.WatchLoader", "mod", name)
+			log.Error("not implement: watch.Poller or watch.WatchLoader", "mod", name)
 			continue
 		}
 
@@ -217,16 +209,21 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 					bpm.WatchAllProfiles()) {
 				flavours := bpm.ListFlavours()
 				for _, flav := range flavours {
-					profs, err := bpm.GetProfiles(flav.Name)
+					profs, err := bpm.GetProfiles(flav.Flavour)
 					if err != nil {
-						log.Error("could not get profiles", "browser", flav.Name)
+						log.Info("no profiles found", "browser", flav.Flavour)
 						continue
 					}
 					for _, p := range profs {
-						log.Debug("", "flavour", flav.Name, "profile", p.Name)
+						log.Debug("", "flavour", flav.Flavour, "profile", p.Name)
 						err = runBrowserModule(mngr, c, browserMod, p, &flav)
 						if err != nil {
-							log.Error(err, "browser", flav.Name)
+							if _, errDisable := err.(*modules.ModDisabledError); errDisable {
+								log.Info("disabling module", "mod", browserMod.ModInfo().ID)
+								modules.Disable(browserMod.ModInfo().ID)
+							} else {
+								log.Error(err, "browser", flav.Flavour)
+							}
 							continue
 						}
 					}
@@ -236,7 +233,12 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 					browser.Config().Name)
 				err := runBrowserModule(mngr, c, browserMod, nil, nil)
 				if err != nil {
-					log.Error(err, "browser", browserMod.Config().Name)
+					if _, errDisable := err.(*modules.ModDisabledError); errDisable {
+						log.Info("disabling module", "mod", browserMod.ModInfo().ID)
+						modules.Disable(browserMod.ModInfo().ID)
+					} else {
+						log.Error(err, "browser", browserMod.Config().Name)
+					}
 					continue
 				}
 			}
@@ -244,45 +246,16 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 			log.Info("not implemented profiles.ProfileManager", "browser",
 				browser.Config().Name)
 			if err := runBrowserModule(mngr, c, browserMod, nil, nil); err != nil {
-				log.Error(err, "browser", browser.Config().Name)
+				if _, errDisable := err.(*modules.ModDisabledError); errDisable {
+					log.Info("disabling module", "mod", browserMod.ModInfo().ID)
+					modules.Disable(browserMod.ModInfo().ID)
+				} else {
+					log.Error(err, "browser", browser.Config().Name)
+				}
 				continue
 			}
 		}
 	}
 
-	return nil
-}
-
-func startDaemon(c *cli.Context) error {
-	defer utils.CleanFiles()
-
-	// initialize webui and non module units
-
-	tuiOpts := []tea.ProgramOption{
-		// tea.WithAltScreen(),
-	}
-
-	//TUI MODE
-	if c.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()) {
-		manager := initManager(true)
-
-		tui := NewTUI(func(tea.Model) tea.Cmd {
-			return func() tea.Msg {
-				err := startNormalDaemon(c, manager)
-				if err != nil {
-					return ErrMsg(err)
-				}
-				return DaemonStartedMsg{}
-			}
-		}, manager, tuiOpts...)
-
-		logging.SetTUI(tui.model.logBuffer)
-		return tui.Run()
-	}
-
-	manager := initManager(false)
-
-	startNormalDaemon(c, manager)
-	<-manager.Quit
 	return nil
 }

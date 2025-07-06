@@ -21,11 +21,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/blob42/gosuki/internal/database"
 	db "github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/pkg/build"
 	"github.com/blob42/gosuki/pkg/config"
@@ -66,7 +68,14 @@ func main() {
 	app.Before = func(c *cli.Context) error {
 		config.Init()
 		db.RegisterSqliteHooks()
-		return db.InitDiskConn(db.GetDBPath())
+		err := db.InitDiskConn(db.GetDBPath())
+		if _, isDBErr := err.(database.DBError); isDBErr {
+			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, "Did you run `gosuki start` at least once ?")
+			os.Exit(10)
+		}
+
+		return err
 	}
 
 	app.Commands = []*cli.Command{
