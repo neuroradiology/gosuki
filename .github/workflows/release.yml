@@ -99,7 +99,7 @@ jobs:
         name: Release ${{ env.RELEASE_VERSION }}
         # body: |
         #   Automated release from CI
-        draft: false
+        draft: true
         prerelease: false
         generate_release_notes: true
         token: ${{ secrets.GITHUB_TOKEN }}
