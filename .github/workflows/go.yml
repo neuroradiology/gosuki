@@ -10,7 +10,19 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64]
+        os: [linux, darwin]
+        include:
+          - os: linux
+            runs_on: ubuntu-latest
+
+          - os: darwin
+            runs_on: macos-latest
+        
+    runs-on: ${{ matrix.runs_on }}
+
     steps:
     - uses: actions/checkout@v4
       with:
