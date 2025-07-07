@@ -72,7 +72,8 @@
 
 </div>
 
-
+<br>
+<p align="center"><a href="https://youtu.be/lxrzR4cHgmI" target="_blank">Full Demo on YT</a></p>
 
 ## Installation
 
@@ -114,9 +115,9 @@ The TUI displays module status and bookmark processing metrics.
 ### Debugging
 Enable detailed logging with:
 ```bash
-gosuki --debug=3
+gosuki --debug=2
 ```
-Avoid using `--tui` with debug mode for cleaner output.
+*note*: Avoid using `--tui` with debug mode.
 
 ## How does it work ?
 

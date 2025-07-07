@@ -1,0 +1,7 @@
+assets/icon/gosuki.icns filter=lfs diff=lfs merge=lfs -text
+internal/gui/icon/gosuki-icon-32.png filter=lfs diff=lfs merge=lfs -text
+internal/gui/icon/gosuki-icon-64.png filter=lfs diff=lfs merge=lfs -text
+internal/gui/icon/gosuki-icon-132.png filter=lfs diff=lfs merge=lfs -text
+internal/gui/icon/gosuki-icon.png filter=lfs diff=lfs merge=lfs -text
+internal/gui/icon/icon.png filter=lfs diff=lfs merge=lfs -text
+internal/gui/icon/icon_32x32.png filter=lfs diff=lfs merge=lfs -text
