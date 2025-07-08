@@ -46,7 +46,7 @@
 - 🧪 **Hackable**: Modular and extensible. Custom scripts and actions per tags and folders.
 - 🌎 **Browser Agnostic**: Detects which browsers you have installed and watch changes in all of them
 - 👤 **Profile Support**: Also handles multiple profiles for each browser
-- 💾 **Buku Compatibility**: Gosuki is compatible with the [Buku](https://github.com/jarun/buku) sqlite database, you can use any program that was made for buku
+- 💾 **Buku Compatibility**: Gosuki is compatible with the [Buku](https://github.com/jarun/buku) sqlite database, you can use any program [that was made for buku](https://github.com/jarun/buku?tab=readme-ov-file#related-projects)
 - 📡 **External APIs** Consolidate your curated content from external APIs (github, reddit ...)
 
 
