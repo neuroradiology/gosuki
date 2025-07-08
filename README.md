@@ -90,6 +90,7 @@ Checkout the [quick start guide](https://gosuki.net/docs/getting_started/quickst
 
 ```console
  go install github.com/blob42/gosuki/cmd/gosuki@latest
+ go install github.com/blob42/gosuki/cmd/suki@latest
 ```
 
 Gosuki currently supports Linux and MacOS<sub>beta</sub> . More platforms are [planned](#roadmap).
@@ -158,3 +159,19 @@ We welcome contributions from the community! To get started:
 4. Follow our [code of conduct](CODE_OF_CONDUCT.md)
 
 For bug reports, please provide detailed steps to reproduce the issue.
+
+
+## Related Projects 
+
+- [Buku](https://github.com/jarun/buku): Gosuki is compatible with Buku
+- [Shiori](https://github.com/go-shiori/shiori): Simple bookmark manager built with Go
+- [bmm](https://github.com/dhth/bmm): get to your bookmarks in a flash
+- [wallabag](https://github.com/wallabag/wallabag): self hostable application for saving web pages
+
+## Links & Discussions
+
+- [Ask HN: Do you still use browser bookmarks?](https://news.ycombinator.com/item?id=14064096)
+- [Ask HN: How to handle bookmarks so you can find them again?](https://news.ycombinator.com/item?id=13734253)
+- [Reddit: Does anyone actually use mobile bookmarks](https://www.reddit.com/r/firefox/comments/dez7hh/does_anyone_actually_use_mobile_bookmarks/)
+- [You are the dead internet](https://www.youtube.com/watch?v=aoTQPoz9_As)
+
