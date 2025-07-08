@@ -135,6 +135,7 @@ Curious for more details on the internals ? Checkout the [Architecture](docs/int
 <!-- Redirect to the comparaison matrix with other projects -->
 
 ## Roadmap
+
 - [ ] **Archival** (top most priority) - Archive bookmarks in a portable format for offline access.
 - [ ] **Linkrot** - Automatically identify broken links and replace with web.archive.org alternatives
 - [ ] **Built-in Sync** - Enable secure synchronization between multiple devices
@@ -144,8 +145,10 @@ Curious for more details on the internals ? Checkout the [Architecture](docs/int
 - [ ] **Platforms** - FreeBSD, Windows and other platforms
 
 ## Support
-GoSuki is an open-source project that relies on community support to grow. If you find value in this tool, consider supporting its development through:
-- Financial contributions via [GitHub Sponsors](https://github.com/sponsors/blob42) or [Patreon](https://www.patreon.com/c/GoSuki)
+
+GoSuki is a one-man project. If you find value in this tool, consider supporting its development through:
+
+- Contributions via [GitHub Sponsors](https://github.com/sponsors/blob42) or [Patreon](https://www.patreon.com/c/GoSuki)
 - Reporting issues and suggesting features
 - Contributing code or documentation
 - Sharing the project with others who might benefit
