@@ -23,12 +23,12 @@
 
 <h3 align="center">What's this ? Oh, just another bookmark manager. No big deal.</h3>
 
-- [x] Ever feel like your bookmarks are a chaotic mess ?
+- [x] Ever feel like your bookmarks are a [chaotic mess](https://news.ycombinator.com/item?id=13734253) ?
 - [x] Ever find yourself swapping browsers when they can't keep up with your demands?
-- [x] Have past bookmark managers let you down, vendor locking or abandoning you in your time of need?
+- [x] Have past bookmark managers [let you down](https://support.mozilla.org/en-US/kb/future-of-pocket), vendor locking or abandoning you in your time of need?
 - [x] Maybe you would rather avoid entrusting your bookmarks to cloud companies.
 - [x] Perhaps you keep multiple browser profiles for work, research, streaming, and development?
-- [x] Do you use some "obscure" browser that doesn't support extensions?
+- [x] Do you use some ["obscure"](https://github.com/qutebrowser/qutebrowser) browser that doesn't support extensions?
 
 - [ ] If you're nodding your head to any of the above, then look no further.
 
