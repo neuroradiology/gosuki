@@ -15,6 +15,7 @@
   <!-- <a href="#rationale">Rationale</a> -->
 </h5>
 
+
 <br>
 </p>
 
@@ -134,7 +135,7 @@ Curious for more details on the internals ? Checkout the [Architecture](docs/int
 <!-- Redirect to the comparaison matrix with other projects -->
 
 ## Roadmap
-- [ ] **Archival** - Create portable archive format to access any link offline.
+- [ ] **Archival** (top most priority) - Archive bookmarks in a portable format for offline access.
 - [ ] **Linkrot** - Automatically identify broken links and replace with web.archive.org alternatives
 - [ ] **Built-in Sync** - Enable secure synchronization between multiple devices
 - [ ] **Tag Refresh** - Automatically clean and update tags/metadata for existing bookmarks
@@ -162,6 +163,8 @@ For bug reports, please provide detailed steps to reproduce the issue.
 
 
 ## Related Projects 
+
+Read the ["how does it compare to"](docs/how-does-it-compare-to.md) guide.
 
 - [Buku](https://github.com/jarun/buku): Gosuki is compatible with Buku
 - [Shiori](https://github.com/go-shiori/shiori): Simple bookmark manager built with Go
