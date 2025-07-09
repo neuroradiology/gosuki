@@ -37,7 +37,7 @@ const (
 	ConfigDirName  = "gosuki"
 )
 
-func getConfigDir() (string, error) {
+func getDefaultConfigDir() (string, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("could not get config dir: %s", err)
@@ -50,16 +50,16 @@ func getConfigDir() (string, error) {
 	return configDir, nil
 }
 
-func getConfigFile() (string, error) {
-	if configDir, err := getConfigDir(); err != nil {
+func getDefaultConfigPath() (string, error) {
+	if configDir, err := getDefaultConfigDir(); err != nil {
 		return "", err
 	} else {
 		return path.Join(configDir, ConfigFileName), nil
 	}
 }
 
-func ConfigFile() string {
-	configFile, err := getConfigFile()
+func DefaultConfPath() string {
+	configFile, err := getDefaultConfigPath()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,21 +67,16 @@ func ConfigFile() string {
 	return configFile
 }
 
-func ConfigExists() (bool, error) {
-	configFile, err := getConfigFile()
-	if err != nil {
-		return false, err
-	}
-
-	return utils.CheckFileExists(configFile)
+func ConfigExists(path string) (bool, error) {
+	return utils.CheckFileExists(path)
 }
 
-// Create a toml config file
-func InitConfigFile() error {
+// Create a default toml config file
+func createDefaultConfFile() error {
 	var configDir string
 	var err error
 
-	if configDir, err = getConfigDir(); err != nil {
+	if configDir, err = getDefaultConfigDir(); err != nil {
 		return err
 	}
 
@@ -114,15 +109,33 @@ func InitConfigFile() error {
 	return err
 }
 
-// Loads gosuki configuation into the global config
-func LoadFromTomlFile() error {
-	configFile, err := getConfigFile()
+// creates a config file given a target path
+func createConfFile(path string) error {
+	configFile, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 
+	allConf := GetAll()
+
+	tomlEncoder := toml.NewEncoder(configFile)
+	tomlEncoder.Indent = ""
+	if err := tomlEncoder.Encode(&allConf); err != nil {
+		configFile.Close()
+		return err
+	}
+
+	if err := configFile.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Loads gosuki configuation into the global config
+func LoadFromTomlFile(path string) error {
 	buffer := make(Config)
-	_, err = toml.DecodeFile(configFile, &buffer)
+	_, err := toml.DecodeFile(path, &buffer)
 	if err != nil {
 		return fmt.Errorf("loading config file %w", err)
 	}

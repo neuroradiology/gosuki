@@ -67,7 +67,7 @@ func main() {
 		&cli.StringFlag{
 			Name:        "config",
 			Aliases:     []string{"c"},
-			Value:       config.ConfigFile(),
+			Value:       config.DefaultConfPath(),
 			DefaultText: "~/.config/gosuki/config.toml",
 			Category:    "_",
 		},
@@ -116,7 +116,7 @@ func main() {
 		//
 		// Cli flags have the highest priority and override config file values
 
-		config.Init()
+		config.Init(c.String("config"))
 		logging.SetLogLevel(logging.DefaultLogLevels[logging.LoggingMode])
 
 		// get all registered browser modules

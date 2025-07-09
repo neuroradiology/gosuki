@@ -19,31 +19,40 @@
 // along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
 package config
 
-func InitDefaultConfig() {
-	//TODO: handle chrome
-	println("Creating default config: config.toml")
-
-	err := InitConfigFile()
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func Init() {
+func Init(path string) {
+	var err error
 	log.Debugf("gosuki init config")
 
 	// Check if config file exists
-	exists, err := ConfigExists()
+	exists, err := ConfigExists(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if !exists {
-		// Initialize default initConfig
+		log.Debug("creating default config", "path", path)
 		//NOTE: flags have higher priority than config file
-		InitDefaultConfig()
+		defaultPath, err := getDefaultConfigPath()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if path == defaultPath {
+
+			err = createDefaultConfFile()
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			err = createConfFile(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+		}
 	} else {
-		err = LoadFromTomlFile()
+		log.Debug("using config", "path", path)
+		err = LoadFromTomlFile(path)
 		if err != nil {
 			log.Fatal(err)
 		}

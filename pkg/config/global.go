@@ -22,9 +22,8 @@
 
 package config
 
-// BUG: config file parm not taken into account
 var GlobalConfig = struct {
 	WatchAll bool `toml:"watch-all" mapstructure:"watch-all"`
 }{
-	true,
+	false,
 }
