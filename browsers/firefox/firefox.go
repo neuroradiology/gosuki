@@ -162,6 +162,7 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark, runTask bool) {
 		} else {
 			f.IncURLCount()
 			//REFACT: same code in all browsers
+			//TODO!: only in TUI mode
 			progress := f.Progress()
 			if progress-f.lastSentProgress >= 0.05 || progress == 1 {
 				f.lastSentProgress = progress

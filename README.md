@@ -136,13 +136,16 @@ Curious for more details on the internals ? Checkout the [Architecture](docs/int
 
 ## Roadmap
 
-- [ ] **Archival** (top most priority) - Archive bookmarks in a portable format for offline access.
+- [ ] **Multi-device Sync** - Synchronization between multiple devices
+- [ ] **Archival** - Archive bookmarks in a portable format for offline access.
+- [ ] **Packaging**: Package for all common Linux distros, MacOS brew and FreeBSD ports
+
+
 - [ ] **Linkrot** - Automatically identify broken links and replace with web.archive.org alternatives
-- [ ] **Built-in Sync** - Enable secure synchronization between multiple devices
-- [ ] **Tag Refresh** - Automatically clean and update tags/metadata for existing bookmarks
-- [ ] **Simple Cleanup UI** - Intuitive interface for organizing and pruning bookmarks
+- [ ] **Metadata Refresh** - Automatically clean and update tags/metadata for existing bookmarks
 - [ ] **Browser Sync** - Push changes back to browsers for consistent bookmark management
-- [ ] **Platforms** - FreeBSD, Windows and other platforms
+- [ ] **Management UI** - Intuitive interface for organizing and pruning bookmarks
+- [ ] **More Platforms** - FreeBSD, Windows, Android? 
 
 ## Support
 
