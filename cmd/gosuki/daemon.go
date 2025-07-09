@@ -58,10 +58,12 @@ func runBrowserModule(m *manager.Manager,
 	flav *browsers.BrowserDef) error {
 	var profileName string
 	mod := browserMod.ModInfo()
+
 	// Create context
 	modContext := &modules.Context{
 		Context: context.Background(),
 		Cli:     c,
+		IsTUI:   c.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()),
 	}
 
 	//Create a browser instance

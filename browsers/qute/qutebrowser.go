@@ -119,6 +119,10 @@ func (qu *Qute) Detect() ([]modules.Detected, error) {
 func (qu Qute) Init(ctx *modules.Context) error {
 	var err error
 
+	if ctx.IsTUI {
+		QuteCfg.TUI = true
+	}
+
 	// This section handles symlinks to qutebrowser
 	// Typically the case with dotfiles.
 	qu.quickmarksPath, err = utils.ExpandOnly(qu.quickmarksPath)
@@ -175,11 +179,8 @@ func (qu Qute) setupWatchers() error {
 		EventNames: []string{qu.quickmarksPath},
 	}
 
-	// utils.PrettyPrint(wQuickmarks)
-
 	ok, err := modules.SetupWatchers(qu.BrowserConfig, w, wQuickmarks)
 	if err != nil {
-		// log.Debugf("watcher: %#v", w)
 		return fmt.Errorf("could not setup watcher: %w", err)
 	}
 	if !ok {
@@ -233,7 +234,6 @@ func (qu *Qute) loadBookmarks(runTask bool) error {
 		}
 
 		fields := strings.Fields(line)
-		// pretty.Print(fields)
 
 		bk := &gosuki.Bookmark{
 			URL: strings.TrimSpace(fields[0]),
@@ -261,11 +261,6 @@ func (qu *Qute) loadQuickMarks(runTask bool) error {
 	}
 
 	reader := bufio.NewReader(qmFile)
-
-	// quickmark file format is parsed line by line,
-	// each line has the a variable number of space separated fields with the
-	// last field being the URL. All previous fields are considered tags
-	// Here is a sample from a quickmark file:
 
 	for {
 		line, err := reader.ReadString('\n')
@@ -308,18 +303,20 @@ func (qu *Qute) trackProgress(runTask bool) {
 	progress := qu.Progress()
 	if progress-qu.lastSentProgress >= 0.05 || progress == 1 {
 		qu.lastSentProgress = progress
-		go func() {
-			msg := events.ProgressUpdateMsg{
-				ID:           qu.ModInfo().ID,
-				Instance:     qu,
-				CurrentCount: qu.URLCount(),
-				Total:        qu.Total(),
-			}
-			if runTask {
-				msg.NewBk = true
-			}
-			events.TUIBus <- msg
-		}()
+		if QuteCfg.TUI {
+			go func() {
+				msg := events.ProgressUpdateMsg{
+					ID:           qu.ModInfo().ID,
+					Instance:     qu,
+					CurrentCount: qu.URLCount(),
+					Total:        qu.Total(),
+				}
+				if runTask {
+					msg.NewBk = true
+				}
+				events.TUIBus <- msg
+			}()
+		}
 	}
 }
 

@@ -166,18 +166,21 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark, runTask bool) {
 			progress := f.Progress()
 			if progress-f.lastSentProgress >= 0.05 || progress == 1 {
 				f.lastSentProgress = progress
-				go func() {
-					msg := events.ProgressUpdateMsg{
-						ID:           f.ModInfo().ID,
-						Instance:     f,
-						CurrentCount: f.URLCount(),
-						Total:        f.Total(),
-					}
-					if runTask {
-						msg.NewBk = true
-					}
-					events.TUIBus <- msg
-				}()
+
+				if FFConfig.TUI {
+					go func() {
+						msg := events.ProgressUpdateMsg{
+							ID:           f.ModInfo().ID,
+							Instance:     f,
+							CurrentCount: f.URLCount(),
+							Total:        f.Total(),
+						}
+						if runTask {
+							msg.NewBk = true
+						}
+						events.TUIBus <- msg
+					}()
+				}
 			}
 		}
 
@@ -340,6 +343,10 @@ func (f *Firefox) GetProfile() *profiles.Profile {
 }
 
 func (f *Firefox) Init(ctx *modules.Context, p *profiles.Profile) error {
+	if ctx.IsTUI {
+		FFConfig.TUI = true
+	}
+
 	if p == nil {
 		// setup profile from config
 		profile, err := FirefoxProfileManager.GetProfileByName(BrowserName, f.Profile)
@@ -434,13 +441,15 @@ func (f *Firefox) PreLoad(_ *modules.Context) error {
 	}
 	f.SetTotal(uint(len(bookmarks)))
 
-	// Send total to msg bus
-	go func() {
-		events.TUIBus <- events.StartedLoadingMsg{
-			ID:    modules.ModID(f.Name),
-			Total: f.Total(),
-		}
-	}()
+	if FFConfig.TUI {
+		// Send total to msg bus
+		go func() {
+			events.TUIBus <- events.StartedLoadingMsg{
+				ID:    modules.ModID(f.Name),
+				Total: f.Total(),
+			}
+		}()
+	}
 
 	f.loadBookmarksToTree(bookmarks, false)
 
