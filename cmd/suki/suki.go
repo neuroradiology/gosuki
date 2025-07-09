@@ -45,6 +45,14 @@ func main() {
 	app.CustomAppHelpTemplate = AppHelpTemplate
 
 	app.Flags = []cli.Flag{
+		&cli.StringFlag{
+			Name:        "config",
+			Aliases:     []string{"c"},
+			Value:       config.DefaultConfPath(),
+			DefaultText: "~/.config/gosuki/config.toml",
+			Category:    "_",
+		},
+
 		&cli.IntFlag{
 			Name:        "debug",
 			Category:    "",
@@ -66,7 +74,7 @@ func main() {
 	}
 
 	app.Before = func(c *cli.Context) error {
-		config.Init()
+		config.Init(c.String("config"))
 		db.RegisterSqliteHooks()
 		err := db.InitDiskConn(db.GetDBPath())
 		if _, isDBErr := err.(database.DBError); isDBErr {
