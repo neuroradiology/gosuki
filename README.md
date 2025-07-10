@@ -129,10 +129,12 @@ The application maintains a portable database of all tracked bookmarks, accessib
 
 Curious for more details on the internals ? Checkout the [Architecture](docs/internal/architecture.md) file.
 
-<!-- ## Rationale -->
-<!-- TODO -->
-<!-- Explain the reasons I made gosuki -->
-<!-- Redirect to the comparaison matrix with other projects -->
+## Rationale
+
+In the age of the "everything internet" web links and bookmarks represent a significant investment of human time spent curating and selecting relevant content. The past decade has seen a noticeable ~enshittification~ decline in the quality of internet results, with SEO-optimized blogs, marketing materials, and censored links making it increasingly difficult to find valuable websites and articles. Now with the advent of AI-generated “slop” and low-quality content, we face an  endless stream of potentially  fake and unreliable information.
+
+GoSuki is my modest attempt to make the definitive solution for managing internet bookmarks. This first release is only a first step in a long journey and I welcome everyone to join me in this endeavor. There are many ways to contribute to this effort, with financial support [being just one of them](#support).
+
 
 ## Roadmap
 
@@ -153,13 +155,16 @@ GoSuki is a one-man project. If you find value in this tool, consider supporting
 
 - Contributions via [GitHub Sponsors](https://github.com/sponsors/blob42) or [Patreon](https://www.patreon.com/c/GoSuki)
 - Reporting issues and suggesting features
+- Testing and adding new browsers
+- Creating modules for third-party APIs
 - Contributing code or documentation
 - Sharing the project with others who might benefit
 
-Your support helps maintain existing features and allows me to develop new capabilities for all users.
 
 ## Contributing
+
 We welcome contributions from the community! To get started:
+
 1. Fork the repository
 2. Create a new branch for your changes
 3. Submit a pull request with clear documentation
