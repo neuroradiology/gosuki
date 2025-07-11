@@ -40,9 +40,9 @@ import (
 	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/tree"
 
+	"github.com/blob42/hashmap"
 	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"
-	"github.com/sp4ke/hashmap"
 )
 
 var (

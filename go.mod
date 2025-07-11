@@ -25,7 +25,6 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/muesli/termenv v0.16.0
 	github.com/shirou/gopsutil/v4 v4.25.6
-	github.com/sp4ke/hashmap v0.0.0-20171130100710-1ac30a6923c3
 	github.com/swithek/dotsqlx v1.0.0
 	github.com/urfave/cli/v2 v2.23.5
 	github.com/vartanbeno/go-reddit/v2 v2.0.1
