@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- example bookmark launcher with rofi `contrib/rofi.sh`
+
 ### Fixed
 
 - cli: use custom path to config file
