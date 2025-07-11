@@ -25,7 +25,7 @@ import (
 	"log"
 
 	"github.com/OneOfOne/xxhash"
-	"github.com/sp4ke/hashmap"
+	"github.com/blob42/hashmap"
 )
 
 type HashTree = *hashmap.RBTree
@@ -35,7 +35,7 @@ type HashTree = *hashmap.RBTree
 // from browser on a watch event
 // Input `in` must be of type []byte
 // The index is a map of [urlhash]*Node
-func xxHashFunc(in interface{}) uint64 {
+func xxHashFunc(in any) uint64 {
 	input, ok := in.(string)
 	if !ok {
 		log.Panicf("wrong data type to hash, exptected string given %T", in)

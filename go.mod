@@ -82,6 +82,7 @@ require (
 	github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557
 	github.com/DusanKasan/hashmap v0.0.0-20170501124128-8d9a00825b33 // indirect
 	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/blob42/hashmap v0.0.0-20171130100710-1ac30a6923c3
 	github.com/buger/jsonparser v1.1.1
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.4
