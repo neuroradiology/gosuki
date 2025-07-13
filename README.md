@@ -24,13 +24,13 @@
 <h3 align="center">What's this ? Oh, just another bookmark manager. No big deal.</h3>
 
 - [x] Ever feel like your bookmarks are a [chaotic mess](https://news.ycombinator.com/item?id=13734253) ?
-- [x] Ever find yourself swapping browsers when they can't keep up with your demands?
-- [x] Have past bookmark managers [let you down](https://support.mozilla.org/en-US/kb/future-of-pocket), vendor locking or abandoning you in your time of need?
-- [x] Maybe you would rather avoid entrusting your bookmarks to cloud companies.
-- [x] Perhaps you keep multiple browser profiles for work, research, streaming, and development?
-- [x] Do you use some ["obscure"](https://github.com/qutebrowser/qutebrowser) browser that doesn't support extensions?
+- [x] Ever find yourself swapping browsers when they can't keep up with your demands ?
+- [x] Have past bookmark managers [let you down](https://support.mozilla.org/en-US/kb/future-of-pocket), vendor locking or abandoning you in your time of need ?
+- [x] Maybe you would rather avoid entrusting your bookmarks to cloud companies or [browser extensions](https://arstechnica.com/security/2025/07/browser-extensions-turn-nearly-1-million-browsers-into-website-scraping-bots/) ?
+- [x] Perhaps you keep multiple browser profiles for work, research, streaming, and development ?
+- [x] Do you use some ["obscure"](https://github.com/qutebrowser/qutebrowser) browser that doesn't support extensions ?
 
-- [ ] If you're nodding your head to any of the above, then look no further.
+- [ ] If you're nodding your head to any of the above, then look no further:
 
 **GoSuki** is an **extension-free**, **self-contained**, **real time** bookmark tracker and organizer. It packs everything in a **single binary** and captures all your bookmarks in a **portable database**.
 <br>
@@ -80,6 +80,8 @@
 
 Checkout the [quick start guide](https://gosuki.net/docs/getting_started/quickstart).
 
+Gosuki currently supports Linux and MacOS<sub>beta</sub> . More platforms are [planned](#roadmap).
+
 ### Releases
 
 
@@ -93,8 +95,6 @@ Checkout the [quick start guide](https://gosuki.net/docs/getting_started/quickst
  go install github.com/blob42/gosuki/cmd/gosuki@latest
  go install github.com/blob42/gosuki/cmd/suki@latest
 ```
-
-Gosuki currently supports Linux and MacOS<sub>beta</sub> . More platforms are [planned](#roadmap).
 
 ## Running GoSuki
 
