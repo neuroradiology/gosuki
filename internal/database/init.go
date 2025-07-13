@@ -80,7 +80,6 @@ func Init() {
 		// Else initialize it
 		initLocalDB(Cache.DB, dbpath)
 	}
-
 }
 
 // Initialize the local database file

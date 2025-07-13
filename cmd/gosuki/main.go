@@ -154,6 +154,7 @@ func main() {
 		cmd.ProfileCmds,
 		cmd.ModuleCmds,
 		cmd.DebugCmd,
+		cmd.BukuCmds,
 	}
 
 	// Add global flags from registered modules

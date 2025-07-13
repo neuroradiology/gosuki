@@ -248,7 +248,6 @@ func NewDB(name string, dbPath string, dbFormat string, opts ...DsnOptions) *DB 
 // with interface so we can mock it and test the lock status in Init()
 // Initialize a sqlite database with Gosuki Schema if not already done
 func (db *DB) Init() (*DB, error) {
-
 	var err error
 
 	if db.Handle != nil {
@@ -258,7 +257,6 @@ func (db *DB) Init() (*DB, error) {
 
 	// Detect if database file is locked
 	if db.Type == DBTypeRegularFile {
-
 		if locked, err := db.Locked(); err != nil {
 			return nil, DBError{DBName: db.Name, Err: err}
 		} else if locked {
