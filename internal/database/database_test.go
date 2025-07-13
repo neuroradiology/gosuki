@@ -213,7 +213,7 @@ func TestSyncTo(t *testing.T) {
 	for i := 1; i <= 10; i++ {
 		url := fmt.Sprintf("http://example.com/bookmark%d", i)
 		_, err := srcDB.Handle.Exec(
-			`INSERT INTO bookmarks(url, metadata, tags, desc, modified, flags, module) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			`INSERT INTO gskbookmarks(url, metadata, tags, desc, modified, flags, module) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 			url,
 			"title"+strconv.Itoa(i),
 			"tag"+strconv.Itoa(i),
@@ -227,7 +227,7 @@ func TestSyncTo(t *testing.T) {
 		}
 	}
 
-	err := srcDB.Handle.Select(&bookmarks, `SELECT * FROM bookmarks`)
+	err := srcDB.Handle.Select(&bookmarks, `SELECT * FROM gskbookmarks`)
 	if err != nil {
 		t.Error(err)
 	}
@@ -237,7 +237,7 @@ func TestSyncTo(t *testing.T) {
 
 	// Check that dstDB contains the right data
 	var count int
-	err = dstDB.Handle.Get(&count, `SELECT COUNT(*) FROM bookmarks`)
+	err = dstDB.Handle.Get(&count, `SELECT COUNT(*) FROM gskbookmarks`)
 	if err != nil {
 		t.Error(err)
 	}
@@ -246,7 +246,7 @@ func TestSyncTo(t *testing.T) {
 	}
 
 	dstBookmarks := []*RawBookmark{}
-	err = dstDB.Handle.Select(&dstBookmarks, `SELECT * FROM bookmarks`)
+	err = dstDB.Handle.Select(&dstBookmarks, `SELECT * FROM gskbookmarks`)
 	if err != nil {
 		t.Error(err)
 	}

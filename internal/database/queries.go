@@ -169,7 +169,7 @@ func BookmarksByTag(
 	tag string,
 	pagination *PaginationParams,
 ) (*QueryResult, error) {
-	query := "SELECT * FROM bookmarks WHERE"
+	query := "SELECT * FROM gskbookmarks WHERE"
 	tagsCondition := ""
 	if len(tag) > 0 {
 		tagsCondition = fmt.Sprintf(" tags LIKE '%%%s%%'", tag)
@@ -190,7 +190,7 @@ func BookmarksByTag(
 	err = DiskDB.Handle.GetContext(
 		ctx,
 		&count,
-		fmt.Sprintf("SELECT COUNT(*) FROM bookmarks WHERE %s", tagsCondition),
+		fmt.Sprintf("SELECT COUNT(*) FROM gskbookmarks WHERE %s", tagsCondition),
 	)
 	if err != nil {
 		return nil, err
@@ -207,7 +207,7 @@ func ListBookmarks(
 	err := DiskDB.Handle.SelectContext(
 		ctx,
 		&rawBooks,
-		fmt.Sprintf("SELECT * FROM bookmarks LIMIT %d OFFSET %d",
+		fmt.Sprintf("SELECT * FROM gskbookmarks LIMIT %d OFFSET %d",
 			pagination.Size,
 			(pagination.Page-1)*pagination.Size,
 		),
@@ -226,7 +226,7 @@ func ListBookmarks(
 
 func CountTotalBookmarks(ctx context.Context) (uint, error) {
 	var count uint
-	err := DiskDB.Handle.GetContext(ctx, &count, "SELECT COUNT(*) FROM bookmarks LIMIT 1")
+	err := DiskDB.Handle.GetContext(ctx, &count, "SELECT COUNT(*) FROM gskbookmarks LIMIT 1")
 	if err != nil {
 		return 0, err
 	}
@@ -246,7 +246,7 @@ func buildSelectQuery(
 
 	sqlPrelude := `
 		SELECT URL, metadata, tags, module
-		FROM bookmarks
+		FROM gskbookmarks
 		WHERE 
 	`
 
@@ -288,7 +288,7 @@ func buildWhereClause(tag string, fuzzy bool) string {
 }
 
 func buildCountQuery(tag string, fuzzy bool) string {
-	query := fmt.Sprintf(`SELECT COUNT(*) FROM bookmarks WHERE %s LIMIT 1`,
+	query := fmt.Sprintf(`SELECT COUNT(*) FROM gskbookmarks WHERE %s LIMIT 1`,
 		buildWhereClause(tag, fuzzy),
 	)
 	return query

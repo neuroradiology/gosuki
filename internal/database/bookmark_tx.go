@@ -56,7 +56,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 	//TODO: use UPSERT stmt
 	// Prepare statement that does a pure insert only
 	tryInsertBk, err := _db.Prepare(
-		`INSERT INTO bookmarks(URL, metadata, tags, desc, flags, module)
+		`INSERT INTO gskbookmarks(URL, metadata, tags, desc, flags, module)
 			VALUES (?, ?, ?, ?, ?, ?)`,
 	)
 	if err != nil {
@@ -66,7 +66,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 	defer cleanup(tryInsertBk.Close)
 
 	updateBk, err := _db.Prepare(
-		`UPDATE bookmarks SET metadata=?, tags=?, modified=strftime('%s')
+		`UPDATE gskbookmarks SET metadata=?, tags=?, modified=strftime('%s')
 		WHERE url=?`,
 	)
 	defer cleanup(updateBk.Close)
@@ -76,7 +76,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 	}
 
 	// Stmt to fetch existing bookmark and tags in db
-	getTagsStmt, err := _db.Prepare(`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`)
+	getTagsStmt, err := _db.Prepare(`SELECT tags FROM gskbookmarks WHERE url=? LIMIT 1`)
 	defer cleanup(getTagsStmt.Close)
 	if err != nil {
 		log.Errorf("%s: %s", err, bk.URL)
@@ -105,7 +105,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 	tagListText := tags.String(true)
 
 	// First try to insert the bookmark (assume it's new)
-	// log.Debugf("INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (%s, %s, %s, %s, %d)",
+	// log.Debugf("INSERT INTO gskbookmarks(URL, metadata, tags, desc, flags) VALUES (%s, %s, %s, %s, %d)",
 	// 	bk.URL, bk.Metadata, tagListText, "", 0)
 
 	_, err = tx.Stmt(tryInsertBk).Exec(
@@ -188,7 +188,7 @@ func (db *DB) InsertBookmark(bk *Bookmark) {
 		log.Error(err)
 	}
 
-	stmt, err := tx.Prepare(`INSERT INTO bookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
+	stmt, err := tx.Prepare(`INSERT INTO gskbookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
 	if err != nil {
 		log.Error(err)
 	}

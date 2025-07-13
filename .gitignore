@@ -22,3 +22,5 @@ internal/ui/static/main.zip
 mods/generated_imports.go
 generate/generated_imports.go
 !pkg/build
+*sqlite-shm
+*sqlite-wal

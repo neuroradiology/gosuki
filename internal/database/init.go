@@ -60,11 +60,17 @@ func Init() {
 		log.Infof("<%s> exists, preloading to cache", dbpath)
 		err = InitDiskConn(dbpath)
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
+
+		err = checkDBVersion(DiskDB)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		err = Cache.SyncFromDisk(dbpath)
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 	} else {
 		if err != nil {

@@ -73,7 +73,7 @@ func (src *DB) SyncTo(dst *DB) {
 
 	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
 
-	getSourceTable, err := src.Handle.Preparex(`SELECT * FROM bookmarks`)
+	getSourceTable, err := src.Handle.Preparex(`SELECT * FROM gskbookmarks`)
 	defer func() {
 		err = getSourceTable.Close()
 		if err != nil {
@@ -85,7 +85,7 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 
 	getDstTags, err := dst.Handle.Preparex(
-		`SELECT tags FROM bookmarks WHERE url=? LIMIT 1`,
+		`SELECT tags FROM gskbookmarks WHERE url=? LIMIT 1`,
 	)
 
 	defer func() {
@@ -102,7 +102,7 @@ func (src *DB) SyncTo(dst *DB) {
 
 	tryInsertDstRow, err := dst.Handle.Preparex(
 		`INSERT INTO
-		bookmarks(url, metadata, tags, desc, flags, module)
+		gskbookmarks(url, metadata, tags, desc, flags, module)
 		VALUES (?, ?, ?, ?, ?, ?)`,
 	)
 	defer func() {
@@ -117,7 +117,7 @@ func (src *DB) SyncTo(dst *DB) {
 	}
 
 	updateDstRow, err := dst.Handle.Preparex(
-		`UPDATE bookmarks
+		`UPDATE gskbookmarks
 		SET (metadata, tags, desc, modified, flags) = (?,?,?,strftime('%s'),?)
 		WHERE url=?
 		`,

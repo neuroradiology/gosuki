@@ -46,12 +46,12 @@ import (
 )
 
 var (
-	//TODO!: document this
+	//TODO!: add docs here
 
 	// List of sql connections, used to do a sql backup
 	_sql3BackupConns []*sqlite3.SQLiteConn
 
-	//FIXME: hard coded path
+	//TEST: expanded in init()
 	DefaultDBPath = "~/.local/share/gosuki/"
 
 	// Handle to on-disk gosuki database
@@ -98,28 +98,6 @@ const (
 const (
 	DBGosuki DBType = iota
 	DBForeign
-)
-
-// Database schemas used for the creation of new databases
-const (
-	// metadata: name or title of resource
-	// modified: time.Now().Unix()
-	//
-	// flags: designed to be extended in future using bitwise masks
-	// Masks:
-	//     0b00000001: set title immutable ((do not change title when updating the bookmarks from the web ))
-	QCreateBookmarksTable = `
-    CREATE TABLE if not exists bookmarks (
-		id integer PRIMARY KEY,
-		URL text NOT NULL UNIQUE,
-		metadata text default '',
-		tags text default '',
-		desc text default '',
-		modified integer default (strftime('%s')),
-		flags integer default 0,
-		module text default '' 
-	)
-    `
 )
 
 type DsnOptions map[string]string
@@ -307,32 +285,6 @@ func (db *DB) Init() (*DB, error) {
 	return db, nil
 }
 
-func (db *DB) InitSchema() error {
-
-	// Populate db schema
-	tx, err := db.Handle.Begin()
-	if err != nil {
-		return DBError{DBName: db.Name, Err: err}
-	}
-
-	stmt, err := tx.Prepare(QCreateBookmarksTable)
-	if err != nil {
-		return DBError{DBName: db.Name, Err: err}
-	}
-
-	if _, err = stmt.Exec(); err != nil {
-		return DBError{DBName: db.Name, Err: err}
-	}
-
-	if err = tx.Commit(); err != nil {
-		return DBError{DBName: db.Name, Err: err}
-	}
-
-	log.Debugf("<%s> initialized", db.Name)
-
-	return nil
-}
-
 func (db *DB) AttachTo(attached *DB) {
 
 	stmtStr := fmt.Sprintf("ATTACH DATABASE '%s' AS '%s'",
@@ -434,9 +386,9 @@ func RegisterSqliteHooks() {
 	sql.Register(DriverDefault,
 		&sqlite3.SQLiteDriver{
 			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-				if err := conn.RegisterFunc("sqlfoo", SQLFuncFoo, true); err != nil {
-					return err
-				}
+				// if err := conn.RegisterFunc("sqlfoo", SQLFuncFoo, true); err != nil {
+				// 	return err
+				// }
 
 				if err := conn.RegisterFunc("fuzzy", SQLFuzzy, true); err != nil {
 					return err
@@ -469,9 +421,17 @@ type DBConfig struct {
 }
 
 func init() {
+	var dataDir string
+	var err error
+
 	dbConfig = &DBConfig{
 		SyncInterval: time.Second * 4,
 		DBPath:       DefaultDBPath,
 	}
 	config.RegisterConfigurator("database", config.AsConfigurator(dbConfig))
+
+	if dataDir, err = utils.GetDataDir(); err != nil {
+		log.Fatal(err)
+	}
+	DefaultDBPath = filepath.Join(dataDir, "gosuki")
 }
