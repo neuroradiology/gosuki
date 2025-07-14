@@ -98,6 +98,8 @@ go install github.com/blob42/gosuki/cmd/gosuki@latest
 go install github.com/blob42/gosuki/cmd/suki@latest
 ```
 
+To build with systray icon support use `go install -tags systray ...`
+
 ## Running GoSuki
 
 GoSuki is designed to run as a background service for real-time bookmark monitoring. Below are the recommended ways to start and interact with the application.
