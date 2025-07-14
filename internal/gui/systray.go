@@ -27,11 +27,12 @@ package gui
 import (
 	"runtime"
 
-	"github.com/blob42/gosuki/internal/gui/icon"
-	"github.com/blob42/gosuki/internal/server"
-	"github.com/blob42/gosuki/pkg/manager"
 	"github.com/energye/systray"
 	"github.com/skratchdot/open-golang/open"
+
+	"github.com/blob42/gosuki/internal/gui/icon"
+	"github.com/blob42/gosuki/internal/webui"
+	"github.com/blob42/gosuki/pkg/manager"
 )
 
 type Systray struct{}
@@ -45,7 +46,7 @@ func onReady() {
 
 	mUI := systray.AddMenuItem("Web UI", "Local Web UI")
 	mUI.Click(func() {
-		open.Run("http://127.0.0.1" + server.BindPort)
+		open.Run("http://127.0.0.1" + webui.BindPort)
 	})
 
 	systray.AddSeparator()
@@ -63,7 +64,7 @@ func onReady() {
 	})
 
 	systray.SetOnClick(func(menu systray.IMenu) {
-		open.Run("http://127.0.0.1:" + server.BindPort)
+		open.Run("http://127.0.0.1:" + webui.BindPort)
 	})
 
 	//NOTE: this is not required, it just allows to mutate the systray after

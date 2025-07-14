@@ -36,13 +36,6 @@ import (
 	"github.com/blob42/gosuki/pkg/manager"
 )
 
-const (
-	BindPort = "2025"
-	BindHost = "0.0.0.0"
-)
-
-var BindAddr = fmt.Sprintf("%s:%s", BindHost, BindPort)
-
 type WebUIServer struct {
 	http.Handler
 }
@@ -53,7 +46,7 @@ func greet(w http.ResponseWriter, r *http.Request) {
 
 func (s *WebUIServer) Run(m manager.UnitManager) {
 	server := &http.Server{
-		Addr:         BindAddr,
+		Addr:         webui.BindAddr,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 90 * time.Second,
 		IdleTimeout:  120 * time.Second,

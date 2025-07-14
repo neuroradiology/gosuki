@@ -160,6 +160,7 @@ func main() {
 	// Add global flags from registered modules
 	// we use GetModules to handle all types of modules
 	modules := modules.GetModules()
+	fmt.Printf("loading %d modules ...\n", len(modules))
 	log.Debugf("loading %d modules", len(modules))
 	for _, mod := range modules {
 		modID := string(mod.ModInfo().ID)

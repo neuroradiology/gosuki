@@ -35,8 +35,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/blob42/gosuki/internal/server"
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/internal/webui"
 	"github.com/blob42/gosuki/pkg/build"
 	"github.com/blob42/gosuki/pkg/events"
 	"github.com/blob42/gosuki/pkg/logging"
@@ -446,7 +446,7 @@ func (m tuiModel) View() string {
 	))
 	// uiSection.WriteString(infoLabelStyle.Render(
 	// 	fmt.Sprintf("%s web ui :", webUILabel)))
-	uiSection.WriteString(defaultTextColor.Render(fmt.Sprintf("http://%s", server.BindAddr)))
+	uiSection.WriteString(defaultTextColor.Render(fmt.Sprintf("http://%s", webui.BindAddr)))
 
 	progressSection := strings.Builder{}
 

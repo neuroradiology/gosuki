@@ -31,6 +31,7 @@ import (
 
 	"slices"
 
+	"github.com/blob42/gosuki/internal/webui"
 	"github.com/blob42/gosuki/pkg/logging"
 )
 
@@ -125,6 +126,12 @@ func (m *Manager) Start() {
 	m.ready <- true
 
 	log.Info("manager is up")
+	fmt.Println("gosuki service up and running")
+	for name := range m.Units() {
+		if strings.HasPrefix(name, "webui") {
+			fmt.Printf("WebUI listening on: http://%s\n", webui.BindAddr)
+		}
+	}
 
 	for {
 		select {
