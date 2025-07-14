@@ -15,6 +15,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - BREAKING: database schema modified to allow future upgrades
 
+##### Changes to DB Schema 
+
+Previously there was only a `bookmarks` table which contained a
+few extra column compared to Buku. This table is renamed to
+`gskbookmarks` which will be the native gosuki table schema. 
+
+Instead we provide a `bookmarks` view into `gskbookmarks` with
+INSERT and UPDATE trigger (INSTEAD OF) that allow Buku programs to
+use Gosuki DB as a buku database while still benifiting from
+gosuki specific features that will eventually be added to the
+schema.
+
+Added also schema versioning that will be tracked in the table
+creatively named `schema_version`.
+
 
 ## [1.0.0] - 2025-12-07
 
