@@ -39,7 +39,7 @@
 ## ✨ Features
 
 - 📦 **Standalone**: Gosuki is a single binary with no dependencies or external extensions necessary. It's designed to just work right out of the box
-- ⌨️ **Ctrl+D**: Use the universal shortcut to add bookmarks and call [custom commands](/docs/features/marktab-actions)
+- ⌨️ **Ctrl+D**: Use the universal shortcut to add bookmarks and call [custom commands](https://gosuki.net/docs/features/marktab-actions)
 - 🏷️ **Tag Everything**: Tag with **#hashtags** even if your browser does not support it. You can even add tags in the Title. Your folders become tags
 - 🔎 **Real time**: Gosuki keeps track of your bookmarks, spotting any changes as they happen
 - 🖥️ **Web UI + CLI** Builtin, local Web UI. Also works without Javascript. dmenu/rofi compatible CLI.
