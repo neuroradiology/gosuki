@@ -103,7 +103,7 @@ go install github.com/blob42/gosuki/cmd/suki@latest
 GoSuki is designed to run as a background service for real-time bookmark monitoring. Below are the recommended ways to start and interact with the application.
 
 ### As a Service
-Start GoSuki as a persistent service:
+Start GoSuki as a persistent service ([systemd example](contrib/gosuki.service)):
 ```bash
 gosuki start
 ```
