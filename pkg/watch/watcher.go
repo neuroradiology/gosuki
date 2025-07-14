@@ -302,7 +302,7 @@ watchloop:
 		// log.Debugf("main watch loop beat %s", watcher.ID)
 		case event := <-watch.W.Events:
 			// Very verbose
-			log.Debug("event", "OP", event.Op, "eventName", event.Name)
+			// log.Debug("event", "OP", event.Op, "eventName", event.Name)
 
 			// On Chrome like browsers the bookmarks file is created
 			// at every change.

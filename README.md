@@ -24,15 +24,15 @@
 <h3 align="center">What's this ? Oh, just another bookmark manager. No big deal.</h3>
 
 - [x] Ever feel like your bookmarks are a [chaotic mess](https://news.ycombinator.com/item?id=13734253) ?
-- [x] Ever find yourself swapping browsers when they can't keep up with your demands ?
+- [x] Ever find yourself swapping browsers when they [stop meeting](https://github.com/uBlockOrigin/uBlock-issues/wiki/About-Google-Chrome's-%22This-extension-may-soon-no-longer-be-supported%22) your demands ?
 - [x] Have past bookmark managers [let you down](https://support.mozilla.org/en-US/kb/future-of-pocket), vendor locking or abandoning you in your time of need ?
-- [x] Maybe you would rather avoid entrusting your bookmarks to cloud companies or [browser extensions](https://arstechnica.com/security/2025/07/browser-extensions-turn-nearly-1-million-browsers-into-website-scraping-bots/) ?
+- [x] Would you rather avoid entrusting your bookmarks to cloud companies and [browser extensions](https://arstechnica.com/security/2025/07/browser-extensions-turn-nearly-1-million-browsers-into-website-scraping-bots/) ?
 - [x] Perhaps you keep multiple browser profiles for work, research, streaming, and development ?
-- [x] Do you use some ["obscure"](https://github.com/qutebrowser/qutebrowser) browser that doesn't support extensions ?
+- [x] Do you use some [“obscure”](https://github.com/qutebrowser/qutebrowser) browser that doesn't support extensions ?
 
 - [ ] If you're nodding your head to any of the above, then look no further:
 
-**GoSuki** is an **extension-free**, **self-contained**, **real time** bookmark tracker and organizer. It packs everything in a **single binary** and captures all your bookmarks in a **portable database**.
+**GoSuki** is a privacy first, **extension-free**, **self-contained** and **real time** bookmark tracker and organizer. It packs everything in a **single binary** and captures all your bookmarks in a **portable database**.
 <br>
 <br>
 
@@ -91,9 +91,11 @@ Gosuki currently supports Linux and MacOS<sub>beta</sub> . More platforms are [p
 
 - `sqlite3` development library
 
-```console
- go install github.com/blob42/gosuki/cmd/gosuki@latest
- go install github.com/blob42/gosuki/cmd/suki@latest
+```shell
+go install github.com/blob42/gosuki/cmd/gosuki@latest
+
+# optional
+go install github.com/blob42/gosuki/cmd/suki@latest
 ```
 
 ## Running GoSuki
@@ -114,10 +116,18 @@ gosuki --tui start
 ```
 The TUI displays module status and bookmark processing metrics.
 
+### Importing Buku bookmarks
+
+```shell
+gosuki buku import
+```
+
+This will imports all bookmarks from Buku into Gosuki. Gosuki DB is compatible with buku, meaning you can symlink gosuki DB or add it to Buku and it will just work. However, gosuki cannot read a buku database unless it is imported with the above command.
+
 ### Debugging
 Enable detailed logging with:
 ```bash
-gosuki --debug=2
+gosuki --debug=3
 ```
 *note*: Avoid using `--tui` with debug mode.
 
@@ -170,7 +180,6 @@ We welcome contributions from the community! To get started:
 1. Fork the repository
 2. Create a new branch for your changes
 3. Submit a pull request with clear documentation
-4. Follow our [code of conduct](CODE_OF_CONDUCT.md)
 
 For bug reports, please provide detailed steps to reproduce the issue.
 
@@ -181,8 +190,9 @@ Read the ["how does it compare to"](docs/how-does-it-compare-to.md) guide.
 
 - [Buku](https://github.com/jarun/buku): Gosuki is compatible with Buku
 - [Shiori](https://github.com/go-shiori/shiori): Simple bookmark manager built with Go
-- [bmm](https://github.com/dhth/bmm): get to your bookmarks in a flash
-- [wallabag](https://github.com/wallabag/wallabag): self hostable application for saving web pages
+- [bmm](https://github.com/dhth/bmm): Get to your bookmarks in a flash
+- [wallabag](https://github.com/wallabag/wallabag): Self-hosted application for saving web pages
+- [floccus](https://floccus.org/): Self-hosted extension based bookmark synchronization
 
 ## Links & Discussions
 
