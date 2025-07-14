@@ -36,13 +36,13 @@ var (
 	log    = logging.GetLogger("")
 )
 
-func copyFileToDst(src string, dst string) error {
+func CopyFileToDst(src string, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 
-	dstFile, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE, 0755)
+	dstFile, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func CopyFilesToTmpFolder(srcglob string, dst string) error {
 
 	for _, v := range matches {
 		dstFile := path.Join(dst, path.Base(v))
-		err = copyFileToDst(v, dstFile)
+		err = CopyFileToDst(v, dstFile)
 		if err != nil {
 			return err
 		}
