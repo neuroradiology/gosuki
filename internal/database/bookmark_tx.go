@@ -66,7 +66,11 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 	defer cleanup(tryInsertBk.Close)
 
 	updateBk, err := _db.Prepare(
-		`UPDATE gskbookmarks SET metadata=?, tags=?, modified=strftime('%s')
+		`UPDATE gskbookmarks
+		SET
+			metadata = CASE WHEN ? != '' THEN ? ELSE metadata END,
+			tags=?,
+			modified=strftime('%s')
 		WHERE url=?`,
 	)
 	defer cleanup(updateBk.Close)
@@ -163,6 +167,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 		tagListText := newTags.StringWrap()
 		log.Debugf("Updating bookmark %s with tags <%s>", bk.URL, tagListText)
 		_, err = tx.Stmt(updateBk).Exec(
+			bk.Title,
 			bk.Title,
 			tagListText,
 			bk.URL,
