@@ -22,14 +22,17 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 )
 
 // Database schemas used for the creation of new databases
 //
 // # Schema versions:
 // 1: initial version
+const CurrentSchemaVersion = 1
 
 const (
+
 	// metadata: name or title of resource
 	// modified: time.Now().Unix()
 	//
@@ -174,15 +177,26 @@ func checkDBVersion(db *DB) error {
 		version = 1
 	}
 
-	log.Debugf("DB version %d", version)
+	log.Debug("schema", "version", version)
+
+	if version > CurrentSchemaVersion {
+		return fmt.Errorf("unrecognized db version %d: current=%d", version, CurrentSchemaVersion)
+	}
 
 	// Apply migrations in the future
-	// if version < 2 {
-	//     if err := db.migrateToVersion2(); err != nil {
-	//         return err
-	//     }
-	//     version = 2
+	// if version < CurrentSchemaVersion {
+	// 	for version < CurrentSchemaVersion {
+	// 		switch version {
+	// 		case 1:
+	// 			if err := db.migrateToVersion2(); err != nil {
+	// 				return err
+	// 			}
+	// 			version = 2
+	// 		}
+	// 	}
+	//
 	// }
+
 	// Update the version in the schema_version table
 	// _, err = db.Handle.Exec("UPDATE schema_version SET version = ?", version)
 	// if err != nil {

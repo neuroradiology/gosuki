@@ -18,6 +18,10 @@ const (
 	TestDB = "./testdata/gosukidb_test.sqlite"
 )
 
+var (
+	SchemaTestHooksEnabled bool
+)
+
 func TestNew(t *testing.T) {
 
 	// Test buffer format
@@ -157,7 +161,10 @@ func TestInitLocked(t *testing.T) {
 }
 
 func setupSyncTestDB(t *testing.T) (*DB, *DB) {
-	RegisterSqliteHooks()
+	if !SchemaTestHooksEnabled {
+		RegisterSqliteHooks()
+		SchemaTestHooksEnabled = true
+	}
 	srcDB, err := NewBuffer("test_src")
 	if err != nil {
 		t.Errorf("creating buffer: %s", err)

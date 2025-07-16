@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - CLI command `buku import` for importing a buku DB to gosuki
+- tests for gosuki db schema version and upgrades
 
 ### Changed
 
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - UpsertBookmark: does not unset the title if the new value is empty
+
 
 ##### Changes to DB Schema 
 
