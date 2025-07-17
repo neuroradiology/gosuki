@@ -52,6 +52,7 @@ const (
 var (
 	//RELEASE: Change to Release for release mode
 	LoggingMode = Release
+	TUIMode     bool
 )
 
 var (
@@ -184,6 +185,7 @@ func SetLogLevel(lvl int) {
 
 // Sets the logging into TUI mode.
 func SetTUI(output io.Writer) {
+	TUIMode = true
 	tuiLogStyles := log.DefaultStyles()
 	tuiLogStyles.Levels = logLevelStyles
 
