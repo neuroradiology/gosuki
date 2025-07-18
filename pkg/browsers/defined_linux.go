@@ -29,6 +29,7 @@ var DefinedBrowsers = []BrowserDef{
 	Librewolf,
 	Chrome,
 	Chromium,
+	Brave,
 	QuteBrowser,
 }
 
@@ -56,6 +57,12 @@ var (
 		"~/.config/chromium",
 		"~/snap/chromium/common/chromium/",
 		"~/.var/app/org.chromium.Chromium/config/chromium",
+	)
+	Brave = ChromeBrowser(
+		"brave",
+		"~/.config/BraveSoftware/Brave-Browser",
+		"~/snap/brave/current/.config/BraveSoftware/Brave-Browser",
+		"~/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser",
 	)
 )
 

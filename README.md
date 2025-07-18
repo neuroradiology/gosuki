@@ -41,6 +41,7 @@
 <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/LibreWolf_icon.svg" width="30">
 <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" width="30">
 <img src="https://upload.wikimedia.org/wikipedia/commons/2/28/Chromium_Logo.svg" width="30">
+<img src="https://upload.wikimedia.org/wikipedia/commons/1/1f/Brave-logo.svg" width="60">
 <img src="https://qutebrowser.org/icons/qutebrowser.svg" width="30">
 <br>
 <img src="https://img.shields.io/badge/linux-gray?logo=linux">
