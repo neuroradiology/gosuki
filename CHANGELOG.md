@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Flatpak support for: google-chrome, chromium, firefox, librewolf
 - CLI command `buku import` for importing a buku DB to gosuki
 - tests for gosuki db schema version and upgrades
 
