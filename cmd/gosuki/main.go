@@ -68,6 +68,7 @@ func main() {
 			Name:        "config",
 			Aliases:     []string{"c"},
 			Value:       config.DefaultConfPath(),
+			Usage:       "config `path`",
 			DefaultText: "~/.config/gosuki/config.toml",
 			Category:    "_",
 		},
@@ -84,7 +85,7 @@ func main() {
 			Aliases:     []string{"D"},
 			Category:    "_",
 			DefaultText: "0",
-			Usage:       "set debug level. (`0`-3)",
+			Usage:       "set debug `level` (-1..3)",
 			EnvVars:     []string{logging.EnvGosukiDebug},
 			Action: func(_ *cli.Context, val int) error {
 				logging.SetLogLevel(val)
