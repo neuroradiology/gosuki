@@ -20,7 +20,6 @@
 </p>
 
 
-
 <h3 align="center">What's this ? Oh, just another bookmark manager. No big deal.</h3>
 
 - [x] Ever feel like your bookmarks are a [chaotic mess](https://news.ycombinator.com/item?id=13734253) ?
@@ -35,6 +34,22 @@
 **GoSuki** is a privacy first, **extension-free**, **self-contained** and **real time** bookmark tracker and organizer. It packs everything in a **single binary** and captures all your bookmarks in a **portable database**.
 <br>
 <br>
+
+
+<div align="center">
+<img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Firefox_brand_logo%2C_2019.svg" width="30">
+<img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/LibreWolf_icon.svg" width="30">
+<img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" width="30">
+<img src="https://upload.wikimedia.org/wikipedia/commons/2/28/Chromium_Logo.svg" width="30">
+<img src="https://qutebrowser.org/icons/qutebrowser.svg" width="30">
+<br>
+<img src="https://img.shields.io/badge/linux-gray?logo=linux">
+<img src="https://img.shields.io/badge/macOS-gray">
+<img src="https://img.shields.io/badge/flatpak-blue?logo=flathub">
+<img src="https://img.shields.io/badge/snap-orange?logo=snapcraft">
+</div>
+<p align="center"><small><a href="" target="_blank"> add your browser</a></small></p>
+
 
 ## ✨ Features
 
