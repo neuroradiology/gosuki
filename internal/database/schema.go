@@ -29,6 +29,12 @@ import (
 //
 // # Schema versions:
 // 1: initial version
+//
+// 2: altered gskbookmarks:
+//   - added column xhsum,
+//   - restore column id as primary key
+//   - restore URL unique constraint
+
 const CurrentSchemaVersion = 2
 
 const (
@@ -41,7 +47,8 @@ const (
 	//     0b00000001: set title immutable ((do not change title when updating the bookmarks from the web ))
 	QCreateSchema = `
     CREATE TABLE IF NOT EXISTS gskbookmarks (
-		URL TEXT NOT NULL PRIMARY KEY,
+		id INTEGER PRIMARY KEY,
+		URL TEXT NOT NULL UNIQUE,
 		metadata TEXT default '',
 		tags TEXT default '',
 		desc TEXT default '',
@@ -53,7 +60,7 @@ const (
 
 	// The following view and and triggers provide buku compatibility
 	QCreateView = `CREATE VIEW bookmarks AS
-	SELECT rowid AS id, URL, metadata, tags, desc, flags
+	SELECT id, URL, metadata, tags, desc, flags
 	FROM gskbookmarks`
 
 	QCreateInsertTrigger = `CREATE TRIGGER bookmarks_insert
@@ -78,13 +85,13 @@ const (
 	BEGIN
 		UPDATE gskbookmarks
 		SET
-			URL = COALESCE(new.URL, (SELECT URL FROM gskbookmarks WHERE rowid = old.id)),
-			metadata = COALESCE(new.metadata, (SELECT metadata FROM gskbookmarks WHERE rowid = old.id)),
-			tags = COALESCE(new.tags, (SELECT tags FROM gskbookmarks WHERE rowid = old.id)),
-			desc = COALESCE(new.desc, (SELECT desc FROM gskbookmarks WHERE rowid = old.id)),
+			URL = COALESCE(new.URL, (SELECT URL FROM gskbookmarks WHERE id = old.id)),
+			metadata = COALESCE(new.metadata, (SELECT metadata FROM gskbookmarks WHERE id = old.id)),
+			tags = COALESCE(new.tags, (SELECT tags FROM gskbookmarks WHERE id = old.id)),
+			desc = COALESCE(new.desc, (SELECT desc FROM gskbookmarks WHERE id = old.id)),
 			modified = strftime('%s'),
-			flags = COALESCE(new.flags, (SELECT flags FROM gskbookmarks WHERE rowid = old.id))
-		WHERE rowid = old.id;
+			flags = COALESCE(new.flags, (SELECT flags FROM gskbookmarks WHERE id = old.id))
+		WHERE id = old.id;
 	END
 	`
 
@@ -184,7 +191,6 @@ func checkDBVersion(db *DB) error {
 		return fmt.Errorf("unrecognized db version %d: current=%d", version, CurrentSchemaVersion)
 	}
 
-	// Apply migrations in the future
 	if version < CurrentSchemaVersion {
 		for version < CurrentSchemaVersion {
 			switch version {

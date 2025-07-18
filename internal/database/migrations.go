@@ -22,35 +22,87 @@
 
 package database
 
-// v2 adds the xhsum column to `gskbookmarks` table and calculates the xhsum
-// for all bookmarks.
+// - adds the `xhsum` column to `gskbookmarks` and calculates the xhsum,
+// - restores `id` primary key column on gskbookmarks
+// - `URL` has unique constraint instead of being pk
 func (db *DB) migrateToVersion2() error {
 	log.Debug("DB schema: migrating to v2")
 	tx, err := db.Handle.Begin()
 	if err != nil {
-		return err
+		return DBError{DBName: db.Name, Err: err}
 	}
 
-	// add column xhsum if missing
-	var count int
-	err = tx.QueryRow("SELECT COUNT(*) FROM pragma_table_info('gskbookmarks') WHERE name = 'xhsum'").Scan(&count)
+	_, err = tx.Exec(`
+		DROP VIEW IF EXISTS bookmarks;
+		DROP TRIGGER IF EXISTS bookmarks_insert;
+		DROP TRIGGER IF EXISTS bookmarks_update;
+		CREATE TABLE temp_gskbookmarks (
+			id INTEGER PRIMARY KEY,
+			URL TEXT NOT NULL UNIQUE,
+			metadata TEXT DEFAULT '',
+			tags TEXT DEFAULT '',
+			desc TEXT DEFAULT '',
+			modified INTEGER DEFAULT (strftime('%s')),
+			flags INTEGER DEFAULT 0,
+			module TEXT DEFAULT '',
+			xhsum TEXT DEFAULT ''
+		    );
+		`)
 	if err != nil {
-		return err
-	}
-	if count == 0 {
-		_, err = tx.Exec("ALTER TABLE gskbookmarks ADD COLUMN xhsum TEXT DEFAULT ''")
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
+		tx.Rollback()
+		return DBError{DBName: db.Name, Err: err}
 	}
 
-	// Calculate xhsum for existing bookmarks
-	_, err = tx.Exec("UPDATE gskbookmarks SET xhsum = xhash(printf('%s+%s+%s+%s',url,metadata,tags,desc))")
+	_, err = tx.Exec(`
+        INSERT INTO temp_gskbookmarks (URL, metadata, tags, desc, modified, flags, module, xhsum)
+        SELECT URL, metadata, tags, desc, modified, flags, module, ''
+        FROM gskbookmarks
+    `)
+	if err != nil {
+		tx.Rollback()
+		return DBError{DBName: db.Name, Err: err}
+	}
+
+	_, err = tx.Exec(`
+        UPDATE temp_gskbookmarks
+        SET xhsum = xhash(printf('%s+%s+%s+%s', URL, metadata, tags, desc))
+    `)
+	if err != nil {
+		tx.Rollback()
+		return DBError{DBName: db.Name, Err: err}
+	}
+
+	_, err = tx.Exec("DROP TABLE gskbookmarks")
+	if err != nil {
+		tx.Rollback()
+		return DBError{DBName: db.Name, Err: err}
+	}
+
+	_, err = tx.Exec("ALTER TABLE temp_gskbookmarks RENAME TO gskbookmarks")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	return tx.Commit()
+	if _, err = tx.Exec(QCreateView); err != nil {
+		tx.Rollback()
+		return DBError{DBName: db.Name, Err: err}
+	}
+
+	if _, err = tx.Exec(QCreateInsertTrigger); err != nil {
+		tx.Rollback()
+		return DBError{DBName: db.Name, Err: err}
+	}
+
+	if _, err = tx.Exec(QCreateUpdateTrigger); err != nil {
+		tx.Rollback()
+		return DBError{DBName: db.Name, Err: err}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return DBError{DBName: db.Name, Err: err}
+
+	}
+
+	return nil
 }
