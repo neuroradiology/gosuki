@@ -185,7 +185,7 @@ GoSuki is a one-man project. If you find value in this tool, consider supporting
 
 - Contributions via [GitHub Sponsors](https://github.com/sponsors/blob42) or [Patreon](https://www.patreon.com/c/GoSuki)
 - Reporting issues and suggesting features
-- Testing and adding new browsers
+- Testing and [adding new browsers](https://gosuki.net/docs/contributing/browsers)
 - Creating modules for third-party APIs
 - Contributing code or documentation
 - Sharing the project with others who might benefit
