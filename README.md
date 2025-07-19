@@ -31,7 +31,7 @@
 
 - [ ] If you're nodding your head to any of the above, then look no further:
 
-**GoSuki** is a privacy first, **extension-free**, **self-contained** and **real time** bookmark tracker and organizer. It packs everything in a **single binary** and captures all your bookmarks in a **portable database**.
+**GoSuki** is a privacy first, **extension-free**, **multi-browser**, and **real time** bookmark tracker and organizer. It packs everything in a **single binary** and captures all your bookmarks in a **portable database**. It will eventually support [every internet browser under the sun](#how-does-it-work-).
 <br>
 <br>
 
@@ -151,9 +151,9 @@ gosuki --debug=3
 
 ## How does it work ?
 
-Gosuki monitors the browser's internal bookmark files for changes. It uses the native OS event notification system to detect changes as they happen. This allows it to be fast and efficient, without the need for any plugins or extensions.
+Gosuki monitors the browser's internal bookmark files for changes. It uses the native OS event notification system to detect changes as they happen. This allows it to be fast and efficient, without the need for any plugins or extensions. This architecture makes it possible to load bookmarks from any kind of internet browser, API or program that emits something akin to a bookmark.
 
-The application maintains a portable database of all tracked bookmarks, accessible via the built-in web UI or CLI.
+The application maintains a **local** portable database of all tracked bookmarks, accessible via the built-in web UI or CLI.
 
 Curious for more details on the internals ? Checkout the [Architecture](docs/internal/architecture.md) file.
 
@@ -163,7 +163,9 @@ I spent years working on and off on this project. My goal was to create a bookma
 
 In the age of the "everything internet" web links and bookmarks represent a significant investment of human time spent curating and selecting relevant content. The past decade has seen a noticeable ~enshittification~ decline in the quality of internet results, with SEO-optimized blogs, marketing materials, and censored links making it increasingly difficult to find valuable websites and articles. Now with the advent of AI-generated “slop” and low-quality content, we face an  endless stream of potentially  fake and unreliable information.
 
-GoSuki is my modest attempt to make the definitive solution for managing internet bookmarks. This first release is only a first step in a long journey and I welcome everyone to join me in this endeavor. There are many ways to contribute to this effort, with financial support [being just one of them](#support).
+GoSuki is my modest attempt to make the definitive solution for managing internet bookmarks that is: browser and platform agnostic, immune to vendor lock-in and fully self contained. The extension-free architecture of gosuki means that eventually every internet browser under the sun will be supported. 
+
+If you like this project consider starring the repo and [supporting the effort](#support).
 
 
 ## Roadmap
@@ -183,12 +185,12 @@ GoSuki is my modest attempt to make the definitive solution for managing interne
 
 GoSuki is a one-man project. If you find value in this tool, consider supporting its development through:
 
-- Contributions via [GitHub Sponsors](https://github.com/sponsors/blob42) or [Patreon](https://www.patreon.com/c/GoSuki)
 - Reporting issues and suggesting features
 - Testing and [adding new browsers](https://gosuki.net/docs/contributing/browsers)
 - Creating modules for third-party APIs
 - Contributing code or documentation
 - Sharing the project with others who might benefit
+- Financial contributions via [GitHub Sponsors](https://github.com/sponsors/blob42) or [Patreon](https://www.patreon.com/c/GoSuki)
 
 
 ## Contributing
