@@ -9,7 +9,7 @@
 | Web UI | 🟢 | 🔴 | 🟢 |
 | Web UI without javascript (w3m)  | 🟢 | 🔴|🔴| 
 | Buku compatible sqlite database | 🟢 | 🟢 | 🔴 |
-| Archival | 🟢 | 🟡 (planned) | 🔴 |
+| Archival | 🟡 (planned) | 🔴 | 🟢 |
 | Multi browser/profile | 🟢 | 🔴 (manual) | 🔴 (manual) |
 | Import Netscape bookmark file |🟢|🟢|🟢|
 | External APIs | 🟢 | 🔴 | 🔴 |
