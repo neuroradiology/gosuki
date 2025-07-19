@@ -44,7 +44,6 @@ func cleanup(f func() error) {
 // Inserts or updates a bookmarks to the passed DB
 // In case of a conflict for a UNIQUE URL constraint,
 // update the existing bookmark
-// TODO: use context
 func (db *DB) UpsertBookmark(bk *Bookmark) error {
 
 	var sqlite3Err sqlite3.Error
@@ -53,7 +52,6 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 
 	_db := db.Handle
 
-	//TODO: use UPSERT stmt
 	// Prepare statement that does a pure insert only
 	tryInsertBk, err := _db.Prepare(
 		`INSERT INTO gskbookmarks(URL, metadata, tags, desc, flags, module)

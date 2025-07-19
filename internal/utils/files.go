@@ -82,7 +82,6 @@ func CopyFilesToTmpFolder(srcglob string, dst string) error {
 }
 
 // TEST:
-// TODO!: implement windows version
 func CleanFiles() {
 	log.Debugf("Cleaning files <%s>", TMPDIR)
 	err := os.RemoveAll(TMPDIR)
