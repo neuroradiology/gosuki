@@ -251,6 +251,7 @@ func watchRun(w Watcher, m manager.UnitManager) {
 
 // Implement work unit for poller runners
 type PollWork struct {
+	Name string
 
 	Poller
 }
