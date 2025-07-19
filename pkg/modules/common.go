@@ -46,7 +46,6 @@ var (
 )
 
 type Context struct {
-	//TODO: use context whenver possible
 	context.Context
 
 	Cli *cli.Context
@@ -122,7 +121,6 @@ type Shutdowner interface {
 // 1. [Initializer].Init(): state initialization
 //
 // 2. [PreLoader].Load(): Initial pre loading of data before any runtime loop
-// TODO!:
 func SetupModule(mod Module, c *Context) error {
 
 	modID := mod.ModInfo().ID
@@ -157,7 +155,6 @@ func SetupModule(mod Module, c *Context) error {
 		// store bookmarks
 	}
 
-	//TODO: ProfileInitializer
 
 	return nil
 }
@@ -189,10 +186,9 @@ func RegisterModule(module Module) {
 		panic(err)
 	}
 
-	//TODO: Register by ID
 	registeredModules = append(registeredModules, module)
 
-	//WIP: custom handling of watcher types
+	//TIP: custom handling of watcher types
 	// switch module.(type) {
 	// case watch.Poller:
 	// 	fmt.Println("this is interval fetcher")

@@ -57,7 +57,6 @@ type importerModel struct {
 	tui          bool
 }
 
-// FIX: use global model for state
 type BookmarksImporter struct{}
 
 // implements Initializer.
@@ -162,7 +161,6 @@ func (im *BookmarksImporter) Load() ([]*gosuki.Bookmark, error) {
 		}
 
 		log.Debug("importing html bookmarks", "path", path)
-		//TODO!: test if event name matches glob *.html
 		if bookmarks, err = loadBookmarksFromHTML(path); err != nil {
 			return nil, err
 		}
@@ -276,4 +274,3 @@ var _ modules.Initializer = (*BookmarksImporter)(nil)
 var _ watch.WatchLoader = (*BookmarksImporter)(nil)
 var _ modules.DumbPreLoader = (*BookmarksImporter)(nil)
 
-//TODO: use config to determinate watched paths

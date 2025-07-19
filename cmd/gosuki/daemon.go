@@ -142,7 +142,6 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 	db.Init()
 
 	// Handle generic modules
-	//TODO!: implement missing
 	mods := modules.GetModules()
 	for _, mod := range mods {
 		name := mod.ModInfo().ID

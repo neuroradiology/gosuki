@@ -19,7 +19,6 @@
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: handle `modified` time
 // sqlite database management
 package database
 
@@ -46,7 +45,6 @@ import (
 )
 
 var (
-	//TODO!: add docs here
 
 	// List of sql connections, used to do a sql backup
 	_sql3BackupConns []*sqlite3.SQLiteConn

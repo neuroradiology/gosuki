@@ -51,7 +51,6 @@
 // See the individual function documentation for more details about their usage and behavior.
 package database
 
-// TODO: add context to all queries
 
 import (
 	"fmt"
@@ -286,7 +285,6 @@ func cacheSyncScheduler(input <-chan any) {
 	}
 }
 
-// TODO: add `force` param to force sync
 func ScheduleSyncToDisk() {
 	go func() {
 		log.Debug("received sync to disk request")
@@ -444,7 +442,6 @@ func (src *DB) SyncToCache() error {
 
 	empty, err := Cache.IsEmpty()
 
-	//TODO!: if the error is table is not "non existant table" return the error
 	// otherwise move on and check if error is table does not exist
 	sql3err, isSQL3Err := err.(sqlite3.Error)
 	if err != nil && sql3err.Code != sqlite3.ErrError {

@@ -198,7 +198,6 @@ func SetTUI(output io.Writer) {
 
 	for _, logger := range loggers {
 		logger.SetOutput(output)
-		//TODO: set custom theme
 		// see https://github.com/charmbracelet/log?tab=readme-ov-file#styles
 		logger.SetStyles(tuiLogStyles)
 		logger.SetColorProfile(termenv.ANSI256)
@@ -210,7 +209,6 @@ func SetTUI(output io.Writer) {
 
 	}
 
-	//FIX: add file logging
 }
 
 func init() {

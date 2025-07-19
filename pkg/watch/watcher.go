@@ -130,7 +130,6 @@ func (w *WatchDescriptor) AddEventName(name string) {
 }
 
 func (w WatchDescriptor) hasReducer() bool {
-	//TODO: test the type of eventsChan
 	return w.eventsChan != nil
 }
 
@@ -252,7 +251,6 @@ func watchRun(w Watcher, m manager.UnitManager) {
 
 // Implement work unit for poller runners
 type PollWork struct {
-	Name string //TODO: hide this field from public api
 
 	Poller
 }

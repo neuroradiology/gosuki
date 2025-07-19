@@ -382,7 +382,6 @@ func (ch *Chrome) run(runTask bool) {
 			currentNode.URL = string(rawNode.url)
 			ch.IncURLCount()
 
-			//TODO!: only in TUI mode
 			progress := ch.Progress()
 			if progress-ch.lastSentProgress >= 0.05 || progress == 1 {
 				ch.lastSentProgress = progress

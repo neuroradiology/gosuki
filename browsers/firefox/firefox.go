@@ -19,9 +19,6 @@
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: unit test critical error should shutdown the browser
-// TODO: shutdown procedure (also close reducer)
-// TODO: handle flag management from this package
 package firefox
 
 import (
@@ -161,8 +158,6 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark, runTask bool) {
 			log.Debugf("url <%s> already in url index", bkEntry.URL)
 		} else {
 			f.IncURLCount()
-			//REFACT: same code in all browsers
-			//TODO!: only in TUI mode
 			progress := f.Progress()
 			if progress-f.lastSentProgress >= 0.05 || progress == 1 {
 				f.lastSentProgress = progress
@@ -207,7 +202,6 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark, runTask bool) {
 		}
 
 		// Link this URL node to its corresponding folder node if it exists.
-		//TODO: add all parent folders in the tags list of this url node
 		folderNode, fOk := f.folderMap[bkEntry.ParentID]
 		// If we found the parent folder
 		if fOk {
@@ -468,7 +462,6 @@ func (f *Firefox) PreLoad(_ *modules.Context) error {
 
 	database.SyncURLIndexToBuffer(f.URLIndexList, f.URLIndex, f.BufferDB)
 
-	//TODO!: test this code
 	if err = f.BufferDB.SyncToCache(); err != nil {
 		return err
 	}
@@ -516,11 +509,9 @@ func (ff *Firefox) Run() {
 	// reprensenting the bookmark hierarchy in a conveniant way.
 
 	database.SyncURLIndexToBuffer(ff.URLIndexList, ff.URLIndex, ff.BufferDB)
-	//TODO: use SyncToCache?
 	ff.BufferDB.SyncTo(database.Cache.DB)
 	database.ScheduleSyncToDisk()
 
-	//TODO!: could we just use LastWatchRunTime ?
 	ff.SetLastWatchRuntime(time.Since(startRun))
 	ff.lastRunAt = time.Now().UTC()
 }
@@ -534,7 +525,6 @@ func (f *Firefox) Shutdown() error {
 	return err
 }
 
-// TODO: addUrl and addTag share a lot of code, find a way to reuse shared code
 // and only pass extra details about tag/url along in some data structure
 // PROBLEM: tag nodes use IDs and URL nodes use URL as hashes
 //
@@ -640,7 +630,6 @@ func (f *Firefox) addFolderNode(folder MozFolder) (bool, *tree.Node) {
 	if seen {
 		// Update folder name if changed
 
-		//TODO!: trigger bookmark tag change in gosuki.db
 		if folderNode.Title != folder.Title &&
 			// Ignore root folders since we use our custom names
 			!utils.InList([]int{2, 3, 5, 6}, int(folder.ID)) {

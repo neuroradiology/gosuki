@@ -63,7 +63,6 @@ func main() {
 
 	flags := []cli.Flag{
 
-		//TODO!: load config file provided by user
 		&cli.StringFlag{
 			Name:        "config",
 			Aliases:     []string{"c"},

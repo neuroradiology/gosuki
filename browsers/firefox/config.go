@@ -74,7 +74,6 @@ type FirefoxConfig struct {
 	*modules.BrowserConfig `toml:"-"`
 }
 
-// REFACT: move logic to modules package and use interface as input
 func setBookmarkDir(fc *FirefoxConfig) {
 	var err error
 
