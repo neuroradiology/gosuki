@@ -49,7 +49,7 @@
 <img src="https://img.shields.io/badge/flatpak-blue?logo=flathub">
 <img src="https://img.shields.io/badge/snap-orange?logo=snapcraft">
 </div>
-<p align="center"><small><a href="https://gosuki.net/docs/contributing/browsers" target="_blank">supported browsers</a></small></p>
+<p align="center"><small><a href="https://gosuki.net/docs/contributing/browsers" target="_blank"> add your browser</a></small></p>
 
 
 ## ✨ Features
