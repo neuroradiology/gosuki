@@ -37,17 +37,17 @@
 
 
 <div align="center">
-<img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Firefox_brand_logo%2C_2019.svg" width="30">
-<img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/LibreWolf_icon.svg" width="30">
-<img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" width="30">
-<img src="https://upload.wikimedia.org/wikipedia/commons/2/28/Chromium_Logo.svg" width="30">
-<img src="https://upload.wikimedia.org/wikipedia/commons/1/1f/Brave-logo.svg" width="60">
-<img src="https://qutebrowser.org/icons/qutebrowser.svg" width="30">
-<br>
-<img src="https://img.shields.io/badge/linux-gray?logo=linux">
-<img src="https://img.shields.io/badge/macOS-gray">
-<img src="https://img.shields.io/badge/flatpak-blue?logo=flathub">
-<img src="https://img.shields.io/badge/snap-orange?logo=snapcraft">
+  <a href="https://gosuki.net/docs/features/browser-support-matrix/" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Firefox_brand_logo%2C_2019.svg" width="30"></a>
+  <a href="https://gosuki.net/docs/features/browser-support-matrix/" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/LibreWolf_icon.svg" width="30"></a>
+  <a href="https://gosuki.net/docs/features/browser-support-matrix/" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" width="30"></a>
+  <a href="https://gosuki.net/docs/features/browser-support-matrix/" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/2/28/Chromium_Logo.svg" width="30"></a>
+  <a href="https://gosuki.net/docs/features/browser-support-matrix/" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/1/1f/Brave-logo.svg" width="60"></a>
+  <a href="https://gosuki.net/docs/features/browser-support-matrix/" target="_blank"><img src="https://qutebrowser.org/icons/qutebrowser.svg" width="30"></a>
+  <br>
+  <a href="https://gosuki.net/docs/features/browser-support-matrix/" target="_blank"><img src="https://img.shields.io/badge/linux-gray?logo=linux"></a>
+  <a href="https://gosuki.net/docs/features/browser-support-matrix/" target="_blank"><img src="https://img.shields.io/badge/macOS-gray"></a>
+  <a href="https://gosuki.net/docs/features/browser-support-matrix/" target="_blank"><img src="https://img.shields.io/badge/flatpak-blue?logo=flathub"></a>
+  <a href="https://gosuki.net/docs/features/browser-support-matrix/" target="_blank"><img src="https://img.shields.io/badge/snap-orange?logo=snapcraft"></a>
 </div>
 <p align="center"><small><a href="https://gosuki.net/docs/contributing/browsers" target="_blank"> add your browser</a></small></p>
 
@@ -94,14 +94,19 @@
 
 ## Installation
 
+
 Checkout the [quick start guide](https://gosuki.net/docs/getting_started/quickstart).
 
 Gosuki currently supports Linux and MacOS<sub>beta</sub> . More platforms are [planned](#roadmap).
 
-### Releases
+### Packages
+
+<div align="center">
+<a href="https://aur.archlinux.org/packages/gosuki-git"><img src="https://img.shields.io/badge/Arch-AUR-blue?logo=archlinux"></a>
+</div>
 
 
-#### From source
+### From source
 
 ##### Dependencies:
 
