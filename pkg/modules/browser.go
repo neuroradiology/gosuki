@@ -125,9 +125,10 @@ func (b *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
 }
 
 // CallHooks calls all registered hooks for this browser for the given
-// [*tree.Node] or [*gosuki.Bookmark]. The hooks are called in the order they were registered. This is
-// usually done within the parsing logic of a browser module, typically in the
-// Run() method.
+// [*tree.Node] or [*gosuki.Bookmark]. The hooks are called in the order they
+// were registered. This is usually done within the parsing logic of a browser
+// module, typically in the Run() method. These hooks will be called everytime
+// browser bookmarks are parsed.
 func (b BrowserConfig) CallHooks(obj any) error {
 
 	switch obj := obj.(type) {
