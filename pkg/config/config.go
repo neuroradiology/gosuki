@@ -19,21 +19,20 @@
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: save config back to file
-// TODO: global config options should be automatically shown in cli global flags
 package config
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/blob42/gosuki/pkg/logging"
 
 	"github.com/fatih/structs"
 	"github.com/mitchellh/mapstructure"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-type Hook func(c *cli.Context) error
+type Hook func(context.Context, *cli.Command) error
 
 var (
 	log            = logging.GetLogger("CONF")
@@ -70,7 +69,6 @@ func (c Config) Dump() map[string]any {
 	return c
 }
 
-// TODO: document usage, help for implmenters
 func (c Config) MapFrom(src any) error {
 	mapDecoderConfig.Result = &c
 	decoder, err := mapstructure.NewDecoder(mapDecoderConfig)
@@ -148,8 +146,6 @@ func GetModuleOption(module string, opt string) (any, error) {
 	return nil, fmt.Errorf("module %s not found", module)
 }
 
-// TODO: check if generics can be used here to avoid any type
-// TODO: add support for option description that can be used in cli help
 
 // Register a module option ie. under [module] in toml file
 // If the module is not a configurator, a simple map[string]any will be
@@ -198,10 +194,10 @@ func RegisterConfReadyHooks(hooks ...Hook) {
 }
 
 // A call to this func will run all registered config hooks
-func RunConfHooks(c *cli.Context) {
+func RunConfHooks(ctx context.Context, cmd *cli.Command) {
 	log.Debug("running config hooks")
 	for _, f := range ConfReadyHooks {
-		err := f(c)
+		err := f(ctx, cmd)
 		if err != nil {
 			log.Fatalf("error running config hook: %v", err)
 		}
@@ -217,6 +213,5 @@ func RegisterConfigurator(name string, c Configurator) {
 
 func init() {
 	// Initialize the global config
-	//TODO: use AutoConfigurator
 	configs[GlobalConfigName] = AsConfigurator(&GlobalConfig)
 }

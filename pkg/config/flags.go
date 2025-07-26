@@ -21,7 +21,7 @@ package config
 
 import (
 	"github.com/gobuffalo/flect"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // Setup cli flag for global options
@@ -64,4 +64,3 @@ func SetupGlobalFlags() []cli.Flag {
 	return flags
 }
 
-//TODO: setup module flags

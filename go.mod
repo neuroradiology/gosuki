@@ -26,7 +26,7 @@ require (
 	github.com/muesli/termenv v0.16.0
 	github.com/shirou/gopsutil/v4 v4.25.6
 	github.com/swithek/dotsqlx v1.0.0
-	github.com/urfave/cli/v2 v2.23.5
+	github.com/urfave/cli/v3 v3.3.8
 	github.com/vartanbeno/go-reddit/v2 v2.0.1
 	github.com/xlab/treeprint v1.0.0
 	golang.org/x/sys v0.32.0
@@ -64,7 +64,6 @@ require (
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/mod v0.17.0 // indirect
@@ -86,7 +85,6 @@ require (
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/charmbracelet/log v0.4.2
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/fatih/color v1.17.0
 	github.com/gchaincl/dotsql v1.0.0
 	github.com/go-chi/chi/v5 v5.0.10
@@ -95,7 +93,6 @@ require (
 	github.com/kr/pretty v0.3.1
 	github.com/lithammer/fuzzysearch v1.1.8
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.10.0
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569

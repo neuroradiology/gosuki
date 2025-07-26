@@ -22,10 +22,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/fatih/color"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/blob42/gosuki/pkg/modules"
 	"github.com/blob42/gosuki/pkg/profiles"
@@ -35,18 +36,17 @@ var ProfileCmds = &cli.Command{
 	Name:    "profile",
 	Aliases: []string{"p"},
 	Usage:   "profile commands",
-	Subcommands: []*cli.Command{
+	Commands: []*cli.Command{
 		listProfilesCmd,
 		DetectCmd,
 	},
 }
 
-// TODO: only enable commands when modules which implement profiles interfaces
 // are available
 var listProfilesCmd = &cli.Command{
 	Name:  "list",
 	Usage: "list all available profiles",
-	Action: func(c *cli.Context) error {
+	Action: func(ctx context.Context, cmd *cli.Command) error {
 
 		browsers := modules.GetBrowserModules()
 		for _, br := range browsers {
@@ -96,7 +96,7 @@ var DetectCmd = &cli.Command{
 	Name:    "detect",
 	Aliases: []string{"det"},
 	Usage:   "detect installed browsers",
-	Action: func(_ *cli.Context) error {
+	Action: func(ctx context.Context, cmd *cli.Command) error {
 		red := color.New(color.FgRed).SprintFunc()
 		green := color.New(color.FgGreen).SprintFunc()
 		mods := modules.GetModules()

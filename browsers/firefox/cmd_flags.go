@@ -22,6 +22,7 @@
 package firefox
 
 import (
+	"context"
 	"strings"
 
 	"github.com/blob42/gosuki/cmd"
@@ -29,7 +30,7 @@ import (
 	"github.com/blob42/gosuki/pkg/config"
 
 	"github.com/gobuffalo/flect"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 const (
@@ -49,17 +50,17 @@ var globalFirefoxFlags = []cli.Flag{
 
 // Firefox global flags must start with --firefox-<flag name here>
 // NOTE: is called in *cli.App.Before callback
-// TODO: refactor module flags/options mangement to generate flags from config options
-func globalCommandFlagsManager(c *cli.Context) error {
+// TEST: cli flag parsing
+func globalCommandFlagsManager(ctx context.Context, cmd *cli.Command) error {
 	log.Debugf("<%s> registering global flag manager", BrowserName)
-	for _, f := range c.App.Flags {
+	for _, f := range cmd.Flags {
 
 		if utils.InList(f.Names(), "help") ||
 			utils.InList(f.Names(), "version") {
 			continue
 		}
 
-		if !c.IsSet(f.Names()[0]) {
+		if !cmd.IsSet(f.Names()[0]) {
 			continue
 		}
 
@@ -70,14 +71,12 @@ func globalCommandFlagsManager(c *cli.Context) error {
 		}
 
 		// TEST:
-		// TODO!: document
 		// Firefox flags must start with --firefox-<flag name here>
 		// or -ff-<flag name here>
 		if !utils.InList([]string{"firefox", "ff"}, sp[0]) {
 			continue
 		}
 
-		//TODO: document this feature
 		// extracts global options that start with --firefox-*
 		optionName := flect.Pascalize(strings.Join(sp[1:], " "))
 		var destVal interface{}
@@ -90,10 +89,10 @@ func globalCommandFlagsManager(c *cli.Context) error {
 				switch ff.(type) {
 
 				case *cli.StringFlag:
-					destVal = c.String(f.Names()[0])
+					destVal = cmd.String(f.Names()[0])
 
 				case *cli.BoolFlag:
-					destVal = c.Bool(f.Names()[0])
+					destVal = cmd.Bool(f.Names()[0])
 				}
 
 			}

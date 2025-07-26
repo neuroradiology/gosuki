@@ -37,7 +37,7 @@ import (
 	"github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/pkg/profiles"
 	"github.com/blob42/gosuki/pkg/watch"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -48,7 +48,7 @@ var (
 type Context struct {
 	context.Context
 
-	Cli *cli.Context
+	Cli *cli.Command
 
 	IsTUI bool
 }
@@ -154,7 +154,6 @@ func SetupModule(mod Module, c *Context) error {
 
 		// store bookmarks
 	}
-
 
 	return nil
 }

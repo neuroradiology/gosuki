@@ -19,16 +19,16 @@
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: add cli options to set/get options
-// TODO: move browser module commands to their own module packag
 package firefox
 
 import (
+	"context"
+
 	"github.com/blob42/gosuki/cmd"
 	"github.com/blob42/gosuki/pkg/browsers/mozilla"
 	"github.com/blob42/gosuki/pkg/logging"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var fflog = logging.GetLogger("FF")
@@ -50,7 +50,7 @@ var (
 	ffVFSCommands = cli.Command{
 		Name:  "vfs",
 		Usage: "VFS locking commands",
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			&ffUnlockVFSCmd,
 			&ffCheckVFSCmd,
 		},
@@ -61,7 +61,7 @@ var FirefoxCmds = &cli.Command{
 	Name:    "firefox",
 	Aliases: []string{"ff"},
 	Usage:   "firefox related commands",
-	Subcommands: []*cli.Command{
+	Commands: []*cli.Command{
 		&ffVFSCommands,
 	},
 }
@@ -70,9 +70,8 @@ func init() {
 	cmd.RegisterModCommand(BrowserName, FirefoxCmds)
 }
 
-// TODO: #54 define interface for modules to handle and list profiles
 
-func ffCheckVFS(_ *cli.Context) error {
+func ffCheckVFS(_ context.Context, _ *cli.Command) error {
 	err := mozilla.CheckVFSLock("path to profile")
 	if err != nil {
 		return err
@@ -81,7 +80,7 @@ func ffCheckVFS(_ *cli.Context) error {
 	return nil
 }
 
-func ffUnlockVFS(_ *cli.Context) error {
+func ffUnlockVFS(_ context.Context, _ *cli.Command) error {
 	err := mozilla.UnlockPlaces("path to profile")
 	if err != nil {
 		return err

@@ -23,8 +23,10 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/kr/pretty"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/blob42/gosuki/pkg/marktab"
 )
@@ -32,7 +34,7 @@ import (
 var DebugCmd = &cli.Command{
 	Name:  "debug",
 	Usage: "debug",
-	Action: func(_ *cli.Context) error {
+	Action: func(ctx context.Context, cmd *cli.Command) error {
 		var err error
 		// db.Init()
 		// res := ""

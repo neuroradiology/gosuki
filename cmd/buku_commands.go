@@ -23,6 +23,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -30,14 +31,14 @@ import (
 	db "github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/internal/utils"
 	"github.com/jmoiron/sqlx"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var BukuCmds = &cli.Command{
 	Name:    "buku",
 	Aliases: []string{"bu"},
 	Usage:   "commands for interacting with buku ecosystem",
-	Subcommands: []*cli.Command{
+	Commands: []*cli.Command{
 		importBukuDBCmd,
 	},
 }
@@ -63,8 +64,8 @@ buku database will be made and stored in the same buku data directory.
 }
 
 // Imports a buku database to gosuki database
-func importBukuDB(ctx *cli.Context) error {
-	path := ctx.String("path")
+func importBukuDB(ctx context.Context, cmd *cli.Command) error {
+	path := cmd.String("path")
 	if path == "" {
 		return fmt.Errorf("no path provided")
 	}

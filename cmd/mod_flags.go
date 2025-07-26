@@ -22,7 +22,7 @@
 package cmd
 
 import (
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var modFlags = map[string][]cli.Flag{}

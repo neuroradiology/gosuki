@@ -39,7 +39,7 @@ import (
 
 	"github.com/blob42/gosuki/pkg/manager"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var startDaemonCmd = &cli.Command{
@@ -52,18 +52,19 @@ var startDaemonCmd = &cli.Command{
 
 // Runs the module by calling the setup
 func runBrowserModule(m *manager.Manager,
-	c *cli.Context,
+	ctx context.Context,
+	cmd *cli.Command,
 	browserMod modules.BrowserModule,
 	pfl *profiles.Profile,
 	flav *browsers.BrowserDef) error {
 	var profileName string
 	mod := browserMod.ModInfo()
 
-	// Create context
+	// context for module
 	modContext := &modules.Context{
-		Context: context.Background(),
-		Cli:     c,
-		IsTUI:   c.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()),
+		Context: ctx,
+		Cli:     cmd,
+		IsTUI:   cmd.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()),
 	}
 
 	//Create a browser instance
@@ -133,7 +134,7 @@ func runBrowserModule(m *manager.Manager,
 	return nil
 }
 
-func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
+func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Manager) error {
 	defer func(m *manager.Manager) {
 		go m.Start()
 	}(mngr)
@@ -154,9 +155,9 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 		log.Debugf("starting <%s>", name)
 
 		modContext := &modules.Context{
-			Context: context.Background(),
-			Cli:     c,
-			IsTUI:   c.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()),
+			Context: ctx,
+			Cli:     cmd,
+			IsTUI:   cmd.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()),
 		}
 
 		// generic modules need to implement either watch.Poller or watch.WatchLoader
@@ -205,7 +206,7 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 		// call runModule for each profile
 		bpm, ok := browser.(profiles.ProfileManager)
 		if ok {
-			if c.Bool("watch-all") ||
+			if cmd.Bool("watch-all") ||
 				(config.GlobalConfig.WatchAll ||
 					bpm.WatchAllProfiles()) {
 				flavours := bpm.ListFlavours()
@@ -217,7 +218,7 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 					}
 					for _, p := range profs {
 						log.Debug("", "flavour", flav.Flavour, "profile", p.Name)
-						err = runBrowserModule(mngr, c, browserMod, p, &flav)
+						err = runBrowserModule(mngr, ctx, cmd, browserMod, p, &flav)
 						if err != nil {
 							if _, errDisable := err.(*modules.ModDisabledError); errDisable {
 								log.Info("disabling module", "mod", browserMod.ModInfo().ID)
@@ -232,7 +233,7 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 			} else {
 				log.Debugf("profile manager <%s> not watching all profiles",
 					browser.Config().Name)
-				err := runBrowserModule(mngr, c, browserMod, nil, nil)
+				err := runBrowserModule(mngr, ctx, cmd, browserMod, nil, nil)
 				if err != nil {
 					if _, errDisable := err.(*modules.ModDisabledError); errDisable {
 						log.Info("disabling module", "mod", browserMod.ModInfo().ID)
@@ -246,7 +247,7 @@ func startNormalDaemon(c *cli.Context, mngr *manager.Manager) error {
 		} else {
 			log.Info("not implemented profiles.ProfileManager", "browser",
 				browser.Config().Name)
-			if err := runBrowserModule(mngr, c, browserMod, nil, nil); err != nil {
+			if err := runBrowserModule(mngr, ctx, cmd, browserMod, nil, nil); err != nil {
 				if _, errDisable := err.(*modules.ModDisabledError); errDisable {
 					log.Info("disabling module", "mod", browserMod.ModInfo().ID)
 					modules.Disable(browserMod.ModInfo().ID)

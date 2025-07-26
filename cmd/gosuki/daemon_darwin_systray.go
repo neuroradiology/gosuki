@@ -25,6 +25,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/blob42/gosuki/internal/gui"
@@ -32,10 +33,10 @@ import (
 	"github.com/blob42/gosuki/pkg/logging"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mattn/go-isatty"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-func startDaemon(c *cli.Context) error {
+func startDaemon(ctx context.Context, cmd *cli.Command) error {
 	defer utils.CleanFiles()
 
 	// initialize webui and non module units
@@ -45,12 +46,12 @@ func startDaemon(c *cli.Context) error {
 	}
 
 	//TUI MODE
-	if c.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()) {
+	if cmd.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()) {
 		manager := initManager(true)
 
 		tui := NewTUI(func(tea.Model) tea.Cmd {
 			return func() tea.Msg {
-				err := startNormalDaemon(c, manager)
+				err := startNormalDaemon(ctx, cmd, manager)
 				if err != nil {
 					return ErrMsg(err)
 				}

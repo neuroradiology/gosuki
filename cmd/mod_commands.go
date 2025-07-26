@@ -23,9 +23,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/blob42/gosuki/pkg/modules"
 )
@@ -38,7 +39,6 @@ var (
 	modCommands = map[string]modCmds{}
 )
 
-// TODO: use same logic with browser mod registering
 func RegisterModCommand(modID string, cmd *cli.Command) {
 	if cmd == nil {
 		log.Fatalf("cannot register nil cmd for <%s>", modID)
@@ -59,7 +59,7 @@ var ModuleCmds = &cli.Command{
 	Name:    "modules",
 	Aliases: []string{"m"},
 	Usage:   "module commands",
-	Subcommands: []*cli.Command{
+	Commands: []*cli.Command{
 		listModulesCmd,
 	},
 }
@@ -68,7 +68,7 @@ var listModulesCmd = &cli.Command{
 	Name:    "list",
 	Aliases: []string{"l"},
 	Usage:   "list available browsers and modules",
-	Action: func(_ *cli.Context) error {
+	Action: func(ctx context.Context, cmd *cli.Command) error {
 
 		fmt.Printf("\n%s\n", "Modules:")
 		mods := modules.GetModules()

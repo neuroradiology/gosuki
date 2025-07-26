@@ -21,12 +21,14 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"os"
 	"strings"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/blob42/gosuki"
 	db "github.com/blob42/gosuki/internal/database"
@@ -40,16 +42,19 @@ var FuzzySearchCmd = &cli.Command{
 	Name:        "fuzzy",
 	Aliases:     []string{"f"},
 	Usage:       "fuzzy search anywhere",
-	UsageText:   "Uses fuzzy search algorithm on the `URL`, `Title` and `Metadata` fields of the bookmarks database.",
+	UsageText:   "Uses fuzzy search algorithm on any of the `URL`, `Title` and `Metadata`",
 	Description: "",
 	ArgsUsage:   "",
 	Category:    "",
-	Action: func(c *cli.Context) error {
-		return searchBookmarks(c, searchOpts{true}, "toto")
+	Action: func(ctx context.Context, cmd *cli.Command) error {
+		if !cmd.Args().Present() {
+			return errors.New("missing search term")
+		}
+		return searchBookmarks(ctx, cmd, searchOpts{true}, cmd.Args().Slice()...)
 	},
 }
 
-func formatMark(mark *gosuki.Bookmark, format string) (string, error) {
+func formatMark(format string) (string, error) {
 	outFormat := strings.Clone(format)
 
 	// Comma separated list of tags
@@ -71,11 +76,11 @@ func formatMark(mark *gosuki.Bookmark, format string) (string, error) {
 }
 
 // Format a bookmark given a fmt.Printf format string
-func formatPrint(ctx *cli.Context, marks []*gosuki.Bookmark) error {
+func formatPrint(_ context.Context, cmd *cli.Command, marks []*gosuki.Bookmark) error {
 	for _, mark := range marks {
-		if format := ctx.String("format"); format != "" {
+		if format := cmd.String("format"); format != "" {
 			funcs := template.FuncMap{"join": strings.Join}
-			outFormat, err := formatMark(mark, format)
+			outFormat, err := formatMark(format)
 			if err != nil {
 				return err
 			}
@@ -90,10 +95,6 @@ func formatPrint(ctx *cli.Context, marks []*gosuki.Bookmark) error {
 				return err
 			}
 
-			if err != nil {
-				return err
-			}
-
 		} else {
 			fmt.Println(mark.URL)
 		}
@@ -102,27 +103,27 @@ func formatPrint(ctx *cli.Context, marks []*gosuki.Bookmark) error {
 	return nil
 }
 
-func listBookmarks(ctx *cli.Context) error {
+func listBookmarks(ctx context.Context, cmd *cli.Command) error {
 	pageParms := db.PaginationParams{
 		Page: 1,
 		Size: -1,
 	}
-	result, err := db.ListBookmarks(ctx.Context, &pageParms)
+	result, err := db.ListBookmarks(ctx, &pageParms)
 	if err != nil {
 		return err
 	}
 
-	return formatPrint(ctx, result.Bookmarks)
+	return formatPrint(ctx, cmd, result.Bookmarks)
 }
 
-func searchBookmarks(ctx *cli.Context, opts searchOpts, keyword ...string) error {
+func searchBookmarks(ctx context.Context, cmd *cli.Command, opts searchOpts, keyword ...string) error {
 	pageParms := db.PaginationParams{
 		Page: 1,
 		Size: -1,
 	}
-	result, err := db.QueryBookmarks(ctx.Context, keyword[0], opts.fuzzy, &pageParms)
+	result, err := db.QueryBookmarks(ctx, keyword[0], opts.fuzzy, &pageParms)
 	if err != nil {
 		return err
 	}
-	return formatPrint(ctx, result.Bookmarks)
+	return formatPrint(ctx, cmd, result.Bookmarks)
 }

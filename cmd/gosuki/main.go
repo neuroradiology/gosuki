@@ -23,6 +23,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -32,8 +33,9 @@ import (
 	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/modules"
 
+	"github.com/urfave/cli/v3"
+
 	"github.com/blob42/gosuki/cmd"
-	"github.com/urfave/cli/v2"
 
 	_ "github.com/blob42/gosuki/browsers/chrome"
 	_ "github.com/blob42/gosuki/browsers/firefox"
@@ -42,17 +44,21 @@ import (
 	_ "github.com/blob42/gosuki/mods"
 )
 
-var log = logging.GetLogger("MAIN")
+var (
+	log = logging.GetLogger("MAIN")
+)
 
 func main() {
 
-	app := cli.NewApp()
+	app := cli.Command{}
 
 	app.Name = "gosuki"
 	app.Description = "TODO: summary gosuki description"
-	app.Usage = "swiss-knife bookmark manager"
+	app.Usage = "GoSuki watches and saves your bookmraks across all installed browsers in realtime."
 	app.Version = build.Version()
-	app.ExitErrHandler = func(ctx *cli.Context, err error) {
+	app.Suggest = true
+	app.EnableShellCompletion = true
+	app.ExitErrHandler = func(ctx context.Context, cli *cli.Command, err error) {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)
 			os.Exit(1)
@@ -85,24 +91,36 @@ func main() {
 			Category:    "_",
 			DefaultText: "0",
 			Usage:       "set debug `level` (-1..3)",
-			EnvVars:     []string{logging.EnvGosukiDebug},
-			Action: func(_ *cli.Context, val int) error {
-				logging.SetLogLevel(val)
+			Sources:     cli.EnvVars(logging.EnvGosukiDebug),
+			Action: func(_ context.Context, _ *cli.Command, val int) error {
+				if logging.SilentMode {
+					logging.SetLogLevel(-1)
+				} else {
+					logging.SetLogLevel(val)
+				}
 				return nil
 			},
 		},
-		// &cli.BoolFlag{
-		// 	Name: "help-more-options",
-		// 	Usage: "show more options",
-		// 	Aliases: []string{"H"},
-		// 	Category: "_",
-		// },
+
+		&cli.BoolFlag{
+			Name:        "silent",
+			Aliases:     []string{"S"},
+			Category:    "_",
+			DefaultText: "0",
+			Usage:       "disable all log output",
+			Action: func(_ context.Context, _ *cli.Command, val bool) error {
+				if val {
+					logging.SetLogLevel(-1)
+				}
+				return nil
+			},
+		},
 	}
 
 	flags = append(flags, config.SetupGlobalFlags()...)
 	app.Flags = append(app.Flags, flags...)
 
-	app.Before = func(c *cli.Context) error {
+	app.Before = func(ctx context.Context, c *cli.Command) (context.Context, error) {
 
 		// The order here is important
 		//
@@ -117,7 +135,11 @@ func main() {
 		// Cli flags have the highest priority and override config file values
 
 		config.Init(c.String("config"))
-		logging.SetLogLevel(logging.DefaultLogLevels[logging.LoggingMode])
+		if logging.SilentMode {
+			logging.SetLogLevel(-1)
+		} else {
+			logging.SetLogLevel(logging.DefaultLogLevels[logging.LoggingMode])
+		}
 
 		// get all registered browser modules
 		modules := modules.GetModules()
@@ -128,8 +150,8 @@ func main() {
 			modinfo := mod.ModInfo()
 			hook := cmd.BeforeHook(string(modinfo.ID))
 			if hook != nil {
-				if err := cmd.BeforeHook(string(modinfo.ID))(c); err != nil {
-					return err
+				if err := cmd.BeforeHook(string(modinfo.ID))(ctx, c); err != nil {
+					return ctx, err
 				}
 			}
 		}
@@ -139,9 +161,9 @@ func main() {
 		// modules can run custom code before the CLI is ready.
 		// For example read the environment and set configuration options to be
 		// used by the module instances.
-		config.RunConfHooks(c)
+		config.RunConfHooks(ctx, c)
 
-		return nil
+		return ctx, nil
 	}
 
 	// Browser modules can register commands through cmd.RegisterModCommand.
@@ -160,7 +182,11 @@ func main() {
 	// Add global flags from registered modules
 	// we use GetModules to handle all types of modules
 	modules := modules.GetModules()
-	fmt.Printf("loading %d modules ...\n", len(modules))
+
+	if !logging.SilentMode {
+		fmt.Printf("loading %d modules ...\n", len(modules))
+	}
+
 	log.Debugf("loading %d modules", len(modules))
 	for _, mod := range modules {
 		modID := string(mod.ModInfo().ID)
@@ -179,12 +205,9 @@ func main() {
 		}
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
-
-	// log.Debugf("flags: %s", app.Flags)
-
 }
 
 func init() {

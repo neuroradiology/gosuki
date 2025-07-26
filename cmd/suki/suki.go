@@ -21,13 +21,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
-	"github.com/blob42/gosuki/internal/database"
 	db "github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/pkg/build"
 	"github.com/blob42/gosuki/pkg/config"
@@ -35,14 +35,15 @@ import (
 )
 
 func main() {
-	app := cli.NewApp()
+	app := cli.Command{}
 	app.Version = build.Version()
 
 	app.Name = "suki"
 	app.Description = "TODO: summary gosuki description"
 	app.Usage = "swiss-knife bookmark manager - cli"
 	app.UsageText = "suki [OPTIONS] [KEYWORD [KEYWORD...]] "
-	app.CustomAppHelpTemplate = AppHelpTemplate
+	app.HideVersion = true
+	app.CustomRootCommandHelpTemplate = AppHelpTemplate
 
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
@@ -58,9 +59,9 @@ func main() {
 			Category:    "",
 			Aliases:     []string{"d"},
 			DefaultText: "0",
-			Usage:       "set debug level. (`0`-3)",
-			EnvVars:     []string{logging.EnvGosukiDebug},
-			Action: func(_ *cli.Context, val int) error {
+			Usage:       "set debug `level` (-1..3)",
+			Sources:     cli.EnvVars(logging.EnvGosukiDebug),
+			Action: func(_ context.Context, _ *cli.Command, val int) error {
 				logging.SetLogLevel(val)
 				return nil
 			},
@@ -73,32 +74,40 @@ func main() {
 		},
 	}
 
-	app.Before = func(c *cli.Context) error {
+	app.Before = func(ctx context.Context, c *cli.Command) (context.Context, error) {
 		config.Init(c.String("config"))
 		db.RegisterSqliteHooks()
 		err := db.InitDiskConn(db.GetDBPath())
-		if _, isDBErr := err.(database.DBError); isDBErr {
+		if _, isDBErr := err.(db.DBError); isDBErr {
 			fmt.Fprintln(os.Stderr, err)
 			fmt.Fprintln(os.Stderr, "Did you run `gosuki start` at least once ?")
 			os.Exit(10)
 		}
 
-		return err
+		return ctx, err
 	}
 
 	app.Commands = []*cli.Command{
 		FuzzySearchCmd,
 	}
 
-	app.Action = func(c *cli.Context) error {
+	app.ExitErrHandler = func(ctx context.Context, cli *cli.Command, err error) {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+			os.Exit(1)
+		} else {
+			os.Exit(0)
+		}
+	}
+
+	app.Action = func(ctx context.Context, cmd *cli.Command) error {
 		// if no argument passed, list all bookmarks
-		//TODO: no arg => interactive cli
-		if c.Args().Len() == 0 {
-			return listBookmarks(c)
+		if cmd.Args().Len() == 0 {
+			return listBookmarks(ctx, cmd)
 		}
 
 		// use ~ as fuzzy character
-		firstKw := c.Args().First()
+		firstKw := cmd.Args().First()
 		opts := searchOpts{}
 
 		if firstKw[0] == '~' {
@@ -106,10 +115,10 @@ func main() {
 			firstKw = firstKw[1:]
 		}
 
-		return searchBookmarks(c, opts, firstKw)
+		return searchBookmarks(ctx, cmd, opts, firstKw)
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
 }

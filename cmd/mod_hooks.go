@@ -23,9 +23,13 @@
 // API. The hooks will be called in the same order as defined urfave's cli.
 package cmd
 
-import "github.com/urfave/cli/v2"
+import (
+	"context"
 
-type Hook func(*cli.Context) error
+	"github.com/urfave/cli/v3"
+)
+
+type Hook func(context.Context, *cli.Command) error
 
 // Map module id to list of *cli.App.Before hooks
 var modCmdBeforeHooks = map[string]Hook{}

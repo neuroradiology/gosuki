@@ -22,6 +22,7 @@
 package cmd
 
 import (
+	"context"
 	"os"
 
 	"github.com/BurntSushi/toml"
@@ -29,7 +30,7 @@ import (
 	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/kr/pretty"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var log = logging.GetLogger("CMD")
@@ -45,7 +46,7 @@ var cfgDebugCmd = &cli.Command{
 	Name:    "debug",
 	Aliases: []string{"d"},
 	Usage:   "verbose debug of the current config",
-	Action: func(_ *cli.Context) error {
+	Action: func(ctx context.Context, cmd *cli.Command) error {
 		pretty.Print(config.GetAll())
 		return nil
 	},
@@ -53,13 +54,13 @@ var cfgDebugCmd = &cli.Command{
 
 var ConfigCmds = &cli.Command{
 	Name: "config",
-	Subcommands: []*cli.Command{
+	Commands: []*cli.Command{
 		cfgPrintCmd,
 		cfgDebugCmd,
 	},
 }
 
-func printConfig(_ *cli.Context) error {
+func printConfig(ctx context.Context, cmd *cli.Command) error {
 	tomlEncoder := toml.NewEncoder(os.Stdout)
 	tomlEncoder.Indent = ""
 	return tomlEncoder.Encode(config.GetAll())
