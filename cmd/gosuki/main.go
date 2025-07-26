@@ -176,16 +176,12 @@ func main() {
 		cmd.ProfileCmds,
 		cmd.ModuleCmds,
 		cmd.DebugCmd,
-		cmd.BukuCmds,
+		cmd.ImportCmds,
 	}
 
 	// Add global flags from registered modules
 	// we use GetModules to handle all types of modules
 	modules := modules.GetModules()
-
-	if !logging.SilentMode {
-		fmt.Printf("loading %d modules ...\n", len(modules))
-	}
 
 	log.Debugf("loading %d modules", len(modules))
 	for _, mod := range modules {

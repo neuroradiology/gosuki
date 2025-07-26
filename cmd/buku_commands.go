@@ -34,18 +34,16 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var BukuCmds = &cli.Command{
-	Name:    "buku",
-	Aliases: []string{"bu"},
-	Usage:   "commands for interacting with buku ecosystem",
+var ImportCmds = &cli.Command{
+	Name:  "import",
+	Usage: "one-time import bookmarks from other programs",
 	Commands: []*cli.Command{
 		importBukuDBCmd,
 	},
 }
 
 var importBukuDBCmd = &cli.Command{
-	Name:    "import",
-	Aliases: []string{"imp"},
+	Name: "buku",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:        "path",
@@ -55,10 +53,10 @@ var importBukuDBCmd = &cli.Command{
 			DefaultText: "~/.local/share/buku/bookmarks.db",
 		},
 	},
-	Usage: `Upgrades a buku DB into a gosuki DB.
+	Usage: `Imports a buku DB into a gosuki DB.
 	
-The upgraded Gosuki DB will stay compatible with buku. A backup of the original
-buku database will be made and stored in the same buku data directory.
+	The gosuki database is fully compatible with the Buku db format.
+	You can use buku or buku-compatible programs directly using the gosuki DB.
 `,
 	Action: importBukuDB,
 }

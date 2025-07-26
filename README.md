@@ -142,7 +142,7 @@ The TUI displays module status and bookmark processing metrics.
 ### Importing Buku bookmarks
 
 ```shell
-gosuki buku import
+gosuki import buku
 ```
 
 This will imports all bookmarks from Buku into Gosuki. Gosuki DB is compatible with buku, meaning you can symlink gosuki DB or add it to Buku and it will just work. However, gosuki cannot read a buku database unless it is imported with the above command.
