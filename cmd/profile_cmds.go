@@ -65,16 +65,22 @@ var listProfilesCmd = &cli.Command{
 
 			flavours := pm.ListFlavours()
 			for _, f := range flavours {
-				fmt.Printf("Profiles for <%s> flavour <%s>:\n\n", br.ModInfo().ID, f.Flavour)
 				if profs, err := pm.GetProfiles(f.Flavour); err != nil {
-					return err
+					log.Debugf("error: %s", err)
 				} else {
+					if string(br.ModInfo().ID) != f.Flavour {
+						fmt.Printf("%s (flavour=%s):\n\n", br.ModInfo().ID, f.Flavour)
+					} else {
+						fmt.Printf("%s:\n\n", br.ModInfo().ID)
+					}
 					for _, p := range profs {
 						pPath, err := p.AbsolutePath()
 						if err != nil {
 							return err
 						}
-						fmt.Printf("%-10s[id:%s]\t %s\n", p.Name, p.ID, pPath)
+						fmt.Printf("\tProfile: %s\n", p.Name)
+						fmt.Printf("\t  ID: %s\n", p.ID)
+						fmt.Printf("\t  Path: %s\n", pPath)
 					}
 				}
 				fmt.Println()
