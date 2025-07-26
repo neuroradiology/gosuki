@@ -53,6 +53,7 @@ var (
 	//RELEASE: Change to Release for release mode
 	LoggingMode = Release
 	TUIMode     bool
+	SilentMode  bool
 )
 
 var (
@@ -103,8 +104,19 @@ var (
 	}
 )
 
+func isSilentMode() bool {
+	rawArgs := strings.Join(os.Args, " ")
+	if strings.Contains(rawArgs, "--silent") ||
+		strings.Contains(rawArgs, "--debug=-1") ||
+		strings.Contains(rawArgs, "-S") {
+		return true
+	}
+	return false
+}
+
 func GetLogger(module string) *log.Logger {
-	if LoggingMode == Silent {
+
+	if LoggingMode == Silent || SilentMode {
 		return log.New(io.Discard)
 	}
 
@@ -212,6 +224,7 @@ func SetTUI(output io.Writer) {
 }
 
 func init() {
+	SilentMode = isSilentMode()
 	envDebug := os.Getenv(EnvGosukiDebug)
 	if envDebug != "" {
 		lvl, err := strconv.Atoi(os.Getenv(EnvGosukiDebug))
