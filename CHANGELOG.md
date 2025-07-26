@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- cli: `--slient` and `-S` to fully disable any log
 - Added support for brave browser (linux, snap, flatpak)
 - Flatpak support for: google-chrome, chromium, firefox, librewolf
 - Database schema upgrade to v2 with `xhsum` column for efficient synchronization and conflict resolution
@@ -20,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `gosuki buku import` becomes `gosuki import buku`
+- Refactored cli to use urfave cli v3
 - BREAKING: Database schema modified to allow future upgrades
 - Schema migration: `gskbookmarks` table replaces `bookmarks` (legacy `bookmarks` remains as a view)
 - Hide helper script from public doc
