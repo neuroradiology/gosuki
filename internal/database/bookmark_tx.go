@@ -41,7 +41,6 @@ func cleanup(f func() error) {
 	}
 }
 
-// TODO: use context
 // Inserts or updates a bookmark in the target database. If a bookmark with the
 // same URL already exists due to a constraint, the existing entry is updated
 // with the new data.

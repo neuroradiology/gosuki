@@ -52,7 +52,6 @@ See individual function documentation for specific usage patterns and behavior d
 
 package database
 
-// TODO: add context to all queries
 
 import (
 	"fmt"
@@ -350,7 +349,6 @@ func cacheSyncScheduler(input <-chan any) {
 	}
 }
 
-// TODO: add `force` param to force sync
 func ScheduleBackupToDisk() {
 	go func() {
 		log.Debug("received sync to disk request")

@@ -171,7 +171,6 @@ func (b *BrowserConfig) AddHooks(bHooks ...hooks.NamedHook) {
 
 }
 
-// TODO!: use this method instead of manually building bookmark path
 // BookmarkPath returns the absolute path to the bookmark file.
 // It expands the path by concatenating the base directory and bookmarks file,
 // then checks if it exists.

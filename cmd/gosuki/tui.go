@@ -83,7 +83,6 @@ type browser struct {
 }
 
 func updateBrowserProgress(b *browser, msg events.ProgressUpdateMsg) tea.Cmd {
-	//TODO: handle update for profiled browser, or single instance
 	profState, exists := b.profileStates[msg.Instance]
 	if !exists {
 		panic("instance does exist")
@@ -259,9 +258,7 @@ func setupModProgress(m tuiModel, r watch.WatchRunner) (tea.Model, tea.Cmd) {
 			panic("missing browser map entry")
 		}
 
-		//TODO: custom profile handling
 		// if isProfMgr {
-		// TODO: show flavours
 		// flavs := pm.ListFlavours()
 		// for _, f := range flavs {
 		// 	_, err := pm.GetProfiles(f.Name)
@@ -373,7 +370,6 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		titleStyle = titleStyle.Width(msg.Width)
 
-		// TODO: responsive
 		for _, m := range m.browsers {
 			m.progress.Width = min(int(math.Min(float64(msg.Width/2), 80)), maxWidth)
 		}
@@ -512,7 +508,6 @@ func (m tuiModel) View() string {
 		progressSection.WriteByte('\n')
 	}
 
-	//WIP:
 	doc.WriteString(uiSection.String())
 	doc.WriteString(infoLabelStyle.Render("modules:"))
 	doc.WriteString(defaultTextColor.Render(fmt.Sprintf("%d", len(m.modules)+len(m.browsers))))

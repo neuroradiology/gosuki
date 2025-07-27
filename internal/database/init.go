@@ -69,7 +69,6 @@ func Init() {
 			log.Fatal(err)
 		}
 
-		// TODO!: make both syncs with a single read operation ?
 		// first sync to the l1 cache from disk
 		err = Cache.SyncFromDisk(dbpath)
 		if err != nil {

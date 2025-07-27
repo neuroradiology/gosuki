@@ -26,7 +26,6 @@
 // They can effectively be used as a command line interface to the host system
 // through the browser builtin Ctrl+D bookmark feature.
 //
-// TODO: document types of hooks
 package hooks
 
 import (

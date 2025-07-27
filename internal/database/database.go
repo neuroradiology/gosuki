@@ -46,6 +46,7 @@ import (
 )
 
 var (
+	// DOC:
 
 	// List of sql connections, used to do a sql backup
 	_sql3BackupConns []*sqlite3.SQLiteConn
