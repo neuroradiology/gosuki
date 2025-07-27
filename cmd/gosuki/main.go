@@ -53,8 +53,8 @@ func main() {
 	app := cli.Command{}
 
 	app.Name = "gosuki"
-	app.Description = "TODO: summary gosuki description"
-	app.Usage = "GoSuki watches and saves your bookmraks across all installed browsers in realtime."
+	app.Usage = "A realtime, multi-browser, bookmark manager"
+	app.CustomRootCommandHelpTemplate = AppHelpTemplate
 	app.Version = build.Version()
 	app.Suggest = true
 	app.EnableShellCompletion = true
@@ -81,6 +81,7 @@ func main() {
 		&cli.BoolFlag{
 			Name:     "tui",
 			Aliases:  []string{"T"},
+			Usage:    "enable TUI interface",
 			Category: "_",
 			Value:    false,
 		},

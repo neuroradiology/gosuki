@@ -63,4 +63,3 @@ func SetupGlobalFlags() []cli.Flag {
 
 	return flags
 }
-

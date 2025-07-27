@@ -45,7 +45,7 @@ import (
 var startDaemonCmd = &cli.Command{
 	Name:    "start",
 	Aliases: []string{"s"},
-	Usage:   "Starts the gosuki daemon",
+	Usage:   "Starts the gosuki service",
 	// Category: "daemon"
 	Action: startDaemon,
 }
