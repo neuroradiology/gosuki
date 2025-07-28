@@ -12,7 +12,6 @@
  <h5 align="center">
   <a href="#installation">Install</a> |
   <a href="#-features">Feautres</a>
-  <!-- <a href="#rationale">Rationale</a> -->
 </h5>
 
 
@@ -139,13 +138,23 @@ gosuki --tui start
 ```
 The TUI displays module status and bookmark processing metrics.
 
-### Importing Buku bookmarks
+### Importing bookmarks
+
+#### From Buku
 
 ```shell
 gosuki import buku
 ```
 
 This will imports all bookmarks from Buku into Gosuki. Gosuki DB is compatible with buku, meaning you can symlink gosuki DB or add it to Buku and it will just work. However, gosuki cannot read a buku database unless it is imported with the above command.
+
+#### From pocket
+
+Import bookmarks from a Pocket export in `csv` format:
+
+```shell
+gosuki import pocket export_file.csv
+```
 
 ### Debugging
 Enable detailed logging with:
