@@ -169,7 +169,7 @@ func main() {
 
 	// Browser modules can register commands through cmd.RegisterModCommand.
 	// registered commands will be appended here
-	app.Commands = []*cli.Command{
+	EntryCommands = append(EntryCommands, []*cli.Command{
 		// main entry point
 		startDaemonCmd,
 		cmd.ConfigCmds,
@@ -178,7 +178,9 @@ func main() {
 		cmd.ModuleCmds,
 		cmd.DebugCmd,
 		cmd.ImportCmds,
-	}
+	}...)
+
+	app.Commands = EntryCommands
 
 	// Add global flags from registered modules
 	// we use GetModules to handle all types of modules
