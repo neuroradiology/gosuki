@@ -69,6 +69,7 @@ type WatchLoader interface {
 	Name() string // module name
 }
 
+// Modules that periodically fetch data
 type Poller interface {
 	Fetcher
 	Interval() time.Duration
@@ -257,7 +258,7 @@ type PollWork struct {
 }
 
 func (iw PollWork) Run(m manager.UnitManager) {
-	go Poll(iw.Poller, iw.Name)
+	go poll(iw.Poller, iw.Name)
 	// wait for stop signal
 	<-m.ShouldStop()
 	m.Done()
@@ -265,7 +266,7 @@ func (iw PollWork) Run(m manager.UnitManager) {
 
 // Main gorouting for polling bookmarks at regular intervals
 // One goroutine spawned per module
-func Poll(ir Poller, modName string) {
+func poll(ir Poller, modName string) {
 
 	log.Debug("polling", "module", modName, "interval", ir.Interval())
 	beat := time.NewTicker(ir.Interval()).C

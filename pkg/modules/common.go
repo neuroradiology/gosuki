@@ -26,6 +26,13 @@
 //
 //  1. Browsers MUST implement the [BrowserModule] interface.
 //  2. Simple modules MUST implement the [Module] interface.
+//
+// # Generic Modules
+// A module must at least implement one of:
+// - watch.Poller
+// - watch.WatchLoader
+// - (optionally) modules.MsgListener
+// OR just implement modules.MsgListener
 package modules
 
 import (
@@ -33,11 +40,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/urfave/cli/v3"
+
 	"github.com/blob42/gosuki"
 	"github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/pkg/profiles"
 	"github.com/blob42/gosuki/pkg/watch"
-	"github.com/urfave/cli/v3"
 )
 
 var (

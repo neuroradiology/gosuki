@@ -31,6 +31,7 @@ import (
 	"github.com/blob42/gosuki/internal/server"
 	"github.com/blob42/gosuki/internal/webui"
 	"github.com/blob42/gosuki/pkg/manager"
+	"github.com/blob42/gosuki/pkg/modules"
 )
 
 func initManager(tuiMode bool) *manager.Manager {
@@ -39,6 +40,8 @@ func initManager(tuiMode bool) *manager.Manager {
 
 	uiServ := server.NewWebUIServer(tuiMode)
 	manager.AddUnit(uiServ, fmt.Sprintf("webui[%s]", webui.BindAddr))
+
+	manager.AddUnit(&modules.MsgDispatcher, modules.DispatcherID)
 
 	return manager
 }

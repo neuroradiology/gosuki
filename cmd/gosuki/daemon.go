@@ -160,32 +160,63 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 			IsTUI:   cmd.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()),
 		}
 
-		// generic modules need to implement either watch.Poller or watch.WatchLoader
+		// A generic modules need to implement on of:
+		// - watch.Poller
+		// - watch.WatchLoader
+		// - and (optionally) modules.MsgListener
+		// OR
+		// - ONLY implement modules.MsgListener
 		var worker manager.WorkUnit
-		if ipoller, ok := modInstance.(watch.Poller); ok {
-			// Module implements Poller
+		listener, isMsgListener := modInstance.(modules.MsgListener)
+		listenerQueue := make(chan modules.ModMsg, 64)
+
+		// Check for Poller or Loader first
+		if poller, ok := modInstance.(watch.Poller); ok {
 			worker = watch.PollWork{
 				Name:   string(name),
-				Poller: ipoller,
+				Poller: poller,
 			}
-		} else if watchLoader, ok := modInstance.(watch.WatchLoader); ok {
-			// Module implements WatchLoader
+
+			// Check if it's also a MsgListener
+			if isMsgListener {
+				listeningWorker := modules.Listener{
+					Queue:       listenerQueue,
+					MsgListener: listener,
+				}
+				mngr.AddUnit(listeningWorker, string(name))
+			}
+		} else if loader, ok := modInstance.(watch.WatchLoader); ok {
 			worker = watch.WatchLoad{
-				WatchLoader: watchLoader,
+				WatchLoader: loader,
 			}
-		} else {
-			log.Error("not implement: watch.Poller or watch.WatchLoader", "mod", name)
-			continue
+
+			// Check if it's also a MsgListener
+			if isMsgListener {
+				listeningWorker := modules.Listener{
+					Queue:       listenerQueue,
+					MsgListener: listener,
+				}
+				mngr.AddUnit(listeningWorker, string(name))
+			}
+		} else if isMsgListener {
+			worker = modules.Listener{
+				Queue:       listenerQueue,
+				MsgListener: listener,
+			}
 		}
 
-		// Setup module
-		err := modules.SetupModule(mod, modContext)
-		if err != nil {
+		// Setup the module
+		if err := modules.SetupModule(mod, modContext); err != nil {
 			log.Error(err, "mod", name)
 			continue
 		}
 
 		mngr.AddUnit(worker, string(name))
+
+		// Register as a message listener if applicable
+		if isMsgListener {
+			modules.MsgDispatcher.AddListener(name, listenerQueue)
+		}
 	}
 
 	// start all registered browser modules
