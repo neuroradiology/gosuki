@@ -29,18 +29,11 @@ import (
 	"strings"
 
 	db "github.com/blob42/gosuki/internal/database"
-	"github.com/blob42/gosuki/internal/utils"
 	"github.com/jmoiron/sqlx"
 	"github.com/urfave/cli/v3"
-)
 
-var ImportCmds = &cli.Command{
-	Name:  "import",
-	Usage: "one-time import bookmarks from other programs",
-	Commands: []*cli.Command{
-		importBukuDBCmd,
-	},
-}
+	"github.com/blob42/gosuki/internal/utils"
+)
 
 var importBukuDBCmd = &cli.Command{
 	Name: "buku",
