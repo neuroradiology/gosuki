@@ -131,7 +131,11 @@ func checkDBVersion(db *DB) error {
 		log.Debug("created schema_version table")
 
 		// checking if ondisk db needs to be upgraded to version 1
-		err = db.Handle.QueryRowx("SELECT 1 FROM sqlite_master WHERE type='table' AND name='bookmarks'").Scan(&tableExists)
+		err = db.Handle.QueryRowx(`
+			SELECT 1 FROM sqlite_master 
+			WHERE type='table' AND name='bookmarks'
+			`).Scan(&tableExists)
+
 		if err != nil && err != sql.ErrNoRows {
 			return DBError{DBName: db.Name, Err: err}
 		}
@@ -152,7 +156,11 @@ func checkDBVersion(db *DB) error {
 			}
 
 			log.Debug("moving table bookmarks to gskbookmarks")
-			if _, err := tx.Exec("INSERT INTO gskbookmarks (URL, metadata, tags, desc, modified, flags, module) SELECT URL, metadata, tags, desc, modified, flags, module FROM bookmarks"); err != nil {
+			if _, err := tx.Exec(`
+				INSERT INTO gskbookmarks
+					(URL, metadata, tags, desc, modified, flags, module)
+					SELECT URL, metadata, tags, desc, modified, flags, module
+					FROM bookmarks`); err != nil {
 				tx.Rollback()
 				return DBError{DBName: db.Name, Err: err}
 			}
