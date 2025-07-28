@@ -55,8 +55,8 @@ var importBukuDBCmd = &cli.Command{
 	},
 	Usage: `Imports a buku DB into a gosuki DB.
 	
-	The gosuki database is fully compatible with the Buku db format.
-	You can use buku or buku-compatible programs directly using the gosuki DB.
+The gosuki database is fully compatible with the Buku db format.
+You can use buku or buku-compatible programs directly using the gosuki DB.
 `,
 	Action: importBukuDB,
 }
@@ -70,7 +70,7 @@ func importBukuDB(ctx context.Context, cmd *cli.Command) error {
 
 	expandedPath, err := utils.ExpandPath(path)
 	if err != nil {
-		return fmt.Errorf("failed to expand path: %w", err)
+		return err
 	}
 
 	if _, err = os.Stat(expandedPath); os.IsNotExist(err) {

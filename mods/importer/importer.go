@@ -97,7 +97,7 @@ func (im *BookmarksImporter) Init(ctx *modules.Context) error {
 	return nil
 }
 
-// Implements a `DumpPreLoader`
+// Implements a `DumBPreLoader`
 func (im *BookmarksImporter) PreLoad() ([]*gosuki.Bookmark, error) {
 	var bookmarks []*gosuki.Bookmark
 	result := []*gosuki.Bookmark{}
@@ -273,4 +273,3 @@ func init() {
 var _ modules.Initializer = (*BookmarksImporter)(nil)
 var _ watch.WatchLoader = (*BookmarksImporter)(nil)
 var _ modules.DumbPreLoader = (*BookmarksImporter)(nil)
-
