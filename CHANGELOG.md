@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- github module: periodic import of starred repos
 - import bookmarks from Pocket csv export with `buku import pocket`
 - cli: `--slient` and `-S` to fully disable any log
 - Added support for brave browser (linux, snap, flatpak)
