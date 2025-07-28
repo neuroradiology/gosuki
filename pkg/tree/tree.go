@@ -24,8 +24,6 @@ package tree
 import (
 	"fmt"
 
-	"github.com/kr/pretty"
-
 	"github.com/blob42/gosuki"
 	"github.com/blob42/gosuki/internal/index"
 	"github.com/blob42/gosuki/internal/utils"
@@ -45,6 +43,7 @@ const (
 	TagNode
 )
 
+// A tree node
 type Node struct {
 	Title      string
 	Type       NodeType // folder, tag, url
@@ -186,7 +185,7 @@ func AddChild(parent *Node, child *Node) {
 	for _, n := range parent.Children {
 		if child == n {
 			// log.Errorf("<%s> Node already exists", child)
-			log.Debugf(pretty.Sprintf("skipping node <%s>, already exists", child.Title))
+			log.Debugf("skipping node <%s>, already exists", child.Title)
 			// update n with child metadata
 			log.Debugf("updating node <%s> with metadata <%s>", n.Title, child.Title)
 			n.Title = child.Title
