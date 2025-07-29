@@ -58,7 +58,7 @@ func Init() {
 	// If local db exists load it to cacheDB
 	if exists, err := utils.CheckFileExists(dbpath); exists {
 
-		log.Infof("<%s> exists, preloading to cache", dbpath)
+		log.Infof("preloading <%s> to cache", dbpath)
 		err = InitDiskConn(dbpath)
 		if err != nil {
 			log.Fatal(err)

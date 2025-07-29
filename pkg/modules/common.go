@@ -132,13 +132,13 @@ type Shutdowner interface {
 func SetupModule(mod Module, c *Context) error {
 
 	modID := mod.ModInfo().ID
-	log.Info("setting up", "module", modID)
+	log.Debug("setting up", "module", modID)
 
 	initializer, okInit := mod.(Initializer)
 	if okInit {
 		log.Debug("custom init", "module", modID)
 		if err := initializer.Init(c); err != nil {
-			return fmt.Errorf("initialization error: %w", err)
+			return fmt.Errorf("init: %w", err)
 		}
 	}
 

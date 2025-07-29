@@ -22,7 +22,6 @@
 package firefox
 
 import (
-	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -372,7 +371,7 @@ func (f *Firefox) Init(ctx *modules.Context, p *profiles.Profile) error {
 // TEST:
 // Implements browser.Initializer interface
 func (f *Firefox) init(ctx *modules.Context) error {
-	log.Infof("initializing <%s>", f.fullID())
+	log.Debugf("initializing <%s>", f.fullID())
 
 	watchedPath := f.BkDir
 	log.Debugf("Watching path: %s", watchedPath)
@@ -387,11 +386,12 @@ func (f *Firefox) init(ctx *modules.Context) error {
 
 	ok, err := modules.SetupWatchersWithReducer(f.BrowserConfig, modules.ReducerChanLen, w)
 	if err != nil {
-		return fmt.Errorf("could not setup watcher: %w", err)
+		log.Error(err)
+		return modules.ErrWatcherSetup
 	}
 
 	if !ok {
-		return errors.New("could not setup watcher")
+		return modules.ErrWatcherSetup
 	}
 
 	/*

@@ -9,7 +9,6 @@ package stars
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -78,7 +77,7 @@ func (sf *StarFetcher) Init(ctx *modules.Context) error {
 	// Check if the environment variable GH_API_TOKEN is set
 	if len(Config.GithubToken) == 0 {
 		if sfModel.token = os.Getenv("GS_GITHUB_TOKEN"); sfModel.token == "" {
-			return errors.New("no github token in config and GS_GITHUB_TOKEN environment variable not set")
+			return &modules.ErrModDisabled{Err: modules.ErrMissingCredentials}
 		}
 	} else {
 		sfModel.token = Config.GithubToken

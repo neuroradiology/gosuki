@@ -84,7 +84,7 @@ func (mm *modMsgDispatcher) AddListener(id ModID, queue chan<- ModMsg) {
 
 func (mm *modMsgDispatcher) Run(m manager.UnitManager) {
 	go func() {
-		println("dispatching module messages")
+		log.Info("dispatching module messages")
 		for msg := range ModMsgBus {
 			log.Debugf("dispatching mod message %s", msg.Type)
 			if dst, ok := mm.listeners[msg.To]; ok {

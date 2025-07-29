@@ -127,10 +127,10 @@ func (m *Manager) Start() {
 
 	log.Info("manager is up")
 	if !logging.TUIMode {
-		fmt.Println("gosuki service up and running")
+		fmt.Println("Gosuki service up and running")
 		for name := range m.Units() {
 			if strings.HasPrefix(name, "webui") {
-				fmt.Printf("WebUI listening on: http://%s\n", webui.BindAddr)
+				fmt.Printf("GUI listening on: http://%s\n", webui.BindAddr)
 			}
 		}
 	}

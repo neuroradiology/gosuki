@@ -152,7 +152,7 @@ func PreloadRules() error {
 func (mt *MarkTab) LoadMarktabs() error {
 	path, err := utils.ExpandPath(marktabPath)
 	if os.IsNotExist(err) {
-		log.Warnf("skipping marktab, not found: %v", marktabPath)
+		log.Infof("skipping marktab, not found: %v", marktabPath)
 		return nil
 
 	} else if err != nil {

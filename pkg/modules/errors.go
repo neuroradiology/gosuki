@@ -22,19 +22,26 @@
 
 package modules
 
-import "fmt"
-
-type FailureReason string
-
-const (
-	MissingPath FailureReason = "path error" // non existing path or path error
+import (
+	"errors"
+	"fmt"
 )
 
-type ModDisabledError struct {
-	Reason FailureReason
+const (
+	MissingPath        string = "path error" // non existing path or path error
+	MissingCredentials string = "missing credentials"
+)
+
+var (
+	ErrMissingCredentials = errors.New("missing credentials")
+	ErrWatcherSetup       = errors.New("could not setup file watcher")
+)
+
+type ErrModDisabled struct {
+	Reason string
 	Err    error
 }
 
-func (e *ModDisabledError) Error() string {
-	return fmt.Sprintf("ModDisabledError: %v - %v", e.Reason, e.Err)
+func (e *ErrModDisabled) Error() string {
+	return fmt.Sprintf("module disabled: %s %s", e.Err, e.Reason)
 }

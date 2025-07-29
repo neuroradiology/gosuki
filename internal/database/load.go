@@ -46,7 +46,7 @@ func LoadBookmarks(load loadFunc, modName string) error {
 	}
 
 	if len(marks) == 0 {
-		log.Warn("no bookmarks fetched", "module", modName)
+		log.Info("no bookmarks loaded", "module", modName)
 		return nil
 	}
 

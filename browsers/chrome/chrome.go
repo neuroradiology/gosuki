@@ -30,7 +30,6 @@
 package chrome
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -207,10 +206,11 @@ func (ch *Chrome) setupWatchers() error {
 
 	ok, err := modules.SetupWatchers(ch.BrowserConfig, w)
 	if err != nil {
-		return fmt.Errorf("could not setup watcher: %w", err)
+		log.Error(err)
+		return modules.ErrWatcherSetup
 	}
 	if !ok {
-		return errors.New("could not setup watcher")
+		return modules.ErrWatcherSetup
 	}
 
 	return nil

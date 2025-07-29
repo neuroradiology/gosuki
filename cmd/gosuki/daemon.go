@@ -90,8 +90,8 @@ func runBrowserModule(m *manager.Manager,
 			return err
 		}
 		if err := bpm.UseProfile(pfl, flav); err != nil {
-			log.Errorf("could not use profile <%s>", pfl.Name)
-			return err
+			log.Warnf("unable to load profile <%s.%s>: %s", mod.ID, pfl.Name, err)
+			return &modules.ErrModDisabled{Err: err}
 		}
 		profileName = pfl.Name
 	}
@@ -108,8 +108,7 @@ func runBrowserModule(m *manager.Manager,
 	// calls the setup logic for each browser instance which
 	// includes the browsers.Initializer and browsers.Loader interfaces
 	//PERF:
-	err := modules.SetupBrowser(browser, modContext, pfl)
-	if err != nil {
+	if err := modules.SetupBrowser(browser, modContext, pfl); err != nil {
 		return err
 	}
 
@@ -207,7 +206,7 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 
 		// Setup the module
 		if err := modules.SetupModule(mod, modContext); err != nil {
-			log.Error(err, "mod", name)
+			log.Warn(err, "mod", name)
 			continue
 		}
 
@@ -251,8 +250,8 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 						log.Debug("", "flavour", flav.Flavour, "profile", p.Name)
 						err = runBrowserModule(mngr, ctx, cmd, browserMod, p, &flav)
 						if err != nil {
-							if _, errDisable := err.(*modules.ModDisabledError); errDisable {
-								log.Info("disabling module", "mod", browserMod.ModInfo().ID)
+							if errDisabled, errDisable := err.(*modules.ErrModDisabled); errDisable {
+								log.Warn("disabling browser profile", "profile", p.Name, "mod", browserMod.ModInfo().ID, "reason", errDisabled.Reason)
 								modules.Disable(browserMod.ModInfo().ID)
 							} else {
 								log.Error(err, "browser", flav.Flavour)
@@ -266,8 +265,8 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 					browser.Config().Name)
 				err := runBrowserModule(mngr, ctx, cmd, browserMod, nil, nil)
 				if err != nil {
-					if _, errDisable := err.(*modules.ModDisabledError); errDisable {
-						log.Info("disabling module", "mod", browserMod.ModInfo().ID)
+					if _, errDisable := err.(*modules.ErrModDisabled); errDisable {
+						log.Warn("disabling browser", "mod", browserMod.ModInfo().ID)
 						modules.Disable(browserMod.ModInfo().ID)
 					} else {
 						log.Error(err, "browser", browserMod.Config().Name)
@@ -279,8 +278,8 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 			log.Info("not implemented profiles.ProfileManager", "browser",
 				browser.Config().Name)
 			if err := runBrowserModule(mngr, ctx, cmd, browserMod, nil, nil); err != nil {
-				if _, errDisable := err.(*modules.ModDisabledError); errDisable {
-					log.Info("disabling module", "mod", browserMod.ModInfo().ID)
+				if _, errDisable := err.(*modules.ErrModDisabled); errDisable {
+					log.Warn("disabling browser", "mod", browserMod.ModInfo().ID)
 					modules.Disable(browserMod.ModInfo().ID)
 				} else {
 					log.Error(err, "browser", browser.Config().Name)

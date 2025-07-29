@@ -210,7 +210,7 @@ func (b BrowserConfig) RebuildIndex() {
 func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error {
 
 	browserID := browser.ModInfo().ID
-	log.Info("setting up", "browser", browserID)
+	log.Debug("setting up", "browser", browserID)
 
 	// Handle Initializers custom Init from Browser module
 	initializer, okInit := browser.(Initializer)
@@ -228,9 +228,11 @@ func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error 
 		log.Debugf("<%s> custom init", browserID)
 		if err := initializer.Init(c); err != nil {
 			if _, pathErr := err.(*fs.PathError); pathErr {
-				return &ModDisabledError{MissingPath, err}
+				return &ErrModDisabled{MissingPath, err}
+			} else if err == ErrWatcherSetup {
+				return &ErrModDisabled{MissingPath, err}
 			}
-			return fmt.Errorf("initialization error: %w", err)
+			return fmt.Errorf("init: %w", err)
 		}
 	}
 
@@ -241,7 +243,10 @@ func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error 
 		}
 
 		if err := pInitializer.Init(c, p); err != nil {
-			return fmt.Errorf("initialization error: %w", err)
+			if err == ErrWatcherSetup {
+				return &ErrModDisabled{MissingPath, err}
+			}
+			return fmt.Errorf("init: %w", err)
 		}
 	}
 
