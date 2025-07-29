@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.1.0] 2025-07-29
+
 ### Added
 
 - github module: periodic import of starred repos
@@ -71,6 +73,7 @@ creatively named `schema_version`.
 
 Initial public release
 
-[unreleased]: https://github.com/blob42/gosuki/compare/v1.0.0...HEAD
+[unreleased]: https://github.com/blob42/gosuki/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/blob42/gosuki/releases/tag/v1.1.0
 [1.0.0]: https://github.com/blob42/gosuki/releases/tag/v1.0.0
 [1.0.0-rc1]: https://github.com/blob42/gosuki/releases/tag/v1.0.0-rc1
