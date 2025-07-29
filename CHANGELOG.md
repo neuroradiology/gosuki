@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- enable generated imports modules in /mods package (enables mods for install from source)
 - Log browser profile path errors as warnings
 - Reduce log verbosity on default level
 
