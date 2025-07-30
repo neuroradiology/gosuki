@@ -24,9 +24,10 @@ package logging
 import (
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"os"
-	"strconv"
+	"slices"
 	"strings"
 	"time"
 
@@ -37,10 +38,31 @@ import (
 
 const EnvGosukiDebug = "GOSUKI_DEBUG"
 
+// log level shortcuts
 const (
-	Silent = -1 + iota
-	Release
+	Release = iota
 	Dev
+	Silent = math.MaxInt
+)
+
+// log level strings
+var (
+	traceLvl  string = "trace"
+	debugLvl  string = "debug"
+	infoLvl   string = "info"
+	warnLvl   string = "warn"
+	errLvl    string = "error"
+	fatalLvl  string = "fatal"
+	silentLvl string = "none"
+	allLevels        = []string{
+		traceLvl,
+		debugLvl,
+		infoLvl,
+		warnLvl,
+		errLvl,
+		fatalLvl,
+		silentLvl,
+	}
 )
 
 const (
@@ -57,21 +79,27 @@ var (
 )
 
 var (
-	DefaultLogLevels = map[int]int{
-		Release: 1,
-		Dev:     3,
+	loggers = make(map[string]*Logger)
+
+	globalLevel log.Level
+
+	// logger lvl for each subsystem
+	loggerLevels = make(map[string]log.Level)
+
+	DefaultLogLevels = map[int]log.Level{
+		Release: log.WarnLevel,
+		Dev:     log.DebugLevel,
 	}
 
-	// Map cli log level to log.Level
-	LogLvlMap = map[int]log.Level{
-		-1: math.MaxInt32,
-		0:  log.ErrorLevel,
-		1:  log.WarnLevel,
-		2:  log.InfoLevel,
-		3:  log.DebugLevel,
+	levels = map[string]log.Level{
+		silentLvl: math.MaxInt,
+		fatalLvl:  log.FatalLevel,
+		errLvl:    log.ErrorLevel,
+		warnLvl:   log.WarnLevel,
+		infoLvl:   log.InfoLevel,
+		debugLvl:  log.DebugLevel,
+		traceLvl:  log.DebugLevel - 1,
 	}
-
-	loggers map[string]*log.Logger
 
 	logTextStyle = lipgloss.NewStyle().Foreground(
 		lipgloss.AdaptiveColor{Light: "245", Dark: "252"},
@@ -104,23 +132,48 @@ var (
 	}
 )
 
+type Logger struct {
+	*log.Logger
+}
+
+func (l *Logger) With(keyvals ...any) *Logger {
+	return &Logger{l.Logger.With(keyvals...)}
+}
+
+func (l *Logger) WithPrefix(prefix string) *Logger {
+	return &Logger{l.Logger.WithPrefix(prefix)}
+}
+
+func NewLogger(w io.Writer) *Logger {
+	l := new(Logger)
+	logger := log.New(w)
+	styles := log.DefaultStyles()
+	styles.Levels[TraceLevel] = lipgloss.NewStyle().
+		SetString("TRACE").
+		Bold(true).
+		MaxWidth(4).
+		Foreground(lipgloss.Color("61"))
+	logger.SetStyles(styles)
+	l.Logger = logger
+	return l
+}
+
 func isSilentMode() bool {
 	rawArgs := strings.Join(os.Args, " ")
 	if strings.Contains(rawArgs, "--silent") ||
-		strings.Contains(rawArgs, "--debug=-1") ||
 		strings.Contains(rawArgs, "-S") {
 		return true
 	}
 	return false
 }
 
-func GetLogger(module string) *log.Logger {
+func GetLogger(module string) *Logger {
+	module = strings.ToLower(module)
+	lg := NewLogger(os.Stderr)
 
 	if LoggingMode == Silent || SilentMode {
-		return log.New(io.Discard)
+		return NewLogger(io.Discard)
 	}
-
-	lg := log.New(os.Stdout)
 
 	if LoggingMode == Dev {
 		lg.SetPrefix(fmt.Sprintf("[%.4s]", strings.ToUpper(module)))
@@ -133,31 +186,44 @@ func GetLogger(module string) *log.Logger {
 		lg.SetLevel(log.DebugLevel)
 
 		//RELEASE:
+	} else {
+		if lvl, ok := loggerLevels[module]; ok {
+			lg.SetLevel(lvl)
+		} else {
+			lg.SetLevel(globalLevel)
+		}
 	}
 
-	loggers[module] = lg
+	loggers[strings.ToLower(strings.TrimSpace(module))] = lg
 
 	return lg
 }
 
-func newReleaseLogger(module string) *log.Logger {
-	if len(module) > 0 {
-		return log.NewWithOptions(os.Stderr, log.Options{
-			Prefix: fmt.Sprintf("[%.4s]", module),
-		})
-	} else {
-		return log.New(os.Stderr)
-	}
+func listLoggers() []string {
+	return slices.DeleteFunc(
+		slices.Collect(maps.Keys(loggers)),
+		func(s string) bool { return s == "" },
+	)
 }
 
+// func newReleaseLogger(module string) *log.Logger {
+// 	if len(module) > 0 {
+// 		return log.NewWithOptions(os.Stderr, log.Options{
+// 			Prefix: fmt.Sprintf("[%.4s]", module),
+// 		})
+// 	} else {
+// 		return log.New(os.Stderr)
+// 	}
+// }
+
 // NewFileLogger creates a new logger that outputs to a specified file.
-func NewFileLogger(fileName string) (*log.Logger, error) {
+func NewFileLogger(fileName string) (*Logger, error) {
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open log file: %v", err)
 	}
 
-	lg := log.New(file)
+	lg := NewLogger(file)
 	lg.SetLevel(log.DebugLevel) // Set default level, can be adjusted as needed
 
 	loggers[fileName] = lg
@@ -165,8 +231,8 @@ func NewFileLogger(fileName string) (*log.Logger, error) {
 }
 
 // flog is a convenience function for logging messages to a specified file logger.
-func FDebugf(fileName, format string, args ...interface{}) {
-	var logger *log.Logger
+func FDebugf(fileName, format string, args ...any) {
+	var logger *Logger
 	var err error
 
 	logger, exists := loggers[fileName]
@@ -181,13 +247,25 @@ func FDebugf(fileName, format string, args ...interface{}) {
 	logger.Debugf(format, args...)
 }
 
-func SetLogLevel(lvl int) {
+func SetLevel(lvl log.Level) {
 	for _, logger := range loggers {
-		// fmt.Printf("setting log level to:%v for %v\n ", LoggingLevels[lvl], k)
-		logger.SetLevel(LogLvlMap[lvl])
+		// fmt.Printf("setting log level to:%v for %v\n ", lvl, logger)
+		logger.SetLevel(lvl)
 
 		// Silent mode
-		if lvl <= -1 {
+		if lvl == levels[silentLvl] {
+			logger.SetOutput(io.Discard)
+		} else {
+			logger.SetOutput(os.Stderr)
+		}
+	}
+}
+
+func SetUnitLevel(u string, lvl log.Level) {
+	if logger, ok := loggers[u]; ok {
+		logger.SetLevel(lvl)
+		// Silent mode
+		if lvl == levels[silentLvl] {
 			logger.SetOutput(io.Discard)
 		} else {
 			logger.SetOutput(os.Stderr)
@@ -215,6 +293,8 @@ func SetTUI(output io.Writer) {
 		logger.SetColorProfile(termenv.ANSI256)
 		logger.SetReportCaller(false)
 		logger.SetReportTimestamp(false)
+
+		// effectively disables debug on tui
 		if logger.GetLevel() < log.InfoLevel {
 			logger.SetLevel(log.Level(log.InfoLevel))
 		}
@@ -226,19 +306,10 @@ func SetTUI(output io.Writer) {
 func init() {
 	SilentMode = isSilentMode()
 	envDebug := os.Getenv(EnvGosukiDebug)
+
 	if envDebug != "" {
-		lvl, err := strconv.Atoi(os.Getenv(EnvGosukiDebug))
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s=%v: %v", EnvGosukiDebug, envDebug, err)
+		if err := ParseDebugLevels(envDebug); err != nil {
+			log.Fatal(err)
 		}
-
-		if lvl < -1 {
-			lvl = -1
-		}
-		SetLogLevel(lvl)
 	}
-
-	// init global vars
-	loggers = make(map[string]*log.Logger)
 }

@@ -116,7 +116,7 @@ func TestGetProfiles(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	logging.SetLogLevel(-1)
+	logging.SetLevel(logging.Silent)
 	ch.Run()
 
 	// dummy google Bookmarks file url count

@@ -60,6 +60,10 @@ func main() {
 	app.EnableShellCompletion = true
 	app.ExitErrHandler = func(ctx context.Context, cli *cli.Command, err error) {
 		if err != nil {
+			if err == logging.ErrHelpQuit {
+				os.Exit(0)
+			}
+
 			fmt.Fprintf(os.Stderr, "%s\n", err)
 			os.Exit(1)
 		} else {
@@ -86,32 +90,16 @@ func main() {
 			Value:    false,
 		},
 
-		&cli.IntFlag{
-			Name:        "debug",
-			Aliases:     []string{"D"},
-			Category:    "_",
-			DefaultText: "0",
-			Usage:       "set debug `level` (-1..3)",
-			Sources:     cli.EnvVars(logging.EnvGosukiDebug),
-			Action: func(_ context.Context, _ *cli.Command, val int) error {
-				if logging.SilentMode {
-					logging.SetLogLevel(-1)
-				} else {
-					logging.SetLogLevel(val)
-				}
-				return nil
-			},
-		},
+		logging.DebugFlag,
 
 		&cli.BoolFlag{
-			Name:        "silent",
-			Aliases:     []string{"S"},
-			Category:    "_",
-			DefaultText: "0",
-			Usage:       "disable all log output",
+			Name:     "silent",
+			Aliases:  []string{"S"},
+			Category: "_",
+			Usage:    "disable all log output",
 			Action: func(_ context.Context, _ *cli.Command, val bool) error {
 				if val {
-					logging.SetLogLevel(-1)
+					logging.SetLevel(logging.Silent)
 				}
 				return nil
 			},
@@ -137,9 +125,12 @@ func main() {
 
 		config.Init(c.String("config"))
 		if logging.SilentMode {
-			logging.SetLogLevel(-1)
+			logging.SetLevel(logging.Silent)
 		} else {
-			logging.SetLogLevel(logging.DefaultLogLevels[logging.LoggingMode])
+			if envDebug := os.Getenv(logging.EnvGosukiDebug); envDebug == "" {
+				logging.SetLevel(logging.DefaultLogLevels[logging.LoggingMode])
+			} else {
+			}
 		}
 
 		// get all registered browser modules

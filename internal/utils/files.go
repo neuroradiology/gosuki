@@ -33,7 +33,8 @@ import (
 
 var (
 	TMPDIR = ""
-	log    = logging.GetLogger("")
+	// hidden logger
+	log = logging.GetLogger("")
 )
 
 func CopyFileToDst(src string, dst string) error {

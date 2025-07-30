@@ -12,7 +12,7 @@ import (
 )
 
 func TestParseTags(t *testing.T) {
-	logging.SetLogLevel(-1)
+	logging.SetLevel(logging.Silent)
 	tests := []struct {
 		name         string
 		title        string

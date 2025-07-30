@@ -310,7 +310,6 @@ func findTagsInNodeTree(urlNode *tree.Node,
 	return foundTagNodeForURL, nil
 }
 
-// TODO!: integration test loading firefox bookmarks
 // Test_scanBookmarks tests the scanBookmarks function of the ff module.
 //
 // This test sets up a test environment by loading mock data from the places.sqlite file.
@@ -329,7 +328,7 @@ func findTagsInNodeTree(urlNode *tree.Node,
 //     - Each URL node has its corresponding tags and is a child of the right tag nodes.
 //     - Each URL node has its corresponding folder and is underneath the right folders.
 func Test_scanBookmarks(t *testing.T) {
-	logging.SetLogLevel(-1)
+	logging.SetLevel(logging.Silent)
 
 	// expected data from testdata/places.sqlite
 	data := struct {
@@ -573,7 +572,6 @@ func Test_FindModifiedBookmarks(t *testing.T) {
 	// 1. Modify an existing bookmark
 	//  a. Add / Remove tag ( find new tags )
 	//  b. Move to folder ( find new folder)
-	//  TODO: c. DELETE bookmark
 	// 2. Find new bookmarks
 	// 2. Find new created tags
 	// 3. Find new created folders (even if empty)
@@ -607,7 +605,6 @@ func Test_FindModifiedBookmarks(t *testing.T) {
 
 	newFolders := []string{"Cryptocurrencies", "NewFolder"}
 
-	//TODO!: modified folders
 
 	// Setup the appropriate test db
 	ff.BkFile = "places-modified.sqlite"
@@ -690,7 +687,6 @@ func Test_FindModifiedBookmarks(t *testing.T) {
 			assert.Subset(t, folderNames, newFolders)
 		})
 
-		// WIP: auto generated, review code
 		// t.Run("modified folders", func(t *testing.T) {
 		// 	for modUrl, modBk := range modifiedBookmarks {
 		// 		node, exists := ff.URLIndex.Get(modUrl)

@@ -54,18 +54,8 @@ func main() {
 			Category:    "_",
 		},
 
-		&cli.IntFlag{
-			Name:        "debug",
-			Category:    "",
-			Aliases:     []string{"d"},
-			DefaultText: "0",
-			Usage:       "set debug `level` (-1..3)",
-			Sources:     cli.EnvVars(logging.EnvGosukiDebug),
-			Action: func(_ context.Context, _ *cli.Command, val int) error {
-				logging.SetLogLevel(val)
-				return nil
-			},
-		},
+		logging.DebugFlag,
+
 		&cli.StringFlag{
 			Name:     "format",
 			Category: "",
@@ -93,6 +83,9 @@ func main() {
 
 	app.ExitErrHandler = func(ctx context.Context, cli *cli.Command, err error) {
 		if err != nil {
+			if err == logging.ErrHelpQuit {
+				os.Exit(0)
+			}
 			fmt.Fprintf(os.Stderr, "%s\n", err)
 			os.Exit(1)
 		} else {
