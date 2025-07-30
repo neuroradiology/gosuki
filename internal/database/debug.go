@@ -118,8 +118,7 @@ func DebugPrintRow(rows *sql.Rows) {
 	w.Flush()
 }
 
-func (db *DB) PrintBookmarks() error {
-
+func (db *DB) DebugPrintBookmarks() error {
 	var url, tags string
 
 	rows, err := db.Handle.Query("select url,tags from bookmarks")
@@ -127,12 +126,13 @@ func (db *DB) PrintBookmarks() error {
 		log.Fatal(err)
 	}
 
+	log.Printf("%s bookmarks: ", db.Name)
 	for rows.Next() {
 		err = rows.Scan(&url, &tags)
 		if err != nil {
 			return err
 		}
-		log.Debugf("url:%s  tags:%s", url, tags)
+		log.Printf("url:%s  tags:%s", url, tags)
 	}
 
 	return nil

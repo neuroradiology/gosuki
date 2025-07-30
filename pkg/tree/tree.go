@@ -170,7 +170,7 @@ func FindNodeByName(name string, root *Node) bool {
 // If parent is a Tag node, child should not point back to parent
 // as URL nodes should always point to folder parent nodes only.
 func AddChild(parent *Node, child *Node) {
-	log.Debugf("adding child %v: <%s>", child.Type, child.Title)
+	log.Tracef("adding child %v: <%s>", child.Type, child.Title)
 
 	if len(parent.Children) == 0 {
 		parent.Children = []*Node{child}
@@ -185,9 +185,9 @@ func AddChild(parent *Node, child *Node) {
 	for _, n := range parent.Children {
 		if child == n {
 			// log.Errorf("<%s> Node already exists", child)
-			log.Debugf("skipping node <%s>, already exists", child.Title)
+			log.Tracef("skipping node <%s>, already exists", child.Title)
 			// update n with child metadata
-			log.Debugf("updating node <%s> with metadata <%s>", n.Title, child.Title)
+			log.Tracef("updating node <%s> with metadata <%s>", n.Title, child.Title)
 			n.Title = child.Title
 			return
 		}

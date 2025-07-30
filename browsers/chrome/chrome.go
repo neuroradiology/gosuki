@@ -416,7 +416,7 @@ func (ch *Chrome) run(runTask bool) {
 
 				// The value in the index will be a
 				// pointer to currentNode
-				log.Debugf("Inserting url %s to index", currentNode.URL)
+				log.Tracef("Inserting url %s to index", currentNode.URL)
 				ch.URLIndex.Insert(currentNode.URL, currentNode)
 
 				// Run registered bookmark parsing hooks

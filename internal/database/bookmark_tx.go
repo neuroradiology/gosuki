@@ -152,7 +152,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 	// We will handle ErrConstraint: only against URL for now. UPDATE the
 	// bookmark instead IF xhash(url+metadata+tags+desc) changed
 	if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
-		log.Debugf("Updating bookmark %s", bk.URL)
+		log.Trace("Updating bookmark %s", bk.URL)
 
 		// Get existing xhashsum of bookmark
 		var targetXHSum string
@@ -164,7 +164,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 
 		// We will only update the bookmark if the xhsum changed
 		if targetXHSum == xhsum(bk.URL, bk.Title, tagListText, bk.Desc) {
-			log.Debug("upsert: same hash skipping", "url", bk.URL)
+			log.Trace("upsert: same hash skipping", "url", bk.URL)
 			return tx.Rollback()
 		}
 
@@ -191,7 +191,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 		}
 
 		tagListText := newTags.StringWrap()
-		log.Debugf("Updating bookmark %s with tags <%s>", bk.URL, tagListText)
+		log.Tracef("Updating bookmark %s with tags <%s>", bk.URL, tagListText)
 
 		_, err = tx.Stmtx(updateBk).Exec(
 			bk.Title,

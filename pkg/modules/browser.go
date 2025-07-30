@@ -140,7 +140,7 @@ func (b BrowserConfig) CallHooks(obj any) error {
 
 		for _, hook := range b.hooks {
 			if hook, ok := hook.(hooks.Hook[*tree.Node]); ok {
-				log.Debugf("<%s> calling hook <%s> on node <%s>", b.Name, hook.Name(), node.URL)
+				log.Tracef("<%s> calling hook <%s> on node <%s>", b.Name, hook.Name(), node.URL)
 				if err := hook.Func(node); err != nil {
 					return err
 				}
@@ -151,7 +151,7 @@ func (b BrowserConfig) CallHooks(obj any) error {
 		bk := obj
 		for _, hook := range b.hooks {
 			if hook, ok := hook.(hooks.Hook[*gosuki.Bookmark]); ok {
-				log.Debugf("<hook:%s> calling  <%s> on <%s>", b.Name, hook.Name(), bk.URL)
+				log.Tracef("<hook:%s> calling  <%s> on <%s>", b.Name, hook.Name(), bk.URL)
 				if err := hook.Func(bk); err != nil {
 					return err
 				}

@@ -33,7 +33,6 @@ import (
 
 const (
 	// First group is tag
-	// TODO: use named groups
 	// [named groups](https://github.com/StefanSchroeder/Golang-Regex-Tutorial/blob/master/01-chapter2.markdown)
 
 	// Regex matching tests:
@@ -86,7 +85,7 @@ func processTags(regex *regexp.Regexp, title *string, tags *[]string) {
 		*tags = append(*tags, m[1])
 	}
 	if len(*tags) > 0 {
-		log.Debugf("[hook] found following tags: %s", *tags)
+		log.Tracef("[hook] found following tags: %s", *tags)
 	}
 	*title = stripHashTag(*title)
 }

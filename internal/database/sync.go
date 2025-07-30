@@ -52,7 +52,6 @@ See individual function documentation for specific usage patterns and behavior d
 
 package database
 
-
 import (
 	"fmt"
 	"strconv"
@@ -280,7 +279,7 @@ func (src *DB) SyncTo(dst *DB) {
 		if err != nil {
 			log.Errorf("%s: %s", err, scan.URL)
 		}
-		log.Debugf("synced %s to %s", scan.URL, dst.Name)
+		log.Tracef("synced %s to %s", scan.URL, dst.Name)
 	}
 
 	err = dstTx.Commit()

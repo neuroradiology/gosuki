@@ -51,13 +51,14 @@ func LoadBookmarks(load loadFunc, modName string) error {
 	}
 
 	for _, mark := range marks {
-		log.Debug("fetched", "bookmark", mark.URL)
+		log.Trace("fetched", "bookmark", mark.URL)
 		err = buffer.UpsertBookmark(mark)
 		if err != nil {
 			log.Errorf("db upsert: %s", mark.URL)
 		}
 	}
-	buffer.PrintBookmarks()
+	//DEBUG:
+	// buffer.DebugPrintBookmarks()
 	err = buffer.SyncToCache()
 	if err != nil {
 		return fmt.Errorf("error syncing buffer to cache: %w", err)

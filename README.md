@@ -113,12 +113,21 @@ Gosuki currently supports Linux and MacOS<sub>beta</sub> . More platforms are [p
 
 ```shell
 go install github.com/blob42/gosuki/cmd/gosuki@latest
-
-# optional
-go install github.com/blob42/gosuki/cmd/suki@latest
 ```
 
-To build with systray icon support use `go install -tags systray ...`
+- Build with systray icon feature
+
+```shell
+go install -tags systray github.com/blob42/gosuki/cmd/gosuki@latest
+```
+
+#### optional `suki` cli command
+
+`suki` is a cli command to list/filter bookmarks with a customizable dmenu/rofi compatible output
+
+```shell
+go install github.com/blob42/gosuki/cmd/suki@latest
+```
 
 ## Running GoSuki
 
@@ -157,11 +166,16 @@ gosuki import pocket export_file.csv
 ```
 
 ### Debugging
-Enable detailed logging with:
+A leveled logging system is available with `--debug={trace,debug,info,warn,error,fatal,none}`
+
 ```bash
-gosuki --debug=3
+gosuki --debug=info 
+
+## Set debug level per subsystem
+gosuki --debug=info,chrome=trace
 ```
-*note*: Avoid using `--tui` with debug mode.
+
+*note* use `--debug=list` to list the available levels and subsystems
 
 ## How does it work ?
 

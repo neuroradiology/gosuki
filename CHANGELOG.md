@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- refactored logging to allow setting levels per subsystem
+- added Trace level for very noisy log
+
 ### Fixed
 
 - enable generated imports modules in /mods package (enables mods for install from source)

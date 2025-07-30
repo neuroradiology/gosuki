@@ -188,7 +188,7 @@ func (f *Firefox) loadBookmarksToTree(bookmarks []*MozBookmark, runTask bool) {
 			}
 			seen, tagNode := f.addTagNode(tagName)
 			if !seen {
-				log.Debugf("tag <%s> already in tag map", tagNode.Title)
+				log.Tracef("tag <%s> already in tag map", tagNode.Title)
 			}
 
 			// Add tag name to urlnode tags
@@ -559,7 +559,7 @@ func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 			Module: modName, // module which created this node
 		}
 
-		log.Debugf("inserting url %s in url index", url)
+		log.Tracef("inserting url %s in url index", url)
 		f.URLIndex.Insert(url, urlNode)
 		f.URLIndexList = append(f.URLIndexList, url)
 		f.IncNodeCount()
@@ -582,7 +582,7 @@ func (f *Firefox) addURLNode(url, title, desc string) (bool, *tree.Node) {
 // returns the created tagNode
 func (f *Firefox) addTagNode(tagName string) (bool, *tree.Node) {
 	// Check if "tags" branch exists or create it
-	log.Debugf("<%s> adding tag <%s>", f.fullID(), tagName)
+	log.Tracef("<%s> adding tag <%s>", f.fullID(), tagName)
 	var branchOk bool
 	var tagsBranch *tree.Node
 	for _, c := range f.NodeTree.Children {
