@@ -140,7 +140,8 @@ func TestGetTags(t *testing.T) {
 	AddChild(tagNode1, urlNode)
 	AddChild(tagNode2, urlNode)
 
-	PrintTree(rootNode)
+	// DEBUG:
+	// PrintTree(rootNode)
 
 	tags := urlNode.getTags()
 	assert.ElementsMatch(t, []string{"tag1", "tag2", "folder1", "SomeFolder", "Folder With Space"}, tags, "node tags mismatch")
