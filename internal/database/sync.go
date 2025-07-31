@@ -224,8 +224,7 @@ func (src *DB) SyncTo(dst *DB) {
 
 	err = dstTx.Commit()
 	if err != nil {
-		log.Error("rolling back after error", "err", err)
-		dstTx.Rollback()
+		log.Error("sync", "from", src.Name, "to", dst.Name, "err", err)
 	}
 
 	dstTx, err = dst.Handle.Beginx()

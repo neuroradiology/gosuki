@@ -61,7 +61,7 @@ func (t *Tags) PreSanitize() *Tags {
 // Sorts the tags in the same order, order does not matter
 func (t *Tags) Sort() *Tags {
 	slices.SortFunc(t.tags, func(a, b string) int {
-		return strings.Compare(strings.ToLower(a), strings.ToLower(b))
+		return strings.Compare(a, b)
 	})
 	return t
 }
