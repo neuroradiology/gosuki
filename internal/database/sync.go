@@ -210,15 +210,15 @@ func (src *DB) SyncTo(dst *DB) {
 		if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
 
 			// check original hash of bookmark
-			var srcBkHash xxhashsum
-			err = dstTx.QueryRowx("SELECT xhsum FROM gskbookmarks WHERE url = ?", scan.URL).Scan(&srcBkHash)
+			var oldBkHash xxhashsum
+			err = dstTx.QueryRowx("SELECT xhsum FROM gskbookmarks WHERE url = ?", scan.URL).Scan(&oldBkHash)
 			if err != nil {
 				log.Error("select xhsum from", "src", L2Cache.Name, "url", scan.URL, "err", err)
 				continue
 
 			}
 
-			existingUrls[uint64(srcBkHash)] = &scan
+			existingUrls[uint64(oldBkHash)] = &scan
 		}
 	}
 
@@ -241,8 +241,8 @@ func (src *DB) SyncTo(dst *DB) {
 			log.Error("get tags query", "err", err)
 		}
 
-		srcTags := TagsFromString(scan.Tags, TagSep).Sort()
-		dstTags := TagsFromString(tags, TagSep).Sort()
+		srcTags := tagsFromString(scan.Tags, TagSep).Sort()
+		dstTags := tagsFromString(tags, TagSep).Sort()
 
 		tagMap := make(map[string]bool)
 		for _, v := range srcTags.tags {

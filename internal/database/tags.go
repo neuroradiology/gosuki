@@ -78,7 +78,7 @@ func (t Tags) String(wrap bool) string {
 
 // Builds a list of tags from a string as a Tags struct.
 // It also removes empty tags
-func TagsFromString(s, delim string) *Tags {
+func tagsFromString(s, delim string) *Tags {
 	tagslice := strings.Split(s, delim)
 	tags := slices.DeleteFunc(tagslice, func(s string) bool {
 		return s == ""

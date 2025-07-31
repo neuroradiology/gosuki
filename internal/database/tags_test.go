@@ -163,7 +163,7 @@ func TestTagsFromString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			assert.Equal(t, TagsFromString(tt.tagstr, delim).tags, tt.want)
+			assert.Equal(t, tagsFromString(tt.tagstr, delim).tags, tt.want)
 		})
 	}
 }

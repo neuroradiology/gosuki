@@ -119,7 +119,7 @@ func DefaultPagination() *PaginationParams {
 func (raws RawBookmarks) AsBookmarks() []*gosuki.Bookmark {
 	res := []*Bookmark{}
 	for _, raw := range raws {
-		tags := TagsFromString(raw.Tags, TagSep)
+		tags := tagsFromString(raw.Tags, TagSep)
 		res = append(res, &Bookmark{
 			URL:    raw.URL,
 			Title:  raw.Metadata,

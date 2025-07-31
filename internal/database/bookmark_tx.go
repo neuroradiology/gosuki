@@ -46,6 +46,7 @@ func cleanup(f func() error) {
 // with the new data.
 // NOTE: We don't use sql UPSERT as we need to do a manual merge of some columns
 // such as `tags`.
+// NOTE: This function is so far always run against a Buffer db
 func (db *DB) UpsertBookmark(bk *Bookmark) error {
 
 	var sqlite3Err sqlite3.Error
@@ -132,8 +133,8 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 		0,         // flags
 		bk.Module, // source module that created this mark
 
-		// xhash sum
-		xhsum(bk.URL, bk.Title, tagListText, bk.Desc),
+		// empty xhash: it will be calculated in the cache
+		"",
 	)
 
 	if err != nil {
@@ -152,7 +153,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 	// We will handle ErrConstraint: only against URL for now. UPDATE the
 	// bookmark instead IF xhash(url+metadata+tags+desc) changed
 	if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
-		log.Trace("Updating bookmark %s", bk.URL)
+		log.Tracef("Updating bookmark %s", bk.URL)
 
 		// Get existing xhashsum of bookmark
 		var targetXHSum string
@@ -168,10 +169,14 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 			return tx.Rollback()
 		}
 
+		/////
+		// MERGING TAGS
+		////
+
 		// First get existing tags for this bookmark if any
 		res := tx.Stmtx(getTagsStmt).QueryRow(bk.URL)
 		res.Scan(&scannedTags)
-		cacheTags := TagsFromString(scannedTags, TagSep)
+		cacheTags := tagsFromString(scannedTags, TagSep)
 
 		// If tags are different, merge current bookmark tags and existing tags
 		// Put them in a map first to remove duplicates
@@ -200,8 +205,8 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 			bk.Desc,
 			tagListText,
 
-			// xhsum
-			xhsum(bk.URL, bk.Title, tagListText, bk.Desc),
+			// xhsum calculated in cache
+			"",
 
 			// where clause
 			bk.URL,
