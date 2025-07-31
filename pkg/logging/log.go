@@ -34,6 +34,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	log "github.com/charmbracelet/log"
 	"github.com/muesli/termenv"
+	"github.com/blob42/gosuki/pkg/build"
 )
 
 const EnvGosukiDebug = "GOSUKI_DEBUG"
@@ -171,7 +172,8 @@ func GetLogger(module string) *Logger {
 	module = strings.ToLower(module)
 	lg := NewLogger(os.Stderr)
 
-	if LoggingMode == Silent || SilentMode {
+	if LoggingMode == Silent || SilentMode ||
+		slices.Contains(build.Tags(), "silent") {
 		return NewLogger(io.Discard)
 	}
 
