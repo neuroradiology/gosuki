@@ -113,7 +113,7 @@ ci-test:
 ifeq (, $(shell which gotestsum))
 	$(GOINSTALL) gotest.tools/gotestsum@latest
 endif
-	gotestsum -f dots $(TEST_FLAGS) . ./...
+	gotestsum -f github-actions $(TEST_FLAGS) . ./...
 
 clean:
 	rm -rf build dist
