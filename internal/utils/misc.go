@@ -26,6 +26,23 @@ import (
 	"strings"
 )
 
+func CamelCase(in string) string {
+	words := strings.Fields(in)
+	if len(words) == 0 {
+		return ""
+	}
+	result := strings.ToLower(words[0])
+	for i := 1; i < len(words); i++ {
+		if len(words[i]) == 0 {
+			continue
+		}
+		first := strings.ToUpper(string(words[i][0]))
+		rest := words[i][1:]
+		result += first + rest
+	}
+	return result
+}
+
 // Extends a slice of T with element `in`, like a Set
 func Extends[T comparable](list []T, in ...T) []T {
 	for _, val := range in {

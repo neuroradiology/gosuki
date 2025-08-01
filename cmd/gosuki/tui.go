@@ -479,8 +479,9 @@ func (m tuiModel) View() string {
 					Foreground(lipgloss.Color("99"))
 
 				progressSection.WriteString(labelLineStyle.Render("└─") + " ")
-				progressSection.WriteString(defaultTextColor.Render(profile.Name))
-				progressSection.WriteString(ProfilePathStyle.Render(profile.BaseDir))
+
+				progressSection.WriteString(defaultTextColor.Render(profile.ShortBaseDir()))
+				progressSection.WriteString(ProfilePathStyle.Render(profile.Path))
 
 				// if cfg.Flavour != nil {
 				// 	progressSection.WriteString(cfg.Flavour.Name + " ")

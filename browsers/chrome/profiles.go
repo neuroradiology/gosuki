@@ -78,7 +78,12 @@ func (*ChromeProfileManager) GetProfiles(flavour string) ([]*profiles.Profile, e
 }
 
 func (*Chrome) GetProfiles(flavour string) ([]*profiles.Profile, error) {
-	return ProfileManager.GetProfiles(flavour)
+	customProfiles := profiles.FromCustom(ChromeCfg.CustomProfiles, flavour)
+	profiles, err := ProfileManager.GetProfiles(flavour)
+	if err != nil {
+		return nil, err
+	}
+	return append(profiles, customProfiles...), nil
 }
 
 // Returns all flavours supported by this browser

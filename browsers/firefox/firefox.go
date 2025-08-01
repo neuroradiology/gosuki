@@ -299,17 +299,21 @@ func (f Firefox) fullID() string {
 	return fmt.Sprintf("%s_%s", f.Name, f.Profile)
 }
 
-// Implements the profiles.ProfileManager interface
+// GetProfiles implements the profiles.ProfileManager interface
 func (*Firefox) GetProfiles(flavour string) ([]*profiles.Profile, error) {
-	return FirefoxProfileManager.GetProfiles(flavour)
+	customProfiles := profiles.FromCustom(FFConfig.CustomProfiles, flavour)
+	profiles, err := FirefoxProfileManager.GetProfiles(flavour)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(profiles, customProfiles...), nil
 }
 
-// If should watch all profiles
 func (f *Firefox) WatchAllProfiles() bool {
 	return FFConfig.WatchAllProfiles
 }
 
-// Use custom profile
 func (f *Firefox) UseProfile(p *profiles.Profile, flv *browsers.BrowserDef) error {
 	// update instance profile name
 	if p != nil {

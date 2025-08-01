@@ -24,6 +24,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v3"
@@ -48,9 +49,12 @@ var listProfilesCmd = &cli.Command{
 	Usage: "list all available profiles",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 
+		red := color.New(color.FgRed).SprintFunc()
+		yellow := color.New(color.FgYellow).SprintFunc()
+		cyan := color.New(color.FgCyan).SprintFunc()
+		blue := color.New(color.FgBlue).SprintFunc()
 		browsers := modules.GetBrowserModules()
 		for _, br := range browsers {
-
 			//Create a browser instance
 			brmod, ok := br.ModInfo().New().(modules.BrowserModule)
 			if !ok {
@@ -64,28 +68,40 @@ var listProfilesCmd = &cli.Command{
 			}
 
 			flavours := pm.ListFlavours()
+			isCustomProfile := ""
 			for _, f := range flavours {
 				if profs, err := pm.GetProfiles(f.Flavour); err != nil {
 					log.Debugf("error: %s", err)
 				} else {
 					if string(br.ModInfo().ID) != f.Flavour {
-						fmt.Printf("%s (flavour=%s):\n\n", br.ModInfo().ID, f.Flavour)
+						fmt.Printf(" %s %s flavour=%s profiles:\n", blue(""), br.ModInfo().ID, f.Flavour)
 					} else {
-						fmt.Printf("%s:\n\n", br.ModInfo().ID)
+						fmt.Printf(" %s %s profiles:\n", blue(""), br.ModInfo().ID)
 					}
 					for _, p := range profs {
+						if p.IsCustom {
+							isCustomProfile = "custom "
+						}
 						pPath, err := p.AbsolutePath()
 						if err != nil {
-							return err
+							fmt.Fprintf(
+								os.Stderr,
+								"\n    %s %sprofile %s.%s: %s\n\n",
+								red(""),
+								isCustomProfile,
+								yellow(br.ModInfo().ID),
+								yellow(p.Name),
+								err,
+							)
+							continue
 						}
-						fmt.Printf("\tProfile: %s\n", p.Name)
-						fmt.Printf("\t  ID: %s\n", p.ID)
-						fmt.Printf("\t  Path: %s\n", pPath)
+						fmt.Printf("    %s\n", cyan(p.Name))
+						fmt.Printf("      ID: %s\n", p.ID)
+						fmt.Printf("      Path: %s\n", pPath)
 					}
 				}
-				fmt.Println()
+				println()
 			}
-
 		}
 
 		return nil

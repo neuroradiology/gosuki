@@ -69,6 +69,8 @@ type FirefoxConfig struct {
 
 	modules.ProfilePrefs `toml:"profile-options" mapstructure:"profile-options"`
 
+	CustomProfiles []profiles.CustomProfile `toml:"custom-profiles" mapstructure:"custom-profiles"`
+
 	//TEST: ignore this field in config.Configurator interface
 	// Embed base browser config
 	*modules.BrowserConfig `toml:"-"`
