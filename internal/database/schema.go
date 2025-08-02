@@ -21,6 +21,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 )
@@ -222,7 +223,7 @@ func checkDBVersion(db *DB) error {
 	return err
 }
 
-func (db *DB) InitSchema() error {
+func (db *DB) InitSchema(ctx context.Context) error {
 
 	// Populate db schema
 	tx, err := db.Handle.Begin()
@@ -230,22 +231,22 @@ func (db *DB) InitSchema() error {
 		return DBError{DBName: db.Name, Err: err}
 	}
 
-	if _, err = tx.Exec(QCreateSchema); err != nil {
+	if _, err = tx.ExecContext(ctx, QCreateSchema); err != nil {
 		tx.Rollback()
 		return DBError{DBName: db.Name, Err: err}
 	}
 
-	if _, err = tx.Exec(QCreateView); err != nil {
+	if _, err = tx.ExecContext(ctx, QCreateView); err != nil {
 		tx.Rollback()
 		return DBError{DBName: db.Name, Err: err}
 	}
 
-	if _, err = tx.Exec(QCreateInsertTrigger); err != nil {
+	if _, err = tx.ExecContext(ctx, QCreateInsertTrigger); err != nil {
 		tx.Rollback()
 		return DBError{DBName: db.Name, Err: err}
 	}
 
-	if _, err = tx.Exec(QCreateUpdateTrigger); err != nil {
+	if _, err = tx.ExecContext(ctx, QCreateUpdateTrigger); err != nil {
 		tx.Rollback()
 		return DBError{DBName: db.Name, Err: err}
 	}

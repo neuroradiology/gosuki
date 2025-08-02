@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -29,7 +30,7 @@ func TestSchemaInitialization(t *testing.T) {
 	db, err = NewDB("gosuki_db", dbPath, DBTypeFileDSN).Init()
 	require.NoError(t, err, "failed to initialize disk database")
 
-	err = db.InitSchema()
+	err = db.InitSchema(context.Background())
 	require.NoError(t, err, "failed to initialize schema")
 
 	// Verify that the schema version is set to the current version
@@ -142,7 +143,7 @@ func TestSchemaVersionMismatch(t *testing.T) {
 	db, err := NewDB("gosuki_db", "", DBTypeInMemoryDSN).Init()
 	require.NoError(t, err, "failed to initialize database")
 
-	err = db.InitSchema()
+	err = db.InitSchema(context.Background())
 	require.NoError(t, err, "failed to initialize schema")
 
 	// sync to disk

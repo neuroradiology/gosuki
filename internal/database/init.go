@@ -22,6 +22,10 @@
 package database
 
 import (
+	"context"
+
+	"github.com/urfave/cli/v3"
+
 	"github.com/blob42/gosuki/internal/utils"
 )
 
@@ -48,13 +52,17 @@ func InitDiskConn(dbPath string) error {
 	return err
 }
 
-func Init() {
+func Init(ctx context.Context, cmd *cli.Command) {
 
 	RegisterSqliteHooks()
-	initCache()
+	initCache(ctx)
 	startSyncScheduler()
 
-	dbpath := GetDBPath()
+	dbpath := cmd.String("db")
+	if dbpath == "" {
+		log.Fatal("undefined database path")
+	}
+
 	// If local db exists load it to cacheDB
 	if exists, err := utils.CheckFileExists(dbpath); exists {
 

@@ -180,8 +180,8 @@ func GetLogger(module string) *Logger {
 		return NewLogger(io.Discard)
 	}
 
+	lg.SetPrefix(fmt.Sprintf("%.4s", module))
 	if LoggingMode == Dev {
-		lg.SetPrefix(fmt.Sprintf("[%.4s]", strings.ToUpper(module)))
 		lg.SetTimeFormat(time.TimeOnly)
 		lg.SetReportTimestamp(true)
 		lg.SetCallerFormatter(func(file string, line int, _ string) string {
@@ -192,7 +192,6 @@ func GetLogger(module string) *Logger {
 
 		//RELEASE:
 	} else {
-		lg.SetPrefix(fmt.Sprintf("%.4s", module))
 		if lvl, ok := loggerLevels[module]; ok {
 			lg.SetLevel(lvl)
 		} else {

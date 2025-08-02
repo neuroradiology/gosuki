@@ -31,7 +31,7 @@ func Test_loadQueries(t *testing.T) {
 
 	db := database.NewDB("test_places", "testdata/places.sqlite", database.DBTypeFileDSN)
 	defer func() {
-		err := db.Close()
+		err = db.Close()
 		if err != nil {
 			t.Fatal()
 		}

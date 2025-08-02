@@ -83,6 +83,13 @@ func main() {
 			Destination: &config.ConfigFileFlag,
 		},
 
+		&cli.StringFlag{
+			Name:        "db",
+			Value:       database.GetDBPath(),
+			DefaultText: utils.Shorten(database.GetDBPath()),
+			Usage:       "`path` to gosuki DB",
+		},
+
 		&cli.BoolFlag{
 			Name:     "tui",
 			Aliases:  []string{"T"},

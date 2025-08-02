@@ -79,7 +79,7 @@ func importFromPocketCSV(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("failed to read CSV: %w", err)
 	}
 
-	db.Init()
+	db.Init(ctx, c)
 	DB := db.DiskDB
 	defer db.DiskDB.Close()
 

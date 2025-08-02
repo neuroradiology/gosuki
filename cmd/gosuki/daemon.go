@@ -139,7 +139,7 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 	}(mngr)
 
 	// Initialize sqlite database available in global `cacheDB` variable
-	db.Init()
+	db.Init(ctx, cmd)
 
 	// Handle generic modules
 	mods := modules.GetModules()

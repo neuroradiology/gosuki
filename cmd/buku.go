@@ -86,7 +86,7 @@ func importBukuDB(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to fetch bookmarks: %w", err)
 	}
 
-	db.Init()
+	db.Init(ctx, cmd)
 
 	DB := db.DiskDB
 	defer db.DiskDB.Close()

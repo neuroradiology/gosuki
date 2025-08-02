@@ -21,6 +21,8 @@
 
 package database
 
+import "context"
+
 const (
 	CacheName   = "memcache"
 	L2CacheName = "memcache_l2"
@@ -66,7 +68,7 @@ func (c *CacheDB) IsInitialized() bool {
 	return Cache.DB != nil && Cache.Handle != nil
 }
 
-func initCache() {
+func initCache(ctx context.Context) {
 	log.Debug("initializing cacheDB")
 	var err error
 
@@ -76,7 +78,7 @@ func initCache() {
 		log.Fatal(err)
 	}
 
-	err = Cache.InitSchema()
+	err = Cache.InitSchema(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,7 +87,7 @@ func initCache() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = L2Cache.InitSchema()
+	err = L2Cache.InitSchema(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

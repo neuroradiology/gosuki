@@ -22,6 +22,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/teris-io/shortid"
@@ -50,7 +51,7 @@ func NewBuffer(name string) (*DB, error) {
 		return nil, fmt.Errorf("could not create buffer %w", err)
 	}
 
-	err = buffer.InitSchema()
+	err = buffer.InitSchema(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("could initialize buffer schema %w", err)
 	}
