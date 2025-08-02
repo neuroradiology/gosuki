@@ -182,7 +182,7 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 					Queue:       listenerQueue,
 					MsgListener: listener,
 				}
-				mngr.AddUnit(listeningWorker, string(name))
+				mngr.AddUnit(listeningWorker, string(name)).SetRecoverable()
 			}
 		} else if loader, ok := modInstance.(watch.WatchLoader); ok {
 			worker = watch.WatchLoad{
@@ -195,7 +195,7 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 					Queue:       listenerQueue,
 					MsgListener: listener,
 				}
-				mngr.AddUnit(listeningWorker, string(name))
+				mngr.AddUnit(listeningWorker, string(name)).SetRecoverable()
 			}
 		} else if isMsgListener {
 			worker = modules.Listener{
@@ -210,10 +210,11 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 			continue
 		}
 
-		mngr.AddUnit(worker, string(name))
+		wum := mngr.AddUnit(worker, string(name))
 
 		// Register as a message listener if applicable
 		if isMsgListener {
+			wum.SetRecoverable()
 			modules.MsgDispatcher.AddListener(name, listenerQueue)
 		}
 	}

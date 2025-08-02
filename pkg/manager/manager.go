@@ -28,12 +28,15 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"slices"
 
 	"github.com/blob42/gosuki/internal/webui"
 	"github.com/blob42/gosuki/pkg/logging"
 )
+
+const MaxRecover = 3
 
 var (
 	idGenerator = genID()
@@ -53,18 +56,20 @@ type WorkUnit interface {
 type UnitManager interface {
 	ShouldStop() <-chan bool
 	Done()
-	Panic(err error)
+	Panic(any)
 
 	RequestShutdown()
 }
 
 type WorkUnitManager struct {
-	name       string
-	stop       chan bool
-	workerQuit chan bool
-	unit       WorkUnit
-	panic      chan error
-	isPaniced  bool
+	name         string
+	stop         chan bool
+	workerQuit   chan bool
+	unit         WorkUnit
+	panic        chan error
+	isPaniced    bool
+	recover      bool
+	recoverCount int
 }
 
 func (w *WorkUnitManager) ShouldStop() <-chan bool {
@@ -75,14 +80,26 @@ func (w *WorkUnitManager) Done() {
 	w.workerQuit <- true
 }
 
-func (w *WorkUnitManager) Panic(err error) {
-	w.panic <- err
+func (w *WorkUnitManager) Panic(val any) {
+	if w.recover && w.recoverCount <= MaxRecover {
+		log.Error("panic", "unit", w.name, "reason", val)
+		log.Warnf("recovering unit %s", w.name)
+		time.Sleep(time.Second * 2)
+		go runUnit(w, w.name)
+		w.recoverCount += 1
+		return
+	}
+	w.panic <- fmt.Errorf("%v", val)
 	w.isPaniced = true
 	w.workerQuit <- true
 }
 
 func (m *WorkUnitManager) RequestShutdown() {
 	m.panic <- fmt.Errorf("request for shutdown")
+}
+
+func (wu *WorkUnitManager) SetRecoverable() {
+	wu.recover = true
 }
 
 type Manager struct {
@@ -118,20 +135,13 @@ func (m *Manager) Shutdown() {
 func (m *Manager) Start() {
 	log.Debug("starting manager ...")
 
-	// for unitName, w := range m.workers {
-	// 	log.Info("starting", "unit", unitName)
-	// 	go w.unit.Run(w)
-	// }
-
 	m.ready <- true
 
 	log.Info("manager is up")
-	if !logging.TUIMode {
-		fmt.Println("Gosuki service up and running")
-		for name := range m.Units() {
-			if strings.HasPrefix(name, "webui") {
-				fmt.Printf("GUI listening on: http://%s\n", webui.BindAddr)
-			}
+	fmt.Fprintf(logging.Stdout, "Gosuki service up and running\n")
+	for name := range m.Units() {
+		if strings.HasPrefix(name, "webui") {
+			fmt.Fprintf(logging.Stdout, "GUI listening on: http://%s\n", webui.BindAddr)
 		}
 	}
 
@@ -151,7 +161,7 @@ func (m *Manager) Start() {
 
 			for name, w := range m.workers {
 				if w.isPaniced {
-					log.Errorf("Panicing for <%s>: %s", name, p)
+					log.Errorf("<%s> panicked: %s", name, p)
 				} else {
 					log.Debugf("shuting down <%s>\n", name)
 					w.stop <- true
@@ -189,8 +199,19 @@ func genID() IDGenerator {
 	}
 }
 
-func (m *Manager) AddUnit(unit WorkUnit, name string) {
+func runUnit(wum *WorkUnitManager, unitName string) {
+	defer func() {
+		// Handle panics within the unit's goroutine
+		if r := recover(); r != nil {
+			wum.panic <- fmt.Errorf("%v", r)
+			wum.isPaniced = true
+		}
+	}()
+	log.Info("starting", "unit", unitName)
+	wum.unit.Run(wum)
+}
 
+func (m *Manager) AddUnit(unit WorkUnit, name string) *WorkUnitManager {
 	workUnitManager := &WorkUnitManager{
 		name:       name,
 		workerQuit: make(chan bool, 1),
@@ -211,18 +232,9 @@ func (m *Manager) AddUnit(unit WorkUnit, name string) {
 	m.workers[unitName] = workUnitManager
 
 	// Launch the unit's goroutine *immediatly*
-	go func() {
-		defer func() {
-			// Handle panics within the unit's goroutine
-			if r := recover(); r != nil {
-				m.panic <- fmt.Errorf("unit %s panicked: %v", unitName, r)
-				workUnitManager.isPaniced = true
-			}
-		}()
-		log.Info("starting", "unit", unitName)
-		workUnitManager.unit.Run(workUnitManager)
-	}()
+	go runUnit(workUnitManager, unitName)
 
+	return workUnitManager
 }
 
 func NewManager() *Manager {

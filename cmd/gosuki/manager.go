@@ -41,7 +41,7 @@ func initManager(tuiMode bool) *manager.Manager {
 	uiServ := server.NewWebUIServer(tuiMode)
 	manager.AddUnit(uiServ, fmt.Sprintf("webui[%s]", webui.BindAddr))
 
-	manager.AddUnit(&modules.MsgDispatcher, modules.DispatcherID)
+	manager.AddUnit(&modules.MsgDispatcher, modules.DispatcherID).SetRecoverable()
 
 	return manager
 }
