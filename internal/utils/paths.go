@@ -27,6 +27,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
 func DirExists(path string) (bool, error) {
@@ -168,4 +169,14 @@ func IsSymlink(path string) (bool, error) {
 		return false, err
 	}
 	return info.Mode()&os.ModeSymlink == os.ModeSymlink, nil
+}
+
+// shortens path using ~
+func Shorten(path string) string {
+	homeDir, _ := os.UserHomeDir()
+	if strings.HasPrefix(path, homeDir) {
+		path = strings.Replace(path, homeDir, "~", 1)
+	}
+
+	return path
 }

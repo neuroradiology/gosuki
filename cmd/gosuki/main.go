@@ -78,8 +78,9 @@ func main() {
 			Aliases:     []string{"c"},
 			Value:       config.DefaultConfPath(),
 			Usage:       "config `path`",
-			DefaultText: "~/.config/gosuki/config.toml",
+			DefaultText: utils.Shorten(config.DefaultConfPath()),
 			Category:    "_",
+			Destination: &config.ConfigFileFlag,
 		},
 
 		&cli.BoolFlag{
@@ -129,12 +130,12 @@ func main() {
 		} else {
 			if envDebug := os.Getenv(logging.EnvGosukiDebug); envDebug == "" {
 				logging.SetLevel(logging.DefaultLogLevels[logging.LoggingMode])
-			} else {
 			}
 		}
 
 		// get all registered browser modules
 		modules := modules.GetModules()
+		fmt.Fprintf(logging.Stdout, "Loading %d module\n", len(modules))
 		for _, mod := range modules {
 
 			// Run module's hooks that should run before context is ready

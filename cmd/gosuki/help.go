@@ -22,6 +22,13 @@
 
 package main
 
+var visibleFlagCategoryTemplate = `{{range .VisibleFlagCategories}}
+   {{if .Name}}{{.Name}}
+
+   {{end}}{{$flglen := len .Flags}}{{range $i, $e := .Flags}}{{if eq (subtract $flglen $i) 1}}{{$e}}
+{{else}}{{$e}}
+   {{end}}{{end}}{{end}}`
+
 var AppHelpTemplate = `NAME:
    {{template "helpNameTemplate" .}}
 
@@ -44,7 +51,13 @@ AUTHOR{{template "authorsTemplate" .}}{{end}}{{if .VisibleCommands}}
 
 Available Commands:{{template "visibleCommandCategoryTemplate" .}}{{end}}{{if .VisibleFlagCategories}}
 
-Flags:{{template "visibleFlagCategoryTemplate" .}}{{else if .VisibleFlags}}
+Flags:{{range .VisibleFlagCategories}}
+	{{- if (and .Name (not (eq .Name "_" ))) }}
+   {{.Name}}:
+   {{else}}
+   {{end}}{{$flglen := len .Flags}}{{range $i, $e := .Flags}}{{if eq (subtract $flglen $i) 1}}{{$e}}
+{{else}}{{$e}}
+   {{end}}{{end}}{{end}}{{else if .VisibleFlags}}
 
 Flags:{{template "visibleFlagTemplate" .}}{{end}}{{if .Copyright}}
 

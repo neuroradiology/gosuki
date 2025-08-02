@@ -34,6 +34,13 @@ import (
 
 type Hook func(context.Context, *cli.Command) error
 
+var GlobalConfig = struct {
+	//TODO!: generate usage text with //go:zzz directives
+	WatchAll bool `toml:"watch-all" mapstructure:"watch-all"`
+}{
+	false,
+}
+
 var (
 	log            = logging.GetLogger("CONF")
 	ConfReadyHooks []Hook

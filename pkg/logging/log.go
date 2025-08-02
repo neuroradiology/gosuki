@@ -31,10 +31,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blob42/gosuki/pkg/build"
 	"github.com/charmbracelet/lipgloss"
 	log "github.com/charmbracelet/log"
 	"github.com/muesli/termenv"
-	"github.com/blob42/gosuki/pkg/build"
 )
 
 const EnvGosukiDebug = "GOSUKI_DEBUG"
@@ -64,6 +64,8 @@ var (
 		fatalLvl,
 		silentLvl,
 	}
+
+	Stdout io.Writer
 )
 
 const (
@@ -149,6 +151,7 @@ func NewLogger(w io.Writer) *Logger {
 	l := new(Logger)
 	logger := log.New(w)
 	styles := log.DefaultStyles()
+	styles.Prefix = lipgloss.NewStyle().Faint(true)
 	styles.Levels[TraceLevel] = lipgloss.NewStyle().
 		SetString("TRACE").
 		Bold(true).
@@ -189,6 +192,7 @@ func GetLogger(module string) *Logger {
 
 		//RELEASE:
 	} else {
+		lg.SetPrefix(fmt.Sprintf("%.4s", module))
 		if lvl, ok := loggerLevels[module]; ok {
 			lg.SetLevel(lvl)
 		} else {
@@ -277,6 +281,7 @@ func SetUnitLevel(u string, lvl log.Level) {
 
 // Sets the logging into TUI mode.
 func SetTUI(output io.Writer) {
+	Stdout = io.Discard
 	TUIMode = true
 	tuiLogStyles := log.DefaultStyles()
 	tuiLogStyles.Levels = logLevelStyles
@@ -306,6 +311,7 @@ func SetTUI(output io.Writer) {
 }
 
 func init() {
+	Stdout = os.Stdout
 	SilentMode = isSilentMode()
 	envDebug := os.Getenv(EnvGosukiDebug)
 

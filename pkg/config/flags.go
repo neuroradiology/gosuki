@@ -24,6 +24,11 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// some useful global flags
+var (
+	ConfigFileFlag string
+)
+
 // Setup cli flag for global options
 func SetupGlobalFlags() []cli.Flag {
 	log.Debugf("Setting up global flags")

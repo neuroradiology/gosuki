@@ -480,6 +480,9 @@ func (m tuiModel) View() string {
 
 				progressSection.WriteString(labelLineStyle.Render("└─") + " ")
 
+				if profile.IsCustom {
+					progressSection.WriteString(defaultTextColor.Render("(custom)"))
+				}
 				progressSection.WriteString(defaultTextColor.Render(profile.ShortBaseDir()))
 				progressSection.WriteString(ProfilePathStyle.Render(profile.Path))
 
