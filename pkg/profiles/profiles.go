@@ -23,9 +23,7 @@
 package profiles
 
 import (
-	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/pkg/browsers"
@@ -58,18 +56,10 @@ type Profile struct {
 
 // returns shortcut for path
 func (p Profile) ShortBaseDir() string {
-	path := p.BaseDir
-
 	if !p.IsRelative {
 		return ""
 	}
-
-	homeDir, _ := os.UserHomeDir()
-	if strings.HasPrefix(p.BaseDir, homeDir) {
-		path = strings.Replace(p.BaseDir, homeDir, "~", 1)
-	}
-
-	return path
+	return utils.Shorten(p.BaseDir)
 }
 
 // ProfileManager is any module that can detect or list profiles, usually a browser module.

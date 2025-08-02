@@ -26,9 +26,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v3"
 
 	"github.com/blob42/gosuki/pkg/modules"
+	"github.com/blob42/gosuki/pkg/profiles"
 )
 
 // map cmd Name to *cli.Command
@@ -69,15 +71,28 @@ var listModulesCmd = &cli.Command{
 	Aliases: []string{"l"},
 	Usage:   "list available browsers and modules",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-
-		fmt.Printf("\n%s\n", "Modules:")
+		green := color.New(color.FgGreen).SprintFunc()
+		fmt.Printf("%s\n", "available browsers and modules:")
 		mods := modules.GetModules()
 		for _, mod := range mods {
-			_, isBrowser := mod.(modules.BrowserModule)
+			browser, isBrowser := mod.ModInfo().New().(modules.BrowserModule)
 			if isBrowser {
-				fmt.Printf("- %-10s \t %s\n", mod.ModInfo().ID, "<browser>")
+				fmt.Printf(" %s %-15s \tbrowser\n", green(""), mod.ModInfo().ID)
+				if pm, ok := browser.(profiles.ProfileManager); ok {
+					flavours := pm.ListFlavours()
+					if len(flavours) > 1 {
+						fmt.Printf("  └─ flavours:\t")
+					}
+					for _, f := range flavours {
+						if f.Flavour == string(mod.ModInfo().ID) {
+							continue
+						}
+						fmt.Printf("%s ", color.New(color.Underline).SprintFunc()(f.Flavour))
+					}
+					println()
+				}
 			} else {
-				fmt.Printf("- %-10s \t %s\n", mod.ModInfo().ID, "<module>")
+				fmt.Printf(" %s %-15s \tmodule\n", green(""), mod.ModInfo().ID)
 			}
 		}
 		return nil
