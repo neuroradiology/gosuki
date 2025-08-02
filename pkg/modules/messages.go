@@ -20,10 +20,16 @@
 //  along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-// Implements a channel based inter module communication
 package modules
 
+// Implements a channel based inter module communication ()
+
 import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/pkg/manager"
 )
 
@@ -39,11 +45,12 @@ type ModMsgType string
 
 // types of messages passed between modules
 const (
-	MsgTriggerP2PSync = "trigger-sync"
-	MsgHello          = "hello"
+	MsgTriggerSync = "trigger-sync"
+	MsgHello       = "mod-hello"
+	MsgPanic       = "panic"
 )
 
-// channel for sending messages to modules
+// ModMsg is a message exchanged between modules
 type ModMsg struct {
 	Type ModMsgType
 	To   ModID
@@ -51,19 +58,28 @@ type ModMsg struct {
 
 var ModMsgBus = make(chan ModMsg) // Channel for intra-process message passing
 
-// Modules that listen to messages on the inter module channels
+// MsgListener is a module that can listen to messages from other mods
 type MsgListener interface {
-	MsgListen(<-chan ModMsg)
+	MsgListen(context.Context, <-chan ModMsg)
 }
 
-// Work unit for modules that implement the MsgListener interface
+// Listener is a Work unit for modules that implement the MsgListener interface
 type Listener struct {
+	Ctx   context.Context
 	Queue chan ModMsg
 	MsgListener
 }
 
 func (lw Listener) Run(m manager.UnitManager) {
-	go lw.MsgListen(lw.Queue)
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				m.Panic(fmt.Errorf("%v", err))
+			}
+		}()
+		lw.MsgListen(lw.Ctx, lw.Queue)
+	}()
+
 	<-m.ShouldStop()
 	m.Done()
 }
@@ -83,22 +99,35 @@ func (mm *modMsgDispatcher) AddListener(id ModID, queue chan<- ModMsg) {
 }
 
 func (mm *modMsgDispatcher) Run(m manager.UnitManager) {
+	//TODO: handle panic from this go routine
+
+	// interval at which we check if we need to trigger a sync
+	checkSyncTicker := time.NewTicker(time.Second * 5)
 	go func() {
-		log.Info("dispatching module messages")
-		for msg := range ModMsgBus {
-			log.Debugf("dispatching mod message %s", msg.Type)
-			if dst, ok := mm.listeners[msg.To]; ok {
-				log.Debugf("sending msg=%s to=%s", msg.Type, msg.To)
-				dst.queue <- msg
-			} else { // discard
-				log.Debugf("target %s not available, discarding msg=%s", msg.To, msg.Type)
+		log.Debug("dispatching module messages")
+		for {
+			select {
+			case msg := <-ModMsgBus:
+				log.Debug("dispatching mod message", "msMsgTriggerSyncg", msg.Type, "to", msg.To)
+				if dst, ok := mm.listeners[msg.To]; ok {
+					log.Trace("sending", "msg", msg.Type, "to-mod", msg.To)
+					dst.queue <- msg
+				} else { // discard
+					log.Debugf("target %s not available, discarding msg=%s", msg.To, msg.Type)
+				}
+			case <-checkSyncTicker.C:
+				trigger := database.SyncTrigger.Load()
+				if dst, ok := mm.listeners["p2p-sync"]; ok && trigger {
+					dst.queue <- ModMsg{MsgTriggerSync, ""}
+				}
+				database.SyncTrigger.Store(false)
 			}
 		}
 	}()
 
 	//DEBUG:
-	// time.Sleep(4 * time.Second)
-	// ModMsgBus <- ModMsg{MsgHello, "p2p-sync"}
+	// time.Sleep(5 * time.Second)
+	// ModMsgBus <- ModMsg{MsgHello, "tui"}
 
 	// Wait for stop signal
 	<-m.ShouldStop()
