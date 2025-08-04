@@ -54,7 +54,6 @@ var (
 type importerModel struct {
 	watchedPaths []string
 	watcher      *watch.WatchDescriptor
-	tui          bool
 }
 
 type BookmarksImporter struct{}
@@ -65,7 +64,6 @@ func (im *BookmarksImporter) Init(ctx *modules.Context) error {
 	var p string
 	watches := []*watch.Watch{}
 
-	model.tui = ctx.IsTUI
 	model.watchedPaths = Config.Paths
 	for _, path := range Config.Paths {
 		if p, err = utils.ExpandPath(path); err != nil {
@@ -124,16 +122,14 @@ func (im *BookmarksImporter) PreLoad() ([]*gosuki.Bookmark, error) {
 
 	}
 
-	if model.tui {
-		go func() {
-			events.TUIBus <- events.ProgressUpdateMsg{
-				ID:           ImporterID,
-				Instance:     nil,
-				CurrentCount: uint(len(result)),
-				Total:        uint(len(result)),
-			}
-		}()
-	}
+	go func() {
+		events.TUIBus <- events.ProgressUpdateMsg{
+			ID:           ImporterID,
+			Instance:     nil,
+			CurrentCount: uint(len(result)),
+			Total:        uint(len(result)),
+		}
+	}()
 	return result, nil
 }
 

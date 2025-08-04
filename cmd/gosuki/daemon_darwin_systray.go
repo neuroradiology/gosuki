@@ -30,6 +30,7 @@ import (
 
 	"github.com/blob42/gosuki/internal/gui"
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/events"
 	"github.com/blob42/gosuki/pkg/logging"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mattn/go-isatty"
@@ -61,6 +62,11 @@ func startDaemon(ctx context.Context, cmd *cli.Command) error {
 
 		logging.SetTUI(tui.model.logBuffer)
 		return tui.Run()
+	} else { // drain tui bus
+		go func() {
+			for range events.TUIBus {
+			}
+		}()
 	}
 
 	manager := initManager(false)

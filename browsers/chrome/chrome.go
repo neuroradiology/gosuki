@@ -147,10 +147,6 @@ type Chrome struct {
 }
 
 func (ch *Chrome) Init(ctx *modules.Context, p *profiles.Profile) error {
-	if ctx.IsTUI {
-		ChromeCfg.TUI = true
-	}
-
 	// NOTE: if called without profile setup default profile
 	if p == nil {
 		prof, err := ProfileManager.GetProfileByID(BrowserName, ch.Profile)
@@ -385,20 +381,18 @@ func (ch *Chrome) run(runTask bool) {
 			progress := ch.Progress()
 			if progress-ch.lastSentProgress >= 0.05 || progress == 1 {
 				ch.lastSentProgress = progress
-				if ChromeCfg.TUI {
-					go func() {
-						msg := events.ProgressUpdateMsg{
-							ID:           ch.ModInfo().ID,
-							Instance:     ch,
-							CurrentCount: ch.URLCount(),
-							Total:        ch.Total(),
-						}
-						if runTask {
-							msg.NewBk = true
-						}
-						events.TUIBus <- msg
-					}()
-				}
+				go func() {
+					msg := events.ProgressUpdateMsg{
+						ID:           ch.ModInfo().ID,
+						Instance:     ch,
+						CurrentCount: ch.URLCount(),
+						Total:        ch.Total(),
+					}
+					if runTask {
+						msg.NewBk = true
+					}
+					events.TUIBus <- msg
+				}()
 			}
 
 			// Check if url-node already in index
@@ -523,15 +517,13 @@ func (ch *Chrome) PreLoad(_ *modules.Context) error {
 	}
 	ch.SetTotal(preCountCountUrls(bookmarkPath))
 
-	if ChromeCfg.TUI {
-		// Send total to msg bus
-		go func() {
-			events.TUIBus <- events.StartedLoadingMsg{
-				ID:    modules.ModID(ch.Name),
-				Total: ch.Total(),
-			}
-		}()
-	}
+	// Send total to msg bus
+	go func() {
+		events.TUIBus <- events.StartedLoadingMsg{
+			ID:    modules.ModID(ch.Name),
+			Total: ch.Total(),
+		}
+	}()
 
 	go ch.run(false)
 	return nil

@@ -62,8 +62,6 @@ type StarFetcherModel struct {
 
 	token string
 	gh    *github.Client
-
-	tui bool
 }
 
 // This is the module struct. Used to implement module interface
@@ -72,7 +70,6 @@ type StarFetcher struct{}
 // NOTE: use Init() to obtain context config params and store them in a model object
 func (sf *StarFetcher) Init(ctx *modules.Context) error {
 	sfModel.ctx = ctx.Context
-	sfModel.tui = ctx.IsTUI
 
 	// Check if the environment variable GH_API_TOKEN is set
 	if len(Config.GithubToken) == 0 {
@@ -203,20 +200,14 @@ func (sf *StarFetcher) Fetch() ([]*gosuki.Bookmark, error) {
 		bookmarks = append(bookmarks, &bk)
 		count++
 
-		//NOTE: this is not part of the final API for plugin/module developers
-		//and is only used to display a progress bar on the TUI. It will be
-		//abstracted away later on. You don't have to implement it.
-		if sfModel.tui {
-			go func() {
-				events.TUIBus <- events.ProgressUpdateMsg{
-					ID:           ModID,
-					Instance:     nil,
-					CurrentCount: uint(count),
-					Total:        uint(len(bookmarks)),
-				}
-			}()
-		}
-		//ENDNOTE
+		go func() {
+			events.TUIBus <- events.ProgressUpdateMsg{
+				ID:           ModID,
+				Instance:     nil,
+				CurrentCount: uint(count),
+				Total:        uint(len(bookmarks)),
+			}
+		}()
 	}
 
 	if err = <-errChan; err != nil {

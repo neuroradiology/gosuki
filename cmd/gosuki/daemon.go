@@ -25,9 +25,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-
-	"github.com/mattn/go-isatty"
 
 	db "github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/pkg/browsers"
@@ -68,7 +65,6 @@ func runBrowserModule(m *manager.Manager,
 	modContext := &modules.Context{
 		Context: ctx,
 		Cli:     cmd,
-		IsTUI:   cmd.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()),
 	}
 
 	//Create a browser instance
@@ -168,7 +164,6 @@ func bootstrapModules(ctx context.Context, cmd *cli.Command, mngr *manager.Manag
 		modContext := &modules.Context{
 			Context: ctx,
 			Cli:     cmd,
-			IsTUI:   cmd.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()),
 		}
 
 		// A generic modules need to implement on of:

@@ -57,8 +57,6 @@ type Context struct {
 	context.Context
 
 	Cli *cli.Command
-
-	IsTUI bool
 }
 
 // Every new module needs to register as a Module using this interface

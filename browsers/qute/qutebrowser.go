@@ -119,10 +119,6 @@ func (qu *Qute) Detect() ([]modules.Detected, error) {
 func (qu Qute) Init(ctx *modules.Context) error {
 	var err error
 
-	if ctx.IsTUI {
-		QuteCfg.TUI = true
-	}
-
 	// This section handles symlinks to qutebrowser
 	// Typically the case with dotfiles.
 	qu.quickmarksPath, err = utils.ExpandOnly(qu.quickmarksPath)
@@ -303,20 +299,18 @@ func (qu *Qute) trackProgress(runTask bool) {
 	progress := qu.Progress()
 	if progress-qu.lastSentProgress >= 0.05 || progress == 1 {
 		qu.lastSentProgress = progress
-		if QuteCfg.TUI {
-			go func() {
-				msg := events.ProgressUpdateMsg{
-					ID:           qu.ModInfo().ID,
-					Instance:     qu,
-					CurrentCount: qu.URLCount(),
-					Total:        qu.Total(),
-				}
-				if runTask {
-					msg.NewBk = true
-				}
-				events.TUIBus <- msg
-			}()
-		}
+		go func() {
+			msg := events.ProgressUpdateMsg{
+				ID:           qu.ModInfo().ID,
+				Instance:     qu,
+				CurrentCount: qu.URLCount(),
+				Total:        qu.Total(),
+			}
+			if runTask {
+				msg.NewBk = true
+			}
+			events.TUIBus <- msg
+		}()
 	}
 }
 

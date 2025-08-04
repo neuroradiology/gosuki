@@ -118,7 +118,7 @@ func updateBrowserProgress(b *browser, msg events.ProgressUpdateMsg) tea.Cmd {
 func handleModMsg(m tea.Model, msg modules.ModMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
 	case modules.MsgHello:
-		println("HOLA")
+		println("TODO")
 	}
 
 	return m, nil

@@ -116,8 +116,6 @@ type BrowserConfig struct {
 
 	// Registered hooks
 	hooks []hooks.NamedHook
-
-	TUI bool
 }
 
 func (b *BrowserConfig) GetWatcher() *watch.WatchDescriptor {
