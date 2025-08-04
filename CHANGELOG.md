@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- cli: `--db` flag parameter to set a custom path for gosuki database
+- browsers: ability to set a custom profile path for firefox/chrome based browsers
+- message/goroutine based inter-module communication 
+
 ### Changed
 
+- cli: improved `gosuki profile list` and `gosuki modules list` commands
+- upgraded to schema v3: introduced the `version` and `node_id` on the `gskbookmarsk` table that is used by multi-device synchronization
 - refactored logging to allow setting levels per subsystem
 - added Trace level for very noisy log
 
