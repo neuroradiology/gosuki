@@ -99,7 +99,6 @@ func (mm *modMsgDispatcher) AddListener(id ModID, queue chan<- ModMsg) {
 }
 
 func (mm *modMsgDispatcher) Run(m manager.UnitManager) {
-	//TODO: handle panic from this go routine
 
 	// interval at which we check if we need to trigger a sync
 	checkSyncTicker := time.NewTicker(time.Second * 5)

@@ -295,8 +295,8 @@ func SetupBrowser(browser BrowserModule, c *Context, p *profiles.Profile) error 
 	return nil
 }
 
-// Sets up a watcher service using the provided []Watch elements
-// Returns true if a new watcher was created. false if it was previously craeted
+// SetupWatchers sets up a filesystem watch using the provided []Watch elements
+// Returns true if a new watcher was created. false if it was previously created
 // or if the browser does not need a watcher (UseFileWatcher == false).
 func SetupWatchers(browserConf *BrowserConfig, watches ...*watch.Watch) (bool, error) {
 	var err error
