@@ -7,7 +7,7 @@ toolchain go1.24.1
 retract v0.0.1 // broken module path
 
 require (
-	github.com/BurntSushi/toml v1.2.1
+	github.com/BurntSushi/toml v1.5.0
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/chenhg5/collection v0.0.0-20200925143926-f403b87088f9
@@ -16,10 +16,10 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-ini/ini v1.67.0
 	github.com/gobuffalo/flect v0.3.0
+	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/google/go-github/v66 v66.0.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/mitchellh/mapstructure v1.5.0
@@ -29,6 +29,7 @@ require (
 	github.com/urfave/cli/v3 v3.3.8
 	github.com/vartanbeno/go-reddit/v2 v2.0.1
 	github.com/xlab/treeprint v1.0.0
+	github.com/zeebo/xxh3 v1.0.2
 	golang.org/x/sys v0.32.0
 	golang.org/x/time v0.11.0
 )
@@ -48,6 +49,7 @@ require (
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/golang/protobuf v1.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
@@ -96,5 +98,6 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.10.0
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
+	github.com/urfave/cli-altsrc/v3 v3.0.1
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d
 )

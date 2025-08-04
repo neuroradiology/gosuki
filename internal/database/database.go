@@ -60,12 +60,12 @@ var (
 	Config *dbConfig
 )
 
-// This is a RedBlack Tree Hashmap that holds in memory the last state of the
-// bookmark tree.It is used as fast db queries.
-// Each URL holds a pointer to a node in [nodeTree]
+// Index is a RedBlack Tree Hashmap that holds in memory the last state of the
+// bookmark tree.It is used as fast db queries. Each URL holds a pointer to a
+// node in [nodeTree]
 type Index = *hashmap.RBTree
 
-// URLTree Node
+// Node is a URLTree
 type Node = tree.Node
 
 var (
@@ -396,6 +396,11 @@ func xhsum(url, metadata, tags, desc string) string {
 	return SQLxxHash(input)
 }
 
+// ticks the local node's lamport clock and returns current clock number
+func sqlTickClock(previous uint64) uint64 {
+	return Clock.Tick(previous)
+}
+
 // RegisterSqliteHooks registers a SQLite backup hook with additional connection tracking.
 func RegisterSqliteHooks() {
 
@@ -407,6 +412,11 @@ func RegisterSqliteHooks() {
 				// }
 
 				if err := conn.RegisterFunc("fuzzy", SQLFuzzy, true); err != nil {
+					return err
+				}
+
+				// register function that will update internal clock
+				if err := conn.RegisterFunc("tick_clock", sqlTickClock, true); err != nil {
 					return err
 				}
 

@@ -52,20 +52,54 @@ See individual function documentation for specific usage patterns and behavior d
 
 package database
 
+
 import (
 	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"
+
+	"github.com/blob42/gosuki/pkg/config"
 )
 
-var mu sync.Mutex
+var (
+	dbmu        sync.Mutex
+	SyncTrigger = atomic.Bool{}
+)
 
 /*
-	SyncTo synchronizes bookmarks from the source DB (src) to the destination DB (dst).
+SyncTo synchronizes bookmarks from the source database to the destination
+database using the current Lamport clock value.
+
+This function performs local-only synchronization by:
+1. Reading all entries from the source database's gskbookmarks table
+2. Attempting to insert each entry into the destination database's gskbookmarks
+table
+3. Handling duplicate URL constraints by comparing hash values and updating
+existing entries
+4. Maintaining versioning through Lamport clock synchronization
+5. Scheduling disk backup when syncing to memcache
+
+It is designed for local synchronization scenarios where causal ordering needs
+to be maintained using Lamport timestamps that can be used for multi-device
+synchronization.
+
+Example usage:
+
+	srcDB := NewDB("source.db")
+	dstDB := NewDB("destination.db")
+	srcDB.SyncTo(dstDB)
+*/
+func (src *DB) SyncTo(dst *DB) {
+	src.SyncToClock(dst, Clock.Value)
+}
+
+/*
+SyncToClock synchronizes bookmarks from the source DB (src) to the destination DB (dst) using Lamport clock synchronization for peer-to-peer consistency.
 
 It performs the following steps:
  1. Reads all entries from src's gskbookmarks table
@@ -78,9 +112,23 @@ It performs the following steps:
 
 The synchronization uses SQLite transactions for consistency and handles
 duplicate URL constraints by comparing hash values. Tags are merged and
-normalized during updates.
+normalized during updates. Lamport clock is used to maintain versioning
+and ensure proper ordering of operations in distributed systems.
+
+Parameters:
+  - dst: The destination database to sync bookmarks to
+  - clock: The Lamport clock value to use for versioning
+
+Behavior:
+- When syncing to L2 cache, increments the version field on successful inserts
+- Merges tags from both source and destination when updating existing entries
+- Normalizes merged tags by sorting them alphabetically
+- Only updates entries when there are actual changes in metadata, tags, or description
+- Schedules disk backup when syncing to memcache (CacheName)
+- Uses Lamport clock for p2p synchronization to maintain causal ordering
 */
-func (src *DB) SyncTo(dst *DB) {
+func (src *DB) SyncToClock(dst *DB, remoteClock uint64) {
+	var err error
 	var sqlite3Err sqlite3.Error
 	var existingUrls = make(map[uint64]*RawBookmark)
 
@@ -106,9 +154,11 @@ func (src *DB) SyncTo(dst *DB) {
 			desc,
 			flags,
 			module,
-			xhsum
+			xhsum,
+			version
+			
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 	)
 	if err != nil {
 		log.Error("prepare stmt", "err", err)
@@ -130,12 +180,14 @@ func (src *DB) SyncTo(dst *DB) {
 			modified,
 			flags,
 			module,
-			xhsum
+			xhsum,
+			version
 		) = (
 			CASE WHEN ? != '' THEN ? ELSE metadata END,
 			?,
 			CASE WHEN ? != '' THEN ? ELSE desc END,
 			strftime('%s'),
+			?,
 			?,
 			?,
 			?
@@ -195,6 +247,7 @@ func (src *DB) SyncTo(dst *DB) {
 				scan.Tags,
 				scan.Desc,
 			),
+			remoteClock,
 		)
 
 		if err != nil {
@@ -219,6 +272,15 @@ func (src *DB) SyncTo(dst *DB) {
 			}
 
 			existingUrls[uint64(oldBkHash)] = &scan
+
+			// insertion success on l2 cache, update clock
+		} else if err == nil && dst.Name == L2CacheName {
+			_, err = dstTx.Exec("UPDATE gskbookmarks SET version = ? WHERE URL = ?",
+				Clock.Tick(remoteClock), scan.URL)
+			if err != nil {
+				log.Error("insert:clock-inc", "err", err)
+				dstTx.Rollback()
+			}
 		}
 	}
 
@@ -259,9 +321,37 @@ func (src *DB) SyncTo(dst *DB) {
 		newTagsStr := newTags.Sort().StringWrap()
 		newHash := xhsum(scan.URL, scan.Metadata, newTagsStr, scan.Desc)
 
+		//DEBUG:
+		// if scan.URL == "https://based.cooking/" && dst.Name == "memcache_l2" {
+		// 	fmt.Printf("url:   %s\n", scan.URL)
+		// 	fmt.Printf("orig hash:   %d\n", hash)
+		//
+		// 	fmt.Printf("%#v\n", scan)
+		// 	fmt.Printf("%s\n", scan.Desc)
+		//
+		// 	fmt.Printf("new hash (%s)):   %s\n", newTagsStr, newHash)
+		// 	// panic(1)
+		// }
+
 		if strconv.FormatUint(hash, 10) == newHash {
 			continue
 		}
+
+		clock := remoteClock
+
+		if dst.Name == L2CacheName {
+			clock = Clock.Tick(remoteClock)
+		}
+
+		// if dst.Name == CacheName &&
+		// 	scan.URL == "https://gosuki.net/docs/getting_started/quickstart/" &&
+		// 	newTagsStr != ",docs,gosuki," {
+		// 	fmt.Printf("src: %#v\n", srcTags)
+		// 	fmt.Printf("dst %#v\n", dstTags)
+		// 	fmt.Printf("tags: %s\n", newTagsStr)
+		//
+		// 	panic(src.Name)
+		// }
 
 		_, err = dstTx.Stmtx(updateDstRow).Exec(
 			scan.Metadata,
@@ -272,6 +362,7 @@ func (src *DB) SyncTo(dst *DB) {
 			0, //flags
 			scan.Module,
 			newHash,
+			clock,
 			scan.URL,
 		)
 
@@ -312,7 +403,7 @@ func cacheSyncScheduler(input <-chan any) {
 		select {
 		case <-input:
 			// log.Debug("debouncing sync to disk")
-			timer.Reset(dbConfig.SyncInterval)
+			timer.Reset(Config.SyncInterval)
 			// log.Debugf("sync que len is %d", len(queue))
 			select {
 			case queue <- true:
@@ -334,8 +425,10 @@ func cacheSyncScheduler(input <-chan any) {
 				// disk database. In other words, L1 cache used for efficiency
 				// and L2 ensures data integrity and avoids unecessary I/O.
 				Cache.SyncTo(L2Cache.DB)
-				if err := L2Cache.backupToDisk(GetDBFullPath()); err != nil {
-					log.Fatalf("failed to sync cache to disk: %s", err)
+				if err := L2Cache.BackupToDisk(config.DBPath); err != nil {
+					log.Fatalf("failed to sync l2 cache to disk: %s", err)
+				} else {
+					SyncTrigger.Store(true)
 				}
 
 				// empty the queue
@@ -358,13 +451,13 @@ func startSyncScheduler() {
 	go cacheSyncScheduler(syncQueue)
 }
 
-// backupToDisk copies the `src` database contents to a file on disk.
+// BackupToDisk copies the `src` database contents to a file on disk.
 // It creates a backup of the source database (src) to the specified dbpath.
 // The function is safe for concurrent use as it acquires a mutex.
 // Returns an error if any step fails, including database connection issues,
 // backup execution errors, or invalid configuration.
 // Uses SQLite's backup API via the sqlx package, requiring the driver to support it.
-func (src *DB) backupToDisk(dbpath string) error {
+func (src *DB) BackupToDisk(dbpath string) error {
 	log.Debugf("copying <%s> to <%s>", src.Name, dbpath)
 	defer func() {
 		if err := recover(); err != nil {
@@ -372,8 +465,8 @@ func (src *DB) backupToDisk(dbpath string) error {
 		}
 	}()
 
-	mu.Lock()
-	defer mu.Unlock()
+	dbmu.Lock()
+	defer dbmu.Unlock()
 
 	//log.Debugf("[flush] openeing <%s>", src.path)
 	srcDB, err := sqlx.Open(DriverBackupMode, src.Path)
@@ -464,8 +557,8 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 func (src *DB) CopyTo(dst *DB, dstName, srcName string) {
 
 	log.Debugf("copying <%s> to <%s>", src.Name, dst.Name)
-	mu.Lock()
-	defer mu.Unlock()
+	dbmu.Lock()
+	defer dbmu.Unlock()
 
 	srcDB, err := sqlx.Open(DriverBackupMode, src.Path)
 	defer func() {

@@ -24,7 +24,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/blob42/gosuki"
@@ -48,59 +47,6 @@ const (
 
 	QQueryPaginate = ` LIMIT %d OFFSET %d`
 )
-
-type xxhashsum uint64
-
-// Implements the [sql.Scanner] interface.
-func (hash *xxhashsum) Scan(value any) error {
-	if value == nil {
-		*hash = 0
-		return nil
-	}
-	if s, ok := value.(uint64); ok {
-		*hash = xxhashsum(s)
-		return nil
-	} else if s, ok := value.(string); ok {
-		val, err := strconv.ParseUint(s, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot parse uint64 from string %v", value)
-		}
-		*hash = xxhashsum(val)
-	} else if s, ok := value.([]byte); ok {
-		val, err := strconv.ParseUint(string(s), 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot parse uint64 from []byte %v", value)
-		}
-		*hash = xxhashsum(val)
-	} else {
-		return fmt.Errorf("cannot convert to uint64 %v", value)
-	}
-	return nil
-}
-
-type RawBookmarks []*RawBookmark
-
-type RawBookmark struct {
-	ID  uint64
-	URL string `db:"URL"`
-
-	// Usually used for the bookmark title
-	Metadata string
-
-	Tags string
-	Desc string
-
-	// Last modified
-	Modified uint64
-
-	// kept for buku compat, not used for now
-	Flags int
-
-	Module string
-
-	// currently not used
-	XHSum string
-}
 
 type PaginationParams struct {
 	Page int

@@ -99,6 +99,12 @@ func Init(ctx context.Context, cmd *cli.Command) {
 		// Else initialize it
 		initLocalDB(Cache.DB, dbpath)
 	}
+
+	// init local lamport clock
+	Clock, err = L2Cache.GetDBClock(ctx)
+	if err != nil {
+		log.Fatalf("getting local db clock: %s", err)
+	}
 }
 
 // Initialize the local database file

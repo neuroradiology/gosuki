@@ -36,7 +36,7 @@ import (
 //   - restore column id as primary key
 //   - restore URL unique constraint
 
-const CurrentSchemaVersion = 2
+const CurrentSchemaVersion = 3
 
 const (
 
@@ -56,8 +56,17 @@ const (
 		modified INTEGER DEFAULT (strftime('%s')),
 		flags INTEGER DEFAULT 0,
 		module TEXT DEFAULT '' ,
-		xhsum TEXT DEFAULT ''
-	)`
+		xhsum TEXT DEFAULT '',
+		version INTEGER DEFAULT 0,
+		node_id BLOB
+	);
+
+	CREATE TABLE IF NOT EXISTS sync_nodes (
+		ordinal INTEGER PRIMARY KEY,
+		node_id BLOB NOT NULL UNIQUE,
+		version INTEGER NOT NULL
+	)
+	`
 
 	// The following view and and triggers provide buku compatibility
 	QCreateView = `CREATE VIEW bookmarks AS
@@ -208,6 +217,11 @@ func checkDBVersion(db *DB) error {
 					return err
 				}
 				version = 2
+			case 2:
+				if err = db.migrateToVersion3(); err != nil {
+					return err
+				}
+				version = 3
 			}
 		}
 	}

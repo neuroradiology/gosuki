@@ -14,17 +14,13 @@ import (
 // TestSchemaInitialization verifies that the database schema is properly initialized
 // and that the schema version is correctly set.
 func TestSchemaInitialization(t *testing.T) {
-	if !SchemaTestHooksEnabled {
-		RegisterSqliteHooks()
-		SchemaTestHooksEnabled = true
-	}
 	dir := t.TempDir()
 	dbPath := dir + "/test.db"
 
 	// Initialize a new on disk database instance
 	db, err := NewDB("test_db", "", DBTypeInMemoryDSN).Init()
 	require.NoError(t, err, "failed to initialize memory database")
-	db.backupToDisk(dbPath)
+	db.BackupToDisk(dbPath)
 
 	// Refer to disk database
 	db, err = NewDB("gosuki_db", dbPath, DBTypeFileDSN).Init()
@@ -70,17 +66,13 @@ func TestSchemaInitialization(t *testing.T) {
 
 // TestSchemaUpgrade verifies that schema upgrades work correctly between versions.
 func TestSchemaUpgrade(t *testing.T) {
-	if !SchemaTestHooksEnabled {
-		RegisterSqliteHooks()
-		SchemaTestHooksEnabled = true
-	}
 	dir := t.TempDir()
 	dbPath := dir + "/test.db"
 
 	// Initialize a new on disk database instance
 	db, err := NewDB("test_db", "", DBTypeInMemoryDSN).Init()
 	require.NoError(t, err, "failed to initialize memory database")
-	db.backupToDisk(dbPath)
+	db.BackupToDisk(dbPath)
 
 	// Refer to ondisk db
 	db, err = NewDB("test_db", dbPath, DBTypeFileDSN).Init()
@@ -131,11 +123,6 @@ func TestSchemaUpgrade(t *testing.T) {
 
 // TestSchemaVersionMismatch verifies the behavior when the stored schema version is invalid.
 func TestSchemaVersionMismatch(t *testing.T) {
-	if !SchemaTestHooksEnabled {
-		RegisterSqliteHooks()
-		SchemaTestHooksEnabled = true
-	}
-
 	dir := t.TempDir()
 	dbPath := dir + "/test.db"
 
@@ -147,7 +134,7 @@ func TestSchemaVersionMismatch(t *testing.T) {
 	require.NoError(t, err, "failed to initialize schema")
 
 	// sync to disk
-	err = db.backupToDisk(dbPath)
+	err = db.BackupToDisk(dbPath)
 	require.NoError(t, err, "failed to sync memory db to disk")
 
 	// refer to disk db
@@ -173,10 +160,6 @@ func TestSchemaVersionMismatch(t *testing.T) {
 
 // TestSchemaVersionMissing verifies the behavior when the schema_version table is missing.
 func TestSchemaVersionMissing(t *testing.T) {
-	if !SchemaTestHooksEnabled {
-		RegisterSqliteHooks()
-		SchemaTestHooksEnabled = true
-	}
 	dir := t.TempDir()
 	dbPath := dir + "/test.db"
 

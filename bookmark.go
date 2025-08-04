@@ -23,10 +23,11 @@ package gosuki
 
 // Bookmark type
 type Bookmark struct {
-	URL    string   `json:"url"`
-	Title  string   `json:"metadata"`
-	Tags   []string `json:"tags"`
-	Desc   string   `json:"desc"`
-	Module string   `json:"module"`
+	URL     string   `json:"url"`
+	Title   string   `json:"metadata"`
+	Tags    []string `json:"tags"`
+	Desc    string   `json:"desc"`
+	Module  string   `json:"module"`
+	Version uint64   `json:"version"`
 	//flags int
 }

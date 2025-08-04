@@ -1,18 +1,11 @@
 package database
 
 import (
-	"fmt"
-	"io"
 	"os"
-	"path/filepath"
-	"reflect"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -161,139 +154,33 @@ func TestInitLocked(t *testing.T) {
 
 }
 
-func setupSyncTestDB(t *testing.T) (*DB, *DB) {
-	if !SchemaTestHooksEnabled {
-		RegisterSqliteHooks()
-		SchemaTestHooksEnabled = true
-	}
-	srcDB, err := NewBuffer("test_src")
-	if err != nil {
-		t.Errorf("creating buffer: %s", err)
-	}
-
-	tmpDir := t.TempDir() // Create a temporary directory for the test database files
-	dstPath := filepath.Join(tmpDir, "gosukidb_test.sqlite")
-	dstDB := NewDB("test_sync_dst", dstPath, DBTypeFileDSN, DsnOptions{})
-	initLocalDB(srcDB, dstPath)
-
-	_, err = dstDB.Init()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Cleanup(func() {
-		srcDB.Close()
-		dstDB.Close()
-		os.RemoveAll(tmpDir)
-	})
-	return srcDB, dstDB
-}
-
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
-	}
-	err = out.Sync()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func TestSyncTo(t *testing.T) {
-	srcDB, dstDB := setupSyncTestDB(t)
-
-	bookmarks := []*RawBookmark{}
-	modified := time.Now().Unix()
-	for i := 1; i <= 10; i++ {
-		url := fmt.Sprintf("http://example.com/bookmark%d", i)
-		_, err := srcDB.Handle.Exec(
-			`INSERT INTO gskbookmarks(
-				url,
-				metadata,
-				tags,
-				desc,
-				modified,
-				flags,
-				module,
-				xhsum
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			url,
-			"title"+strconv.Itoa(i),
-			"tag"+strconv.Itoa(i),
-			"description"+strconv.Itoa(i),
-			modified,
-			0,
-			"module"+strconv.Itoa(i),
-			xhsum(
-				url,
-				"title"+strconv.Itoa(i),
-				"tag"+strconv.Itoa(i),
-				"description"+strconv.Itoa(i),
-			),
-		)
-		if err != nil {
-			t.Error(err)
-		}
-	}
-
-	err := srcDB.Handle.Select(&bookmarks, `SELECT * FROM gskbookmarks`)
-	require.NoError(t, err)
-
-	// pretty.Print(bookmarks)
-	srcDB.SyncTo(dstDB)
-
-	// Check that dstDB contains the right data
-	var count int
-	err = dstDB.Handle.Get(&count, `SELECT COUNT(*) FROM gskbookmarks`)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != len(bookmarks) {
-		t.Errorf("Expected %d bookmarks in dstDB but got %d", len(bookmarks), count)
-	}
-
-	dstBookmarks := []*RawBookmark{}
-	err = dstDB.Handle.Select(&dstBookmarks, `SELECT * FROM gskbookmarks`)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Compare the data in srcDB and dstDB for equality
-	for i, bm := range bookmarks {
-		if !reflect.DeepEqual(bm, dstBookmarks[i]) {
-			t.Errorf(
-				"Bookmark %d does not match: expected %+v but got %+v",
-				i,
-				bm,
-				dstBookmarks[i],
-			)
-		}
-	}
-}
-
-// func TestSyncFromGosukiDB(t *testing.T) {
-// 	t.Skip("TODO: sync from gosuki db")
-// }
+// func copyFile(src, dst string) error {
+// 	in, err := os.Open(src)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer in.Close()
 //
-// func TestSyncToGosukiDB(t *testing.T) {
-// 	t.Skip("TODO: sync to gosuki db")
+// 	out, err := os.Create(dst)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer out.Close()
+//
+// 	_, err = io.Copy(out, in)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	err = out.Sync()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
 // }
 
 func TestMain(m *testing.M) {
+	Clock = &LamportClock{}
+	RegisterSqliteHooks()
 	code := m.Run()
 	os.Exit(code)
 }

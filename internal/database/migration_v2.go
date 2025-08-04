@@ -1,25 +1,30 @@
+// Create a new migration function to from v2 to v3
+// This is the new database schema:
+// QCreateSchema = `
 //
-//  Copyright (c) 2025 Chakib Ben Ziane <contact@blob42.xyz>  and [`gosuki` contributors](https://github.com/blob42/gosuki/graphs/contributors).
-//  All rights reserved.
+//	   CREATE TABLE IF NOT EXISTS gskbookmarks (
+//		id INTEGER PRIMARY KEY,
+//		URL TEXT NOT NULL UNIQUE,
+//		metadata TEXT default '',
+//		tags TEXT default '',
+//		desc TEXT default '',
+//		modified INTEGER DEFAULT (strftime('%s')),
+//		flags INTEGER DEFAULT 0,
+//		module TEXT DEFAULT '' ,
+//		xhsum TEXT DEFAULT '',
+//		version integer default 0, -- new column
+//		node_id integer default 0 -- new column
 //
-//  SPDX-License-Identifier: AGPL-3.0-or-later
+// );
 //
-//  This file is part of GoSuki.
+// CREATE TABLE IF NOT EXISTS sync_nodes (
 //
-//  GoSuki is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU Affero General Public License as
-//  published by the Free Software Foundation, either version 3 of the
-//  License, or (at your option) any later version.
+//	ordinal INTEGER PRIMARY KEY,
+//	node_id BLOB NOT NULL UNIQUE,
+//	version INTEGER NOT NULL
 //
-//  GoSuki is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU Affero General Public License for more details.
-//
-//  You should have received a copy of the GNU Affero General Public License
-//  along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
-//
-
+// )
+// `
 package database
 
 // - adds the `xhsum` column to `gskbookmarks` and calculates the xhsum,
@@ -81,7 +86,7 @@ func (db *DB) migrateToVersion2() error {
 	_, err = tx.Exec("ALTER TABLE temp_gskbookmarks RENAME TO gskbookmarks")
 	if err != nil {
 		tx.Rollback()
-		return err
+		return DBError{DBName: db.Name, Err: err}
 	}
 
 	if _, err = tx.Exec(QCreateView); err != nil {
