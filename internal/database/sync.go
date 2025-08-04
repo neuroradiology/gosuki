@@ -41,13 +41,15 @@ It provides methods for:
 - Managing cache-to-disk synchronization (SyncToCache, backupToDisk)
 - Scheduling periodic sync operations (ScheduleBackupToDisk)
 
-The package leverages the sqlx library for database operations.
-All database operations should be thread-safe through the use of mutexes and proper transaction management.
+The package leverages the sqlx library for database operations. All database
+operations should be thread-safe through the use of mutexes and proper
+transaction management.
 
-Note: This package requires proper initialization of database connections and configuration parameters
-(e.g., sync intervals, database paths) before use.
+Note: This package requires proper initialization of database connections and
+configuration parameters (e.g., sync intervals, database paths) before use.
 
-See individual function documentation for specific usage patterns and behavior details.
+See individual function documentation for specific usage patterns and behavior
+details.
 */
 
 package database
@@ -99,7 +101,8 @@ func (src *DB) SyncTo(dst *DB) {
 }
 
 /*
-SyncToClock synchronizes bookmarks from the source DB (src) to the destination DB (dst) using Lamport clock synchronization for peer-to-peer consistency.
+SyncToClock synchronizes bookmarks from the source DB (src) to the destination
+DB (dst) using Lamport clock synchronization for peer-to-peer consistency.
 
 It performs the following steps:
  1. Reads all entries from src's gskbookmarks table
@@ -123,7 +126,8 @@ Behavior:
 - When syncing to L2 cache, increments the version field on successful inserts
 - Merges tags from both source and destination when updating existing entries
 - Normalizes merged tags by sorting them alphabetically
-- Only updates entries when there are actual changes in metadata, tags, or description
+- Only updates entries when there are actual changes in metadata, tags, or
+description
 - Schedules disk backup when syncing to memcache (CacheName)
 - Uses Lamport clock for p2p synchronization to maintain causal ordering
 */
@@ -321,18 +325,6 @@ func (src *DB) SyncToClock(dst *DB, remoteClock uint64) {
 		newTagsStr := newTags.Sort().StringWrap()
 		newHash := xhsum(scan.URL, scan.Metadata, newTagsStr, scan.Desc)
 
-		//DEBUG:
-		// if scan.URL == "https://based.cooking/" && dst.Name == "memcache_l2" {
-		// 	fmt.Printf("url:   %s\n", scan.URL)
-		// 	fmt.Printf("orig hash:   %d\n", hash)
-		//
-		// 	fmt.Printf("%#v\n", scan)
-		// 	fmt.Printf("%s\n", scan.Desc)
-		//
-		// 	fmt.Printf("new hash (%s)):   %s\n", newTagsStr, newHash)
-		// 	// panic(1)
-		// }
-
 		if strconv.FormatUint(hash, 10) == newHash {
 			continue
 		}
@@ -342,16 +334,6 @@ func (src *DB) SyncToClock(dst *DB, remoteClock uint64) {
 		if dst.Name == L2CacheName {
 			clock = Clock.Tick(remoteClock)
 		}
-
-		// if dst.Name == CacheName &&
-		// 	scan.URL == "https://gosuki.net/docs/getting_started/quickstart/" &&
-		// 	newTagsStr != ",docs,gosuki," {
-		// 	fmt.Printf("src: %#v\n", srcTags)
-		// 	fmt.Printf("dst %#v\n", dstTags)
-		// 	fmt.Printf("tags: %s\n", newTagsStr)
-		//
-		// 	panic(src.Name)
-		// }
 
 		_, err = dstTx.Stmtx(updateDstRow).Exec(
 			scan.Metadata,

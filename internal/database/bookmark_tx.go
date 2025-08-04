@@ -23,14 +23,13 @@ package database
 
 import (
 	"html"
-	"strings"
 
 	"github.com/blob42/gosuki"
 	"github.com/blob42/gosuki/internal/utils"
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
-// Default separator used to join tags in the DB
+// TagSep is the default separator used to separate and wrap tags in the DB
 const TagSep = ","
 
 type Bookmark = gosuki.Bookmark
@@ -46,7 +45,7 @@ func cleanup(f func() error) {
 // with the new data.
 // NOTE: We don't use sql UPSERT as we need to do a manual merge of some columns
 // such as `tags`.
-// NOTE: This function is so far always run against a Buffer db
+// NOTE: This function is always called against a buffer db
 func (db *DB) UpsertBookmark(bk *Bookmark) error {
 
 	var sqlite3Err sqlite3.Error
@@ -122,7 +121,7 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 	tagListText := tags.String(true)
 
 	// First try to insert the bookmark (assume it's new)
-	// log.Debugf("INSERT INTO gskbookmarks(URL, metadata, tags, desc, flags) VALUES (%s, %s, %s, %s, %d)",
+	// log.Tracef("INSERT INTO gskbookmarks(URL, metadata, tags, desc, flags) VALUES (%s, %s, %s, %s, %d)",
 	// 	bk.URL, bk.Metadata, tagListText, "", 0)
 
 	_, err = tx.Stmtx(tryInsertBk).Exec(
@@ -219,32 +218,4 @@ func (db *DB) UpsertBookmark(bk *Bookmark) error {
 	}
 
 	return tx.Commit()
-}
-
-// Inserts a bookmarks to DB. In case of conflict follow the default rules which
-// for sqlite is a fail with the error `sqlite3.ErrConstraint`
-// DEAD:
-func (db *DB) InsertBookmark(bk *Bookmark) {
-	//log.Debugf("Adding bookmark %s", bk.URL)
-	_db := db.Handle
-	tx, err := _db.Beginx()
-	if err != nil {
-		log.Error(err)
-	}
-
-	stmt, err := tx.Preparex(`INSERT INTO gskbookmarks(URL, metadata, tags, desc, flags) VALUES (?, ?, ?, ?, ?)`)
-	if err != nil {
-		log.Error(err)
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(bk.URL, bk.Title, strings.Join(bk.Tags, TagSep), "", 0)
-	if err != nil {
-		log.Errorf("%s: %s", err, bk.URL)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		log.Error(err)
-	}
 }

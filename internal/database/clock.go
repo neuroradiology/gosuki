@@ -20,8 +20,6 @@
 //  along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-// package node (as in network node) relates to gosuki in the context of p2p
-// multi-device synchronization
 package database
 
 import (

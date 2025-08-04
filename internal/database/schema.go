@@ -26,15 +26,18 @@ import (
 	"fmt"
 )
 
-// Database schemas used for the creation of new databases
-//
-// # Schema versions:
-// 1: initial version
-//
-// 2: altered gskbookmarks:
-//   - added column xhsum,
-//   - restore column id as primary key
-//   - restore URL unique constraint
+/* Schema Versions:
+  - Version 1: Initial version
+  - Version 2:
+	  - Altered gskbookmarks table with:
+	  - Added column xhsum
+	  - Restored column id as primary key
+	  - Restored URL unique constraint
+  - Version 3: Added synchronization capabilities:
+	  - Added version column to gskbookmarks table
+	  - Added node_id column to gskbookmarks table
+	  - Created sync_nodes table for node synchronization management
+*/
 
 const CurrentSchemaVersion = 3
 

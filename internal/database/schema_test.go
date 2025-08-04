@@ -17,12 +17,10 @@ func TestSchemaInitialization(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := dir + "/test.db"
 
-	// Initialize a new on disk database instance
 	db, err := NewDB("test_db", "", DBTypeInMemoryDSN).Init()
 	require.NoError(t, err, "failed to initialize memory database")
 	db.BackupToDisk(dbPath)
 
-	// Refer to disk database
 	db, err = NewDB("gosuki_db", dbPath, DBTypeFileDSN).Init()
 	require.NoError(t, err, "failed to initialize disk database")
 
@@ -59,7 +57,6 @@ func TestSchemaInitialization(t *testing.T) {
 		require.Equal(t, name, view, "table %s should exist", view)
 	}
 
-	// Clean up
 	db.Close()
 	os.Remove(dbPath)
 }
@@ -69,12 +66,10 @@ func TestSchemaUpgrade(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := dir + "/test.db"
 
-	// Initialize a new on disk database instance
 	db, err := NewDB("test_db", "", DBTypeInMemoryDSN).Init()
 	require.NoError(t, err, "failed to initialize memory database")
 	db.BackupToDisk(dbPath)
 
-	// Refer to ondisk db
 	db, err = NewDB("test_db", dbPath, DBTypeFileDSN).Init()
 	require.NoError(t, err, "failed to initialize disk database")
 
@@ -91,7 +86,6 @@ func TestSchemaUpgrade(t *testing.T) {
 	)`)
 	require.NoError(t, err, "failed to create old bookmarks table")
 
-	// Clean up the database and re-initialize to simulate upgrade
 	db.Close()
 
 	//IMP: the db name must be "gosuki_db"
@@ -101,7 +95,7 @@ func TestSchemaUpgrade(t *testing.T) {
 	err = checkDBVersion(db)
 	require.NoError(t, err, "failed to check DB version before v0->v1 upgrade")
 
-	// Verify that the schema version is set to 1
+	// Verify that the schema version
 	var version int
 	err = db.Handle.QueryRow("SELECT version FROM schema_version").Scan(&version)
 	require.NoError(t, err, "failed to query schema version")
@@ -116,7 +110,6 @@ func TestSchemaUpgrade(t *testing.T) {
 		require.GreaterOrEqual(t, count, 0, "table %s should exist after upgrade", table)
 	}
 
-	// Clean up
 	db.Close()
 	os.Remove(dbPath)
 }
@@ -126,7 +119,6 @@ func TestSchemaVersionMismatch(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := dir + "/test.db"
 
-	// Initialize a new database instance
 	db, err := NewDB("gosuki_db", "", DBTypeInMemoryDSN).Init()
 	require.NoError(t, err, "failed to initialize database")
 
@@ -153,7 +145,6 @@ func TestSchemaVersionMismatch(t *testing.T) {
 	err = checkDBVersion(db)
 	require.Error(t, err, "expected error for invalid schema version")
 
-	// Clean up
 	db.Close()
 	os.Remove(dbPath)
 }
@@ -163,18 +154,17 @@ func TestSchemaVersionMissing(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := dir + "/test.db"
 
-	// Initialize a new database instance
 	db, err := NewDB(dbPath, "", DBTypeInMemoryDSN).Init()
 	require.NoError(t, err, "failed to initialize database")
 
-	// Verify that the schema version is set to the current version
 	var version int
+
+	// missing schema version should faile
 	err = db.Handle.QueryRow("SELECT version FROM schema_version").Scan(&version)
 	require.Error(t, err, "expected error for missing schema version table")
 
 	err = checkDBVersion(db)
 	require.NoError(t, err, "error checking db version")
 
-	// Clean up
 	os.Remove(dbPath)
 }

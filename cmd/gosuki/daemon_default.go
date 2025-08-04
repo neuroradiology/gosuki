@@ -52,7 +52,7 @@ func startDaemon(ctx context.Context, cmd *cli.Command) error {
 
 		tui := NewTUI(func(tea.Model) tea.Cmd {
 			return func() tea.Msg {
-				err := startNormalDaemon(ctx, cmd, manager)
+				err := bootstrapModules(ctx, cmd, manager)
 				if err != nil {
 					return ErrMsg(err)
 				}
@@ -66,7 +66,7 @@ func startDaemon(ctx context.Context, cmd *cli.Command) error {
 
 	manager := initManager(false)
 
-	startNormalDaemon(ctx, cmd, manager)
+	bootstrapModules(ctx, cmd, manager)
 	<-manager.Quit
 	return nil
 }

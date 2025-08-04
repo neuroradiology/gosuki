@@ -177,7 +177,7 @@ func main() {
 		cmd.DetectCmd,
 		cmd.ProfileCmds,
 		cmd.ModuleCmds,
-		cmd.DebugCmd,
+		// cmd.DebugCmd,
 		cmd.ImportCmds,
 	}...)
 

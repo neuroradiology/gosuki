@@ -94,12 +94,6 @@ const (
 	DBTypeRegularFile
 )
 
-// Differentiate between gosukidb.sqlite and other sqlite DBs
-const (
-	DBGosuki DBType = iota
-	DBForeign
-)
-
 type DsnOptions map[string]string
 
 type DBError struct {

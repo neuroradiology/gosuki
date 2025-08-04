@@ -22,6 +22,16 @@
 
 package database
 
+// Performs the database schema migration from version 2 to version 3.
+// This migration adds synchronization capabilities by:
+// 1. Adding a 'version' column to the gskbookmarks table with a default value of 0
+// 2. Adding a 'node_id' column to the gskbookmarks table for node identification
+// 3. Creating a new 'sync_nodes' table to manage synchronization nodes with:
+//   - ordinal (primary key)
+//   - node_id (unique constraint)
+//   - version (not null)
+//
+// 4. Populating existing bookmarks with their IDs as version values
 func (db *DB) migrateToVersion3() error {
 	log.Debug("DB schema: migrating to v3")
 	tx, err := db.Handle.Begin()

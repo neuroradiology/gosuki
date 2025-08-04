@@ -50,7 +50,11 @@ var startDaemonCmd = &cli.Command{
 	Action: startDaemon,
 }
 
-// Runs the module by calling the setup
+// runBrowserModule executes a browser module by setting up its context,
+// creating a browser instance, applying profile configuration if provided, and
+// registering it with the manager for execution. It handles module setup,
+// profile management, and shutdown logic while ensuring proper error handling
+// and event broadcasting for TUI integration.
 func runBrowserModule(m *manager.Manager,
 	ctx context.Context,
 	cmd *cli.Command,
@@ -60,7 +64,7 @@ func runBrowserModule(m *manager.Manager,
 	var profileName string
 	mod := browserMod.ModInfo()
 
-	// context for module
+	// context for a module
 	modContext := &modules.Context{
 		Context: ctx,
 		Cli:     cmd,
@@ -81,6 +85,7 @@ func runBrowserModule(m *manager.Manager,
 		log.Warn("does not implement modules.Shutdowner", "browser", config.Name)
 	}
 
+	// if browser module can handle profiles
 	if pfl != nil {
 		bpm, ok := browser.(profiles.ProfileManager)
 		if !ok {
@@ -105,8 +110,7 @@ func runBrowserModule(m *manager.Manager,
 		events.TUIBus <- events.RunnerStarted{WatchRunner: runner}
 	}()
 
-	// calls the setup logic for each browser instance which
-	// includes the browsers.Initializer and browsers.Loader interfaces
+	// calls the setup logic for each browser instance
 	//PERF:
 	if err := modules.SetupBrowser(browser, modContext, pfl); err != nil {
 		return err
@@ -133,12 +137,20 @@ func runBrowserModule(m *manager.Manager,
 	return nil
 }
 
-func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Manager) error {
+// bootstrapModules initializes and starts all available modules using the
+// provided context, CLI command, and manager. It handles both generic modules
+// and browser modules, setting up their contexts, workers, and message
+// listeners. Generic modules are expected to implement either watch.Poller,
+// watch.WatchLoader, or modules.MsgListener interfaces, or a combination of
+// these. Browser modules are specifically handled and may run with multiple
+// profiles based on configuration. The function ensures that all modules are
+// properly initialized and registered with the manager for execution.
+func bootstrapModules(ctx context.Context, cmd *cli.Command, mngr *manager.Manager) error {
 	defer func(m *manager.Manager) {
 		go m.Start()
 	}(mngr)
 
-	// Initialize sqlite database available in global `cacheDB` variable
+	// Initialize database and caches
 	db.Init(ctx, cmd)
 
 	// Handle generic modules
@@ -222,10 +234,9 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 		}
 	}
 
-	// start all registered browser modules
 	registeredBrowsers := modules.GetBrowserModules()
 
-	// instanciate all browsers
+	// start all registered browser modules
 	for _, browserMod := range registeredBrowsers {
 		mod := browserMod.ModInfo()
 		log.Infof("starting <%s>", mod.ID)
@@ -255,7 +266,15 @@ func startNormalDaemon(ctx context.Context, cmd *cli.Command, mngr *manager.Mana
 						err = runBrowserModule(mngr, ctx, cmd, browserMod, p, &flav)
 						if err != nil {
 							if errDisabled, errDisable := err.(*modules.ErrModDisabled); errDisable {
-								log.Warn("disabling browser profile", "profile", p.Name, "mod", browserMod.ModInfo().ID, "reason", errDisabled.Reason)
+								log.Warn(
+									"disabling browser profile",
+									"profile",
+									p.Name,
+									"mod",
+									browserMod.ModInfo().ID,
+									"reason",
+									errDisabled.Reason,
+								)
 								modules.Disable(browserMod.ModInfo().ID)
 							} else {
 								log.Error(err, "browser", flav.Flavour)
