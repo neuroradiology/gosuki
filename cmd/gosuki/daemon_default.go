@@ -34,13 +34,13 @@ import (
 
 	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/pkg/logging"
+	"github.com/blob42/gosuki/pkg/modules"
 )
 
 func startDaemon(ctx context.Context, cmd *cli.Command) error {
 	defer utils.CleanFiles()
 
 	// initialize webui and non module units
-
 	tuiOpts := []tea.ProgramOption{
 		// tea.WithAltScreen(),
 	}
@@ -48,6 +48,7 @@ func startDaemon(ctx context.Context, cmd *cli.Command) error {
 	//TUI MODE
 	if cmd.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()) {
 		manager := initManager(true)
+		modules.MsgDispatcher.AddListener("tui", ModMsgQ)
 
 		tui := NewTUI(func(tea.Model) tea.Cmd {
 			return func() tea.Msg {

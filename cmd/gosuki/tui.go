@@ -55,6 +55,8 @@ const (
 	statusChar = "●"
 )
 
+var ModMsgQ = make(chan modules.ModMsg, 64)
+
 type module struct {
 	modules.Module
 	id modules.ModID
