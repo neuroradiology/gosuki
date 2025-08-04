@@ -28,7 +28,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
+	"github.com/blob42/gosuki/internal/database"
 	db "github.com/blob42/gosuki/internal/database"
+	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/pkg/build"
 	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/logging"
@@ -53,6 +55,13 @@ func main() {
 			DefaultText: "~/.config/gosuki/config.toml",
 			Category:    "_",
 		},
+		&cli.StringFlag{
+			Name:        "db",
+			Value:       database.GetDBPath(),
+			DefaultText: utils.Shorten(database.GetDBPath()),
+			Usage:       "`path` where gosuki.db is stored",
+			Destination: &config.DBPath,
+		},
 
 		logging.DebugFlag,
 
@@ -67,7 +76,7 @@ func main() {
 	app.Before = func(ctx context.Context, c *cli.Command) (context.Context, error) {
 		config.Init(c.String("config"))
 		db.RegisterSqliteHooks()
-		err := db.InitDiskConn(db.GetDBPath())
+		err := db.InitDiskConn(config.DBPath)
 		if _, isDBErr := err.(db.DBError); isDBErr {
 			fmt.Fprintln(os.Stderr, err)
 			fmt.Fprintln(os.Stderr, "Did you run `gosuki start` at least once ?")
@@ -114,8 +123,4 @@ func main() {
 	if err := app.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func init() {
-	config.RegisterModuleOpt("database", "db-path", db.DefaultDBPath)
 }

@@ -27,6 +27,7 @@ import (
 // some useful global flags
 var (
 	ConfigFileFlag string
+	DBPath         string
 )
 
 // Setup cli flag for global options

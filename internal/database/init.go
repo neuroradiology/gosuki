@@ -53,6 +53,7 @@ func InitDiskConn(dbPath string) error {
 }
 
 func Init(ctx context.Context, cmd *cli.Command) {
+	var err error
 
 	RegisterSqliteHooks()
 	initCache(ctx)
@@ -66,7 +67,7 @@ func Init(ctx context.Context, cmd *cli.Command) {
 	// If local db exists load it to cacheDB
 	if exists, err := utils.CheckFileExists(dbpath); exists {
 
-		log.Infof("preloading <%s> to cache", dbpath)
+		log.Infof("preloading <%s> to cache", utils.Shorten(dbpath))
 		err = InitDiskConn(dbpath)
 		if err != nil {
 			log.Fatal(err)
@@ -89,6 +90,7 @@ func Init(ctx context.Context, cmd *cli.Command) {
 			log.Fatal(err)
 		}
 
+		// new pristine db
 	} else {
 		if err != nil {
 			log.Error(err)
@@ -103,7 +105,7 @@ func Init(ctx context.Context, cmd *cli.Command) {
 func initLocalDB(db *DB, dbpath string) {
 
 	log.Infof("Initializing local db at '%s'", dbpath)
-	err := db.backupToDisk(dbpath)
+	err := db.BackupToDisk(dbpath)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -28,9 +28,11 @@ import (
 	"os"
 	"strings"
 
-	db "github.com/blob42/gosuki/internal/database"
 	"github.com/jmoiron/sqlx"
 	"github.com/urfave/cli/v3"
+
+	db "github.com/blob42/gosuki/internal/database"
+	"github.com/blob42/gosuki/pkg/config"
 
 	"github.com/blob42/gosuki/internal/utils"
 )
@@ -95,7 +97,7 @@ func importBukuDB(ctx context.Context, cmd *cli.Command) error {
 buku DB path	: %s
 gosuki DB path	: %s
 ...
-`, path, db.GetDBFullPath())
+`, path, config.DBPath)
 
 	var bkCount int
 	for _, b := range bukuBookmarks {

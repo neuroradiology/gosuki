@@ -34,23 +34,11 @@ import (
 
 // Get database directory path
 func GetDBDir() string {
-	dbPath := dbConfig.DBPath
-	if len(dbPath) == 0 {
-		dbPath = DefaultDBPath
-	}
-
-	dbPath, err := utils.ExpandOnly(dbPath)
+	dataDir, err := utils.GetDataDir()
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	return dbPath
-}
-
-func GetDBFullPath() string {
-	dbdir := GetDBDir()
-	dbpath := filepath.Join(dbdir, DBFileName)
-	return dbpath
+	return filepath.Join(dataDir, "gosuki")
 }
 
 // Loads a dotsql <file> and, wraps it with dotsqlx

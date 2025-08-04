@@ -88,7 +88,8 @@ func main() {
 			Name:        "db",
 			Value:       database.GetDBPath(),
 			DefaultText: utils.Shorten(database.GetDBPath()),
-			Usage:       "`path` to gosuki DB",
+			Usage:       "`path` where gosuki.db is stored",
+			Destination: &config.DBPath,
 		},
 
 		&cli.BoolFlag{

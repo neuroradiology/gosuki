@@ -52,12 +52,12 @@ var (
 	_sql3BackupConns []*sqlite3.SQLiteConn
 
 	//TEST: expanded in init()
-	DefaultDBPath = "~/.local/share/gosuki/"
+	DefaultDBDir = "~/.local/share/gosuki/"
 
 	// Handle to on-disk gosuki database
 	DiskDB *DB
 
-	dbConfig *DBConfig
+	Config *dbConfig
 )
 
 // This is a RedBlack Tree Hashmap that holds in memory the last state of the
@@ -432,23 +432,23 @@ func RegisterSqliteHooks() {
 		})
 }
 
-type DBConfig struct {
+type dbConfig struct {
 	SyncInterval time.Duration `toml:"sync-interval" mapstructure:"sync-interval"`
-	DBPath       string        `toml:"db-path" mapstructure:"db-path"`
+	Path         string        `toml:"path" mapstructure:"path"`
 }
 
 func init() {
 	var dataDir string
 	var err error
 
-	dbConfig = &DBConfig{
+	Config = &dbConfig{
 		SyncInterval: time.Second * 4,
-		DBPath:       DefaultDBPath,
+		Path:         DefaultDBDir,
 	}
-	config.RegisterConfigurator("database", config.AsConfigurator(dbConfig))
+	config.RegisterConfigurator("database", config.AsConfigurator(Config))
 
 	if dataDir, err = utils.GetDataDir(); err != nil {
 		log.Fatal(err)
 	}
-	DefaultDBPath = filepath.Join(dataDir, "gosuki")
+	DefaultDBDir = filepath.Join(dataDir, "gosuki")
 }
