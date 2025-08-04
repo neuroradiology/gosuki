@@ -33,7 +33,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var log = logging.GetLogger("CMD")
+var log = logging.GetLogger("cmd")
 
 var cfgPrintCmd = &cli.Command{
 	Name:    "gen",

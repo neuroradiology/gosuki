@@ -37,7 +37,7 @@ const (
 
 var (
 	QuteCfg = NewQuteConfig()
-	log     = logging.GetLogger("Qute")
+	log     = logging.GetLogger("qute")
 )
 
 type QuteConfig struct {

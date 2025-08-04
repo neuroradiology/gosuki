@@ -29,7 +29,7 @@ import (
 	"github.com/blob42/gosuki/pkg/logging"
 )
 
-var log = logging.GetLogger("BROWSERS")
+var log = logging.GetLogger("browsers")
 
 // base directory without normalization
 func (b BrowserDef) BaseDir() string {

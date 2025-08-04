@@ -48,7 +48,7 @@ const (
 	ReNotify = `\b(?P<tag>[a-zA-Z0-9_.-]+):notify`
 )
 
-var log = logging.GetLogger("PARSE")
+var log = logging.GetLogger("parse")
 
 func stripHashTag(s string) string {
 	return regexp.MustCompile(ReTags).ReplaceAllString(s, "")

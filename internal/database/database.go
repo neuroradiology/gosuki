@@ -69,7 +69,7 @@ type Index = *hashmap.RBTree
 type Node = tree.Node
 
 var (
-	log = logging.GetLogger("DB")
+	log = logging.GetLogger("db")
 
 	// Default sqlite3 driver
 	DriverDefault = "sqlite3_gosuki"

@@ -31,7 +31,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var fflog = logging.GetLogger("FF")
+var fflog = logging.GetLogger("ff")
 
 var (
 	ffUnlockVFSCmd = cli.Command{

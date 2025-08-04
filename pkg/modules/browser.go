@@ -43,7 +43,7 @@ type BrowserType uint8
 
 // reducer channel length, bigger means less sensitivity to events
 var (
-	log            = logging.GetLogger("BASE")
+	log            = logging.GetLogger("mod")
 	ReducerChanLen = 1000
 )
 

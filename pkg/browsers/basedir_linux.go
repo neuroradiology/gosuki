@@ -34,7 +34,7 @@ const (
 	Snap = "snap"
 )
 
-var log = logging.GetLogger("BROWSERS")
+var log = logging.GetLogger("browsers")
 
 // expands to the full path to the base directory
 // if the package is a snap, use the snap directory

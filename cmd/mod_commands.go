@@ -19,7 +19,6 @@
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 
-// commands related to modules
 package cmd
 
 import (

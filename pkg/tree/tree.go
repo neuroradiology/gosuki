@@ -32,7 +32,7 @@ import (
 	"github.com/xlab/treeprint"
 )
 
-var log = logging.GetLogger("TREE")
+var log = logging.GetLogger("tree")
 
 type NodeType int
 

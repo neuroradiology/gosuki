@@ -46,7 +46,7 @@ import (
 )
 
 var (
-	log = logging.GetLogger("FF")
+	log = logging.GetLogger("ff")
 )
 
 const (

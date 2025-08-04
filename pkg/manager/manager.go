@@ -40,7 +40,7 @@ const MaxRecover = 3
 
 var (
 	idGenerator = genID()
-	log         = logging.GetLogger("MNGR")
+	log         = logging.GetLogger("mngr")
 )
 
 // The WorkUnit interface is used to define a unit of work.

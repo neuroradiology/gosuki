@@ -46,7 +46,7 @@ import (
 )
 
 var (
-	log = logging.GetLogger("MAIN")
+	log = logging.GetLogger("main")
 )
 
 func main() {

@@ -28,12 +28,7 @@ import (
 
 	"github.com/blob42/gosuki"
 	db "github.com/blob42/gosuki/internal/database"
-	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/go-chi/chi/v5"
-)
-
-var (
-	log = logging.GetLogger("API")
 )
 
 type Bookmark = gosuki.Bookmark

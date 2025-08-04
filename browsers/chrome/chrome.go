@@ -53,7 +53,7 @@ import (
 )
 
 var (
-	log = logging.GetLogger("Chrome")
+	log = logging.GetLogger("chrome")
 )
 
 // Type of the func used recursively on each json node entry by [jsonparser.ArrayEach]
