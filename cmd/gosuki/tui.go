@@ -48,10 +48,8 @@ import (
 
 const (
 	maxWidth   = 80
-	padding    = 2
 	tickRate   = 20
 	nLogLines  = 8
-	helpHeight = 3
 	statusChar = "●"
 )
 
@@ -115,6 +113,15 @@ func updateBrowserProgress(b *browser, msg events.ProgressUpdateMsg) tea.Cmd {
 
 	return b.progress.SetPercent(percent)
 
+}
+
+func handleModMsg(m tea.Model, msg modules.ModMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case modules.MsgHello:
+		println("HOLA")
+	}
+
+	return m, nil
 }
 
 type winSize struct {
@@ -210,19 +217,23 @@ var (
 	ProgressBarStyle = lipgloss.NewStyle().
 				PaddingLeft(2)
 
-	ProfilePathStyle = lipgloss.NewStyle().
-				MarginLeft(2).
-				Foreground(lipgloss.Color("245"))
+	faintTextStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("245"))
 
 	moduleStatusStyle = lipgloss.NewStyle().
+				Align(lipgloss.Left).
 				Bold(true)
 
 	moduleOnStyle = moduleStatusStyle.
-			PaddingRight(1).
 			Foreground(lipgloss.Color("120"))
 
 	moduleOffStyle = moduleStatusStyle.
 			Foreground(lipgloss.Color("203"))
+
+	moduleStates = map[bool]lipgloss.Style{
+		true:  moduleOnStyle,
+		false: moduleOffStyle,
+	}
 
 	helpStyle = lipgloss.NewStyle().Align(lipgloss.Bottom).
 			PaddingLeft(4)
@@ -310,7 +321,14 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds := []tea.Cmd{tickCmd()}
 
 		// watch for events
-		cmds = append(cmds, func() tea.Msg { return <-events.TUIBus })
+		cmds = append(
+			cmds,
+			// watch tui event bus
+			func() tea.Msg { return <-events.TUIBus },
+
+			// watch module messages
+			func() tea.Msg { return <-ModMsgQ },
+		)
 
 		// // update counters
 		// for _, b := range m.browsers {
@@ -329,6 +347,12 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// }
 
 		return m, tea.Batch(cmds...)
+
+	case modules.ModMsg:
+		if msg.To == "tui" {
+			return handleModMsg(m, msg)
+		}
+		return m, nil
 
 	// New module instance
 	case events.RunnerStarted:
@@ -422,29 +446,33 @@ func (m tuiModel) View() string {
 
 	doc.WriteString(titleStyle.Render(fmt.Sprintf("gosuki %s", build.Version())))
 
+	modStatus := map[string]bool{}
+
 	// get web UI status
-	var webUIOK bool
 	for name := range m.manager.Units() {
 		if strings.HasPrefix(name, "webui") {
-			webUIOK = true
+			modStatus["webui"] = true
 		}
-	}
-
-	var webUILabel lipgloss.Style
-	if webUIOK {
-		webUILabel = moduleOnStyle
-	} else {
-		webUILabel = moduleOffStyle
+		if strings.HasPrefix(name, "p2p-sync") {
+			modStatus["p2p-sync"] = true
+		}
 	}
 
 	uiSection := strings.Builder{}
 	uiSection.WriteString(infoLabelStyle.Render(
-		webUILabel.Render(statusChar),
-		defaultTextColor.Render("web ui:"),
+		defaultTextColor.Render("web-ui"),
+		moduleStates[modStatus["webui"]].Render(statusChar),
 	))
+
 	// uiSection.WriteString(infoLabelStyle.Render(
 	// 	fmt.Sprintf("%s web ui :", webUILabel)))
 	uiSection.WriteString(defaultTextColor.Render(fmt.Sprintf("http://%s", webui.BindAddr)))
+
+	p2psyncSec := strings.Builder{}
+	p2psyncSec.WriteString(infoLabelStyle.Render(
+		defaultTextColor.Render("p2p-sync"),
+		moduleStates[modStatus["p2p-sync"]].Render(statusChar),
+	))
 
 	progressSection := strings.Builder{}
 
@@ -485,8 +513,8 @@ func (m tuiModel) View() string {
 				if profile.IsCustom {
 					progressSection.WriteString(defaultTextColor.Render("(custom)"))
 				}
-				progressSection.WriteString(defaultTextColor.Render(profile.ShortBaseDir()))
-				progressSection.WriteString(ProfilePathStyle.Render(profile.Path))
+				progressSection.WriteString(faintTextStyle.Render(profile.ShortBaseDir() + " "))
+				progressSection.WriteString(defaultTextColor.Render(profile.Path))
 
 				// if cfg.Flavour != nil {
 				// 	progressSection.WriteString(cfg.Flavour.Name + " ")
@@ -515,7 +543,10 @@ func (m tuiModel) View() string {
 	}
 
 	doc.WriteString(uiSection.String())
-	doc.WriteString(infoLabelStyle.Render("modules:"))
+	if modStatus["p2p-sync"] {
+		doc.WriteString(p2psyncSec.String())
+	}
+	doc.WriteString(infoLabelStyle.Render("modules  "))
 	doc.WriteString(defaultTextColor.Render(fmt.Sprintf("%d", len(m.modules)+len(m.browsers))))
 	doc.WriteString(ProgressSectionStyle.
 		// Height(m.windowSize.height / 2).
