@@ -89,7 +89,7 @@ dist: clean release
 	# Source Code ZIP
 	@rm dist/$(release_dir)/{gosuki,suki}
 	zip -r dist/gosuki-$(VERSION)-source.zip $$(git ls-files) -x .github\*
-	zip -r dist/gosuki-$(VERSION)-source.zip mods/{mod-github-stars,reddit}
+	zip -r dist/gosuki-$(VERSION)-source.zip mods/reddit
 	@rm -rf dist/$(release_dir)
 
 dist-macos: clean bundle-macos

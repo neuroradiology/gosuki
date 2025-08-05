@@ -41,19 +41,22 @@ var (
 	}
 )
 
-type ModMsgType string
+type ModMsgType int
 
 // types of messages passed between modules
 const (
-	MsgTriggerSync = "trigger-sync"
-	MsgHello       = "mod-hello"
-	MsgPanic       = "panic"
+	MsgTriggerSync = iota
+	MsgHello
+	MsgPanic
+
+	MsgSyncPeers
 )
 
 // ModMsg is a message exchanged between modules
 type ModMsg struct {
-	Type ModMsgType
-	To   ModID
+	Type    ModMsgType
+	To      ModID
+	Payload any
 }
 
 var ModMsgBus = make(chan ModMsg) // Channel for intra-process message passing
@@ -107,17 +110,17 @@ func (mm *modMsgDispatcher) Run(m manager.UnitManager) {
 		for {
 			select {
 			case msg := <-ModMsgBus:
-				log.Debug("dispatching mod message", "msMsgTriggerSyncg", msg.Type, "to", msg.To)
+				log.Debug("dispatching mod message", "msg", msg.Type, "to", msg.To)
 				if dst, ok := mm.listeners[msg.To]; ok {
 					log.Trace("sending", "msg", msg.Type, "to-mod", msg.To)
 					dst.queue <- msg
 				} else { // discard
-					log.Debugf("target %s not available, discarding msg=%s", msg.To, msg.Type)
+					log.Debugf("target %s not available, discarding msg=%#v", msg.To, msg.Type)
 				}
 			case <-checkSyncTicker.C:
 				trigger := database.SyncTrigger.Load()
 				if dst, ok := mm.listeners["p2p-sync"]; ok && trigger {
-					dst.queue <- ModMsg{MsgTriggerSync, ""}
+					dst.queue <- ModMsg{MsgTriggerSync, "", nil}
 				}
 				database.SyncTrigger.Store(false)
 			}

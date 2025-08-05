@@ -4,7 +4,7 @@
 
 // # Github Personal Token:
 // This module requires a github personal token to be able to access the user's profile.
-// See full documentation at: https://gosuki.net/docs/configuration/config-file/#github-stars
+// See full documentation at: https://gosuki.net/docs/configuration/config-file/#github
 package stars
 
 import (
@@ -36,7 +36,7 @@ var (
 )
 
 const (
-	ModID = "github-stars"
+	ModID = "github"
 
 	// default sync interval in seconds
 	DefaultSyncInterval = 6 * time.Hour
