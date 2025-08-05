@@ -26,13 +26,9 @@ import (
 const TraceLevel = log.DebugLevel - 1
 
 func (l *Logger) Trace(msg string, args ...any) {
-	l.SetCallerOffset(1)
 	l.Log(TraceLevel, msg, args...)
-	l.SetCallerOffset(0)
 }
 
 func (l *Logger) Tracef(format string, args ...any) {
-	l.SetCallerOffset(1)
 	l.Logf(TraceLevel, format, args...)
-	l.SetCallerOffset(0)
 }
