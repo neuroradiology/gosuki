@@ -34,7 +34,6 @@ import (
 
 var DebugFlag = &cli.StringFlag{
 	Name:        "debug",
-	Category:    "_",
 	Usage:       debugHelp,
 	DefaultText: "warn",
 	Sources:     cli.EnvVars(EnvGosukiDebug),

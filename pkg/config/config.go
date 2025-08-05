@@ -34,10 +34,18 @@ import (
 
 type Hook func(context.Context, *cli.Command) error
 
+// some useful global flags
+var (
+	ConfigFileFlag string
+	DBPath         string
+)
+
 var GlobalConfig = struct {
-	WatchAll bool `toml:"watch-all" mapstructure:"watch-all"`
+	WatchAll        bool     `toml:"watch-all" mapstructure:"watch-all"`
+	DisabledModules []string `toml:"disabled-modules" mapstructure:"disabled-modules"`
 }{
-	false,
+	true,
+	[]string{},
 }
 
 var (

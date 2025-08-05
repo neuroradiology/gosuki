@@ -26,8 +26,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 
-	"github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/pkg/build"
 	"github.com/blob42/gosuki/pkg/config"
@@ -72,41 +72,19 @@ func main() {
 		}
 	}
 
-	flags := []cli.Flag{
+	app.Flags = []cli.Flag{
 
-		&cli.StringFlag{
-			Name:        "config",
-			Aliases:     []string{"c"},
-			Value:       config.DefaultConfPath(),
-			Usage:       "config `path`",
-			DefaultText: utils.Shorten(config.DefaultConfPath()),
-			Category:    "_",
-			Destination: &config.ConfigFileFlag,
-		},
-
-		&cli.StringFlag{
-			Name:        "db",
-			Value:       database.GetDBPath(),
-			DefaultText: utils.Shorten(database.GetDBPath()),
-			Usage:       "`path` where gosuki.db is stored",
-			Destination: &config.DBPath,
+		&cli.BoolFlag{
+			Name:    "tui",
+			Aliases: []string{"T"},
+			Usage:   "enable TUI interface",
+			Value:   false,
 		},
 
 		&cli.BoolFlag{
-			Name:     "tui",
-			Aliases:  []string{"T"},
-			Usage:    "enable TUI interface",
-			Category: "_",
-			Value:    false,
-		},
-
-		logging.DebugFlag,
-
-		&cli.BoolFlag{
-			Name:     "silent",
-			Aliases:  []string{"S"},
-			Category: "_",
-			Usage:    "disable all log output",
+			Name:    "silent",
+			Aliases: []string{"S"},
+			Usage:   "disable all log output",
 			Action: func(_ context.Context, _ *cli.Command, val bool) error {
 				if val {
 					logging.SetLevel(logging.Silent)
@@ -116,8 +94,7 @@ func main() {
 		},
 	}
 
-	flags = append(flags, config.SetupGlobalFlags()...)
-	app.Flags = append(app.Flags, flags...)
+	app.Flags = append(app.Flags, cmd.MainFlags...)
 
 	app.Before = func(ctx context.Context, c *cli.Command) (context.Context, error) {
 
@@ -142,14 +119,17 @@ func main() {
 			}
 		}
 
-		// get all registered browser modules
-		modules := modules.GetModules()
-		fmt.Fprintf(logging.Stdout, "Loading %d module\n", len(modules))
-		for _, mod := range modules {
+		// get all registered browser mods
+		mods := modules.GetModules()
+		for _, mod := range mods {
 
 			// Run module's hooks that should run before context is ready
 			// for example setup flags management
 			modinfo := mod.ModInfo()
+			if slices.Contains(config.GlobalConfig.DisabledModules, string(modinfo.ID)) {
+				modules.Disable(modinfo.ID)
+			}
+
 			hook := cmd.BeforeHook(string(modinfo.ID))
 			if hook != nil {
 				if err := cmd.BeforeHook(string(modinfo.ID))(ctx, c); err != nil {

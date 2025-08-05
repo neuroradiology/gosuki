@@ -36,7 +36,7 @@ const (
 
 type ChromeConfig struct {
 	*modules.BrowserConfig `toml:"-"`
-	modules.ProfilePrefs   `toml:"profile_options" mapstructure:"profile_options"`
+	modules.ProfilePrefs   `toml:"profile-options" mapstructure:"profile-options"`
 	CustomProfiles         []profiles.CustomProfile `toml:"custom-profiles" mapstructure:"custom-profiles"`
 }
 

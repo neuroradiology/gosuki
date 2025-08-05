@@ -246,9 +246,8 @@ func bootstrapModules(ctx context.Context, cmd *cli.Command, mngr *manager.Manag
 		// call runModule for each profile
 		bpm, ok := browser.(profiles.ProfileManager)
 		if ok {
-			if cmd.Bool("watch-all") ||
-				(config.GlobalConfig.WatchAll ||
-					bpm.WatchAllProfiles()) {
+			if bpm.WatchAllProfiles() ||
+				config.GlobalConfig.WatchAll {
 				flavours := bpm.ListFlavours()
 				for _, flav := range flavours {
 					profs, err := bpm.GetProfiles(flav.Flavour)

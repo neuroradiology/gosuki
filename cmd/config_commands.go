@@ -63,5 +63,10 @@ var ConfigCmds = &cli.Command{
 func printConfig(ctx context.Context, cmd *cli.Command) error {
 	tomlEncoder := toml.NewEncoder(os.Stdout)
 	tomlEncoder.Indent = ""
-	return tomlEncoder.Encode(config.GetAll())
+	outputConf, err := config.MapToOutputConfig(config.GetAll())
+	if err != nil {
+		return err
+	}
+
+	return tomlEncoder.Encode(outputConf)
 }

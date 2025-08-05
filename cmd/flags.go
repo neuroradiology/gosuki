@@ -23,16 +23,33 @@
 package cmd
 
 import (
+	altsrc "github.com/urfave/cli-altsrc/v3"
+	"github.com/urfave/cli-altsrc/v3/toml"
 	"github.com/urfave/cli/v3"
+
+	"github.com/blob42/gosuki/internal/database"
+	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/config"
+	"github.com/blob42/gosuki/pkg/logging"
 )
 
-var ImportCmds = &cli.Command{
-	Name:  "import",
-	Usage: "one-time import bookmarks from other programs",
-	Description: `The import command provides subcommands to migrate bookmarks from various sources.
-Use the specific import subcommands to perform migrations.`,
-	Commands: []*cli.Command{
-		importBukuDBCmd,
-		importPocketCmd,
+var MainFlags = []cli.Flag{
+	logging.DebugFlag,
+	&cli.StringFlag{
+		Name:        "config",
+		Aliases:     []string{"c"},
+		Value:       config.DefaultConfPath(),
+		Usage:       "config `path`",
+		DefaultText: utils.Shorten(config.DefaultConfPath()),
+		Destination: &config.ConfigFileFlag,
+	},
+
+	&cli.StringFlag{
+		Name:        "db",
+		Value:       database.GetDBPath(),
+		DefaultText: utils.Shorten(database.GetDBPath()),
+		Usage:       "`path` where gosuki.db is stored",
+		Destination: &config.DBPath,
+		Sources:     cli.NewValueSourceChain(toml.TOML("database.path", altsrc.NewStringPtrSourcer(&config.ConfigFileFlag))),
 	},
 }

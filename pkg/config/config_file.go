@@ -19,15 +19,17 @@
 // along with gosuki.  If not, see <http://www.gnu.org/licenses/>.
 package config
 
-//TODO: load config path from cli flag/env var
 
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path"
+	"slices"
 
 	"github.com/BurntSushi/toml"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/blob42/gosuki/internal/utils"
 )
@@ -86,53 +88,48 @@ func createDefaultConfFile() error {
 
 	configFilePath := path.Join(configDir, ConfigFileName)
 
-	configFile, err := os.Create(configFilePath)
-	if err != nil {
-		return err
-	}
-
-	allConf := GetAll()
-
-	tomlEncoder := toml.NewEncoder(configFile)
-	tomlEncoder.Indent = ""
-	err = tomlEncoder.Encode(&allConf)
-	if err != nil {
-		return err
-	}
-
-	err = configFile.Close()
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("config written to %s\n", configFilePath)
-	return err
+	return createConfFile(configFilePath)
 }
 
-// creates a config file given a target path
+func MapToOutputConfig(in Config) (Config, error) {
+	outMap := Config{}
+
+	for k, v := range in {
+		if k == GlobalConfigName {
+			var globalConfig map[string]any
+			if err := mapstructure.Decode(v, &globalConfig); err != nil {
+				return nil, fmt.Errorf("failed to decode global config: %w", err)
+			}
+			maps.Copy(outMap, globalConfig)
+		} else {
+			outMap[k] = v
+		}
+	}
+	return outMap, nil
+}
+
 func createConfFile(path string) error {
+	var outConf Config
 	configFile, err := os.Create(path)
 	if err != nil {
+		return fmt.Errorf("failed to create config file %s: %w", path, err)
+	}
+	defer configFile.Close()
+
+	if outConf, err = MapToOutputConfig(GetAll()); err != nil {
 		return err
 	}
-
-	allConf := GetAll()
 
 	tomlEncoder := toml.NewEncoder(configFile)
 	tomlEncoder.Indent = ""
-	if err := tomlEncoder.Encode(&allConf); err != nil {
-		configFile.Close()
-		return err
+	if err := tomlEncoder.Encode(&outConf); err != nil {
+		return fmt.Errorf("failed to encode config to TOML: %w", err)
 	}
 
-	if err := configFile.Close(); err != nil {
-		return err
-	}
-
+	fmt.Printf("config written to %s\n", path)
 	return nil
 }
 
-// Loads gosuki configuation into the global config
 func LoadFromTomlFile(path string) error {
 	buffer := make(Config)
 	_, err := toml.DecodeFile(path, &buffer)
@@ -140,29 +137,27 @@ func LoadFromTomlFile(path string) error {
 		return fmt.Errorf("loading config file %w", err)
 	}
 
-	//DEBUG:
-	// fmt.Println("Mem Config Keys:")
-	// for k, _ := range configs {
-	// 	fmt.Printf("%#v\n", k)
-	// }
+	// first map into global config
+	if err := configs[GlobalConfigName].MapFrom(buffer); err != nil {
+		return err
+	}
 
 	for k, val := range buffer {
-		// send the conf to its own module
-		if _, ok := configs[k]; !ok {
-			// log.Debugf("creating module config [%s]", k)
-			configs[k] = make(Config)
+
+		// only consider module configs
+		if slices.Contains(slices.Collect(maps.Keys(configs)), k) {
+			// send the conf to its own module
+			if _, ok := configs[k]; !ok {
+				configs[k] = make(Config)
+			}
+			err = configs[k].MapFrom(val)
 		}
-		err = configs[k].MapFrom(val)
+
+		// err = configs[k].MapFrom(val)
 		if err != nil {
 			return fmt.Errorf("parsing config <%s>: %w", k, err)
 		}
 
 	}
-
-	//DEBUG:
-	// log.Debugf("loaded config from %s\n", configFile)
-	// log.Debugf("config file %#v\n", buffer)
-	// log.Debugf("loaded config %#v", configs)
-
 	return err
 }

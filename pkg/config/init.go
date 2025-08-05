@@ -38,7 +38,6 @@ func Init(path string) {
 		}
 
 		if path == defaultPath {
-
 			err = createDefaultConfFile()
 			if err != nil {
 				log.Fatal(err)
@@ -57,5 +56,4 @@ func Init(path string) {
 			log.Fatal(err)
 		}
 	}
-
 }

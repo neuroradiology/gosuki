@@ -28,9 +28,8 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/blob42/gosuki/internal/database"
+	"github.com/blob42/gosuki/cmd"
 	db "github.com/blob42/gosuki/internal/database"
-	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/pkg/build"
 	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/logging"
@@ -41,45 +40,42 @@ func main() {
 	app.Version = build.Version()
 
 	app.Name = "suki"
-	app.Description = "TODO: summary gosuki description"
-	app.Usage = "swiss-knife bookmark manager - cli"
+	app.Usage = "gosuki lightweight cli - the universal bookmark manager"
+	app.Description = `
+suki is a lightweight, efficient command-line interface designed for querying and managing
+bookmarks stored in gosuki. It offers fast, streamlined access to your bookmark collection
+while maintaining minimal resource usage, making it ideal for frequent use in terminal environments.
+
+The default output format is fully compatible with dmenu and other dmenu-compatible programs,
+enabling seamless integration into your workflow through piping. Additionally, suki supports
+customizable output formatting through the -F flag, allowing you to tailor the display to your specific needs.
+
+Usage examples:
+  suki                    # Display all bookmarks in dmenu-compatible format
+  suki -f "%u | %t"       # Show only bookmark urls 
+  suki "search term"      # Search for specific bookmarks
+  suki | dmenu            # Pipe output to dmenu for interactive selection`
 	app.UsageText = "suki [OPTIONS] [KEYWORD [KEYWORD...]] "
 	app.HideVersion = true
 	app.CustomRootCommandHelpTemplate = AppHelpTemplate
 
 	app.Flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:        "config",
-			Aliases:     []string{"c"},
-			Value:       config.DefaultConfPath(),
-			DefaultText: "~/.config/gosuki/config.toml",
-			Category:    "_",
-		},
-		&cli.StringFlag{
-			Name:        "db",
-			Value:       database.GetDBPath(),
-			DefaultText: utils.Shorten(database.GetDBPath()),
-			Usage:       "`path` where gosuki.db is stored",
-			Destination: &config.DBPath,
-		},
-
-		logging.DebugFlag,
 
 		&cli.StringFlag{
-			Name:     "format",
-			Category: "",
-			Usage:    "Format output using a custom template",
-			Aliases:  []string{"f"},
+			Name:    "format",
+			Usage:   "Format output using a custom template",
+			Aliases: []string{"f"},
 		},
 	}
+	app.Flags = append(app.Flags, cmd.MainFlags...)
 
 	app.Before = func(ctx context.Context, c *cli.Command) (context.Context, error) {
 		config.Init(c.String("config"))
 		db.RegisterSqliteHooks()
 		err := db.InitDiskConn(config.DBPath)
 		if _, isDBErr := err.(db.DBError); isDBErr {
-			fmt.Fprintln(os.Stderr, err)
-			fmt.Fprintln(os.Stderr, "Did you run `gosuki start` at least once ?")
+			fmt.Fprintln(os.Stderr, "Database initialization failed:", err)
+			fmt.Fprintln(os.Stderr, "Please ensure you have run `gosuki start` to initialize the database")
 			os.Exit(10)
 		}
 

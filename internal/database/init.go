@@ -27,6 +27,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/blob42/gosuki/internal/utils"
+	"github.com/blob42/gosuki/pkg/config"
 )
 
 // Initialize the connection to ondisk gosuki db
@@ -59,13 +60,20 @@ func Init(ctx context.Context, cmd *cli.Command) {
 	initCache(ctx)
 	startSyncScheduler()
 
-	dbpath := cmd.String("db")
+	config.DBPath, err = utils.ExpandOnly(config.DBPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dbpath := config.DBPath
 	if dbpath == "" {
 		log.Fatal("undefined database path")
 	}
 
 	// If local db exists load it to cacheDB
 	if exists, err := utils.CheckFileExists(dbpath); exists {
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		log.Infof("preloading <%s> to cache", utils.Shorten(dbpath))
 		err = InitDiskConn(dbpath)
@@ -90,10 +98,10 @@ func Init(ctx context.Context, cmd *cli.Command) {
 			log.Fatal(err)
 		}
 
-		// new pristine db
 	} else {
+		// new pristine db
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 
 		// Else initialize it
