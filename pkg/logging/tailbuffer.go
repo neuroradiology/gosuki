@@ -53,20 +53,21 @@ func (t *TailBuffer) Write(p []byte) (int, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.buf.Write(p)
-	lines := strings.Split(t.buf.String(), "\n")
-	// fmt.Printf("%#v\n", lines)
 
-	if len(lines) == 1 && lines[0] != "" {
-		lines = []string{lines[0]}
-	}
+	lines := strings.Split(t.buf.String(), "\n")
+	newLines := make([]string, 0, len(lines))
 
 	for _, line := range lines {
 		if line != "" && line != "\n" {
-			t.que = append(t.que, line)
+			newLines = append(newLines, line)
 		}
-		if len(t.que) > t.n {
-			t.que = t.que[len(t.que)-t.n:]
-		}
+	}
+
+	t.que = append(t.que, newLines...)
+
+	// Trim to N line
+	if len(t.que) > t.n {
+		t.que = t.que[len(t.que)-t.n:]
 	}
 
 	return len(p), nil
