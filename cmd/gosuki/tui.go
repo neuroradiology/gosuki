@@ -25,7 +25,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"math"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,6 +36,7 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/gofrs/uuid"
 
 	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/internal/webui"
@@ -115,10 +118,12 @@ func updateBrowserProgress(b *browser, msg events.ProgressUpdateMsg) tea.Cmd {
 
 }
 
-func handleModMsg(m tea.Model, msg modules.ModMsg) (tea.Model, tea.Cmd) {
+func handleModMsg(m tuiModel, msg modules.ModMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
-	case modules.MsgHello:
-		println("TODO")
+	case modules.MsgSyncPeers:
+		if peers, ok := msg.Payload.(map[uuid.UUID]string); ok {
+			m.syncPeers = peers
+		}
 	}
 
 	return m, nil
@@ -149,6 +154,7 @@ type tuiModel struct {
 	keymap      keymap
 	help        help.Model
 	daemon      daemonState
+	syncPeers   map[uuid.UUID]string
 }
 
 type keymap struct {
@@ -254,6 +260,13 @@ func (m tuiModel) HelpView() string {
 	return "\n" + m.help.ShortHelpView([]key.Binding{
 		m.keymap.quit,
 	})
+}
+
+func formatSyncPeers(m tuiModel) string {
+	peers := slices.Collect(maps.Values(m.syncPeers))
+	slices.Sort(peers)
+	return strings.Join(peers, ", ")
+
 }
 
 func setupModProgress(m tuiModel, r watch.WatchRunner) (tea.Model, tea.Cmd) {
@@ -473,6 +486,9 @@ func (m tuiModel) View() string {
 		defaultTextColor.Render("p2p-sync"),
 		moduleStates[modStatus["p2p-sync"]].Render(statusChar),
 	))
+
+	p2psyncSec.WriteString(defaultTextColor.Render("synced with: "))
+	p2psyncSec.WriteString(defaultTextColor.Render(formatSyncPeers(m)))
 
 	progressSection := strings.Builder{}
 
