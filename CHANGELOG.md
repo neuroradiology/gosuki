@@ -9,12 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- tui: show p2p multi-device sync nodes
+- cli: export to netscape html format
 - cli: `--db` flag parameter to set a custom path for gosuki database
 - browsers: ability to set a custom profile path for firefox/chrome based browsers
 - message/goroutine based inter-module communication 
 
 ### Changed
 
+- config: global config options moved to root of toml file
 - cli: improved `gosuki profile list` and `gosuki modules list` commands
 - upgraded to schema v3: introduced the `version` and `node_id` on the `gskbookmarsk` table that is used by multi-device synchronization
 - refactored logging to allow setting levels per subsystem
@@ -22,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- enable generated imports modules in /mods package (enables mods for install from source)
+- cli: many fixes to cli flag behavior
+- enable generated imports modules in /mods package (enables mods for installs from source)
 - Log browser profile path errors as warnings
 - Reduce log verbosity on default level
 
@@ -32,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - github module: periodic import of starred repos
 - import bookmarks from Pocket csv export with `buku import pocket`
-- cli: `--slient` and `-S` to fully disable any log
+- cli: `--silent` and `-S` to fully disable any log
 - Added support for brave browser (linux, snap, flatpak)
 - Flatpak support for: google-chrome, chromium, firefox, librewolf
 - Database schema upgrade to v2 with `xhsum` column for efficient synchronization and conflict resolution
