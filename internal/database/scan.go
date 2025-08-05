@@ -23,6 +23,7 @@
 package database
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"strconv"
 
@@ -83,6 +84,13 @@ func (nodeID *UUID) Scan(value any) error {
 	}
 
 	return nil
+}
+
+func (nodeID UUID) Value() (driver.Value, error) {
+	if nodeID == UUID(uuid.Nil) {
+		return nil, nil
+	}
+	return uuid.UUID(nodeID).Bytes(), nil
 }
 
 type RawBookmarks []*RawBookmark

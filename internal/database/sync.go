@@ -134,6 +134,7 @@ description
 func (src *DB) SyncToClock(dst *DB, remoteClock uint64) {
 	var err error
 	var sqlite3Err sqlite3.Error
+	var isSqlErr bool
 	var existingUrls = make(map[uint64]*RawBookmark)
 
 	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
@@ -159,10 +160,11 @@ func (src *DB) SyncToClock(dst *DB, remoteClock uint64) {
 			flags,
 			module,
 			xhsum,
-			version
+			version,
+			node_id
 			
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	)
 	if err != nil {
 		log.Error("prepare stmt", "err", err)
@@ -185,12 +187,14 @@ func (src *DB) SyncToClock(dst *DB, remoteClock uint64) {
 			flags,
 			module,
 			xhsum,
-			version
+			version,
+			node_id
 		) = (
 			CASE WHEN ? != '' THEN ? ELSE metadata END,
 			?,
 			CASE WHEN ? != '' THEN ? ELSE desc END,
 			strftime('%s'),
+			?,
 			?,
 			?,
 			?,
@@ -252,19 +256,21 @@ func (src *DB) SyncToClock(dst *DB, remoteClock uint64) {
 				scan.Desc,
 			),
 			remoteClock,
+			scan.NodeID,
 		)
 
+		isSqlErr = false
 		if err != nil {
-			sqlite3Err = err.(sqlite3.Error)
+			sqlite3Err, isSqlErr = err.(sqlite3.Error)
 		}
 
-		if err != nil && sqlite3Err.Code != sqlite3.ErrConstraint {
+		if isSqlErr && sqlite3Err.Code != sqlite3.ErrConstraint {
 			log.Error("inserting", "err", err)
 			continue
 		}
 
 		// Record already existing bookmarks in `dst` then proceed to UPDATE.
-		if err != nil && sqlite3Err.Code == sqlite3.ErrConstraint {
+		if isSqlErr && sqlite3Err.Code == sqlite3.ErrConstraint {
 
 			// check original hash of bookmark
 			var oldBkHash xxhashsum
@@ -345,6 +351,7 @@ func (src *DB) SyncToClock(dst *DB, remoteClock uint64) {
 			scan.Module,
 			newHash,
 			clock,
+			scan.NodeID,
 			scan.URL,
 		)
 
