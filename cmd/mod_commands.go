@@ -71,8 +71,9 @@ var listModulesCmd = &cli.Command{
 	Usage:   "list available browsers and modules",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		green := color.New(color.FgGreen).SprintFunc()
-		fmt.Printf("%s\n", "available browsers and modules:")
+		fmt.Printf("%s\n", "Available browsers and modules:")
 		mods := modules.GetModules()
+		println()
 		for _, mod := range mods {
 			browser, isBrowser := mod.ModInfo().New().(modules.BrowserModule)
 			if isBrowser {
@@ -94,6 +95,7 @@ var listModulesCmd = &cli.Command{
 				fmt.Printf(" %s %-15s \tmodule\n", green(""), mod.ModInfo().ID)
 			}
 		}
+		println()
 		return nil
 	},
 }

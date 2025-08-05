@@ -144,7 +144,6 @@ func main() {
 		// For example read the environment and set configuration options to be
 		// used by the module instances.
 		config.RunConfHooks(ctx, c)
-
 		return ctx, nil
 	}
 
@@ -159,6 +158,7 @@ func main() {
 		cmd.ModuleCmds,
 		// cmd.DebugCmd,
 		cmd.ImportCmds,
+		cmd.ExportCmds,
 	}...)
 
 	app.Commands = EntryCommands

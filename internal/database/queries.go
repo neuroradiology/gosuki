@@ -67,11 +67,12 @@ func (raws RawBookmarks) AsBookmarks() []*gosuki.Bookmark {
 	for _, raw := range raws {
 		tags := tagsFromString(raw.Tags, TagSep)
 		res = append(res, &Bookmark{
-			URL:    raw.URL,
-			Title:  raw.Metadata,
-			Tags:   tags.Get(),
-			Desc:   raw.Desc,
-			Module: raw.Module,
+			URL:      raw.URL,
+			Title:    raw.Metadata,
+			Tags:     tags.Get(),
+			Desc:     raw.Desc,
+			Module:   raw.Module,
+			Modified: raw.Modified,
 		})
 	}
 

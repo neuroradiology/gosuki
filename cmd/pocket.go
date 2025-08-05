@@ -42,17 +42,34 @@ const (
 )
 
 var importPocketCmd = &cli.Command{
-	Name:      "pocket",
-	Usage:     "import bookmarks from a Pocket export in csv format",
+	Name:  "pocket",
+	Usage: "Import bookmarks from a Pocket export in CSV format",
+	Description: `Import bookmarks from a Pocket CSV export file into the bookmarking system.
+
+This command processes Pocket's exported CSV file and imports all bookmarks,
+preserving their titles, URLs, and tags. The CSV file should be formatted
+according to Pocket's standard export format.
+
+The import will create a new bookmark entry for each URL in the CSV file,
+maintaining the original metadata including tags and read/unread status.`,
 	Action:    importFromPocketCSV,
 	ArgsUsage: "path/to/pocket-export.csv",
+	Arguments: []cli.Argument{
+		&cli.StringArg{
+			Name:      "path",
+			UsageText: "Path to the Pocket CSV export file",
+			Config: cli.StringConfig{
+				TrimSpace: true,
+			},
+		},
+	},
 }
 
 func importFromPocketCSV(ctx context.Context, c *cli.Command) error {
-	if c.Args().Len() != 1 {
+	path := c.StringArg("path")
+	if c.StringArg("path") == "" {
 		return errors.New("missing path to csv file")
 	}
-	path := c.Args().Get(0)
 	expandedPath, err := utils.ExpandPath(path)
 	if err != nil {
 		return err
@@ -99,15 +116,6 @@ func importFromPocketCSV(ctx context.Context, c *cli.Command) error {
 		// timeAdded := row[3]
 		tags := row[4]
 		desc := row[5]
-
-		// Parse time_added as Unix timestamp (seconds)
-		// sec, err := time.Parse("2006-01-02 15:04:05", timeAdded)
-		// if err != nil {
-		// 	sec, err = time.Parse("2006-01-02", timeAdded)
-		// 	if err != nil {
-		// 		continue
-		// 	}
-		// }
 
 		bookmark := &gosuki.Bookmark{
 			URL:    url,
