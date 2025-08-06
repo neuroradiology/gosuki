@@ -145,6 +145,8 @@ const (
 type tuiModel struct {
 	initFunc    initFunc
 	logBuffer   *logging.TailBuffer
+	showLog     bool
+	collapse    bool
 	manager     *manager.Manager
 	modules     map[string]*module
 	modKeys     []string
@@ -158,7 +160,10 @@ type tuiModel struct {
 }
 
 type keymap struct {
-	quit key.Binding
+	quit      key.Binding
+	toggleLog key.Binding
+	collapse  key.Binding
+	expand    key.Binding
 }
 
 type ErrMsg error
@@ -242,6 +247,7 @@ var (
 	}
 
 	helpStyle = lipgloss.NewStyle().Align(lipgloss.Bottom).
+			MarginTop(1).
 			PaddingLeft(4)
 )
 
@@ -259,6 +265,9 @@ func (m tuiModel) Init() tea.Cmd {
 func (m tuiModel) HelpView() string {
 	return "\n" + m.help.ShortHelpView([]key.Binding{
 		m.keymap.quit,
+		m.keymap.toggleLog,
+		m.keymap.collapse,
+		m.keymap.expand,
 	})
 }
 
@@ -328,6 +337,12 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				utils.CleanFiles()
 				return nil
 			}, tea.Quit)
+		case key.Matches(msg, m.keymap.toggleLog):
+			m.showLog = !m.showLog
+		case key.Matches(msg, m.keymap.expand):
+			m.collapse = false
+		case key.Matches(msg, m.keymap.collapse):
+			m.collapse = true
 		}
 
 	case TickMsg:
@@ -487,8 +502,10 @@ func (m tuiModel) View() string {
 		moduleStates[modStatus["p2p-sync"]].Render(statusChar),
 	))
 
-	p2psyncSec.WriteString(defaultTextColor.Render("synced with: "))
-	p2psyncSec.WriteString(defaultTextColor.Render(formatSyncPeers(m)))
+	if len(m.syncPeers) > 0 {
+		p2psyncSec.WriteString(defaultTextColor.Render("synced with: "))
+		p2psyncSec.WriteString(defaultTextColor.Render(formatSyncPeers(m)))
+	}
 
 	progressSection := strings.Builder{}
 
@@ -508,7 +525,7 @@ func (m tuiModel) View() string {
 		)
 
 		// handle multiple browser instances such as profiles and flavours
-		if len(br.instances) > 1 {
+		if len(br.instances) > 1 && !m.collapse {
 			for _, brr := range br.instances {
 				bpm, ok := brr.(profiles.ProfileManager)
 				if !ok {
@@ -562,8 +579,8 @@ func (m tuiModel) View() string {
 	if modStatus["p2p-sync"] {
 		doc.WriteString(p2psyncSec.String())
 	}
-	doc.WriteString(infoLabelStyle.Render("modules  "))
-	doc.WriteString(defaultTextColor.Render(fmt.Sprintf("%d", len(m.modules)+len(m.browsers))))
+	// doc.WriteString(infoLabelStyle.Render("modules  "))
+	// doc.WriteString(defaultTextColor.Render(fmt.Sprintf("%d", len(m.modules)+len(m.browsers))))
 	doc.WriteString(ProgressSectionStyle.
 		// Height(m.windowSize.height / 2).
 		Render(progressSection.String()))
@@ -572,7 +589,9 @@ func (m tuiModel) View() string {
 	doc.WriteString(totalLabelStyle.Render(fmt.Sprintf("%d bookmarks loaded", totalURLCount)))
 	// doc.WriteString(fmt.Sprintf("%d", totalUrlCount))
 
-	doc.WriteString(logSectionStyle.Render(strings.Join(m.logBuffer.Lines(), "\n")) + "\n")
+	if m.showLog {
+		doc.WriteString(logSectionStyle.Render(strings.Join(m.logBuffer.Lines(), "\n")) + "\n")
+	}
 
 	doc.WriteString(helpStyle.Render(m.HelpView()))
 	return doc.String()
@@ -633,10 +652,24 @@ func NewTUI(
 			browserKeys: browserKeys,
 			modKeys:     modKyes,
 			windowSize:  winSize{},
+			showLog:     false,
+			collapse:    false,
 			keymap: keymap{
 				quit: key.NewBinding(
 					key.WithKeys("q", "esc", "ctrl+c"),
 					key.WithHelp("q/esc", "quit"),
+				),
+				toggleLog: key.NewBinding(
+					key.WithKeys("L"),
+					key.WithHelp("L", "show log"),
+				),
+				expand: key.NewBinding(
+					key.WithKeys("+"),
+					key.WithHelp("+", "expand"),
+				),
+				collapse: key.NewBinding(
+					key.WithKeys("-"),
+					key.WithHelp("-", "collapse"),
 				),
 			},
 			help:   help.New(),
