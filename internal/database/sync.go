@@ -69,7 +69,8 @@ import (
 )
 
 var (
-	dbmu        sync.Mutex
+	diskDBmu    sync.Mutex
+	cacheMu     sync.Mutex
 	SyncTrigger = atomic.Bool{}
 )
 
@@ -138,6 +139,8 @@ func (src *DB) SyncToClock(dst *DB, remoteClock uint64) {
 	var existingUrls = make(map[uint64]*RawBookmark)
 
 	log.Debugf("syncing <%s> to <%s>", src.Name, dst.Name)
+	cacheMu.Lock()
+	defer cacheMu.Unlock()
 
 	getSourceTable, err := src.Handle.Preparex(`SELECT * FROM gskbookmarks`)
 	defer func() {
@@ -454,8 +457,8 @@ func (src *DB) BackupToDisk(dbpath string) error {
 		}
 	}()
 
-	dbmu.Lock()
-	defer dbmu.Unlock()
+	diskDBmu.Lock()
+	defer diskDBmu.Unlock()
 
 	//log.Debugf("[flush] openeing <%s>", src.path)
 	srcDB, err := sqlx.Open(DriverBackupMode, src.Path)
@@ -546,8 +549,8 @@ func (dst *DB) SyncFromDisk(dbpath string) error {
 func (src *DB) CopyTo(dst *DB, dstName, srcName string) {
 
 	log.Debugf("copying <%s> to <%s>", src.Name, dst.Name)
-	dbmu.Lock()
-	defer dbmu.Unlock()
+	diskDBmu.Lock()
+	defer diskDBmu.Unlock()
 
 	srcDB, err := sqlx.Open(DriverBackupMode, src.Path)
 	defer func() {
