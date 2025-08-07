@@ -65,5 +65,5 @@ COPYRIGHT:
    {{template "copyrightTemplate" .}}{{end}}
 
 Full documentation is available at:
-https://gouski.net/docs
+https://gosuki.net/docs
 `
