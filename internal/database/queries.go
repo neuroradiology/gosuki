@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/blob42/gosuki"
+	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 const (
@@ -204,10 +205,22 @@ func ListBookmarks(
 	return &QueryResult{rawBooks.AsBookmarks(), total}, nil
 }
 
+// CountTotalBookmarks counts total bookmarks from disk
 func CountTotalBookmarks(ctx context.Context) (uint, error) {
+	return DiskDB.TotalBookmarks(ctx)
+}
+
+func (db *DB) TotalBookmarks(ctx context.Context) (uint, error) {
 	var count uint
-	err := DiskDB.Handle.GetContext(ctx, &count, "SELECT COUNT(*) FROM gskbookmarks LIMIT 1")
+
+	if db == nil || db.Handle == nil {
+		return 0, nil
+	}
+	err := db.Handle.GetContext(ctx, &count, "SELECT COUNT(*) FROM gskbookmarks LIMIT 1")
 	if err != nil {
+		if sqlErr, ok := err.(sqlite3.Error); ok && sqlErr.Code == sqlite3.ErrLocked {
+			return 0, nil
+		}
 		return 0, err
 	}
 	return count, nil

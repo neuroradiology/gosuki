@@ -26,7 +26,6 @@ import (
 	"errors"
 	"fmt"
 
-	db "github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/pkg/browsers"
 	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/events"
@@ -145,9 +144,6 @@ func bootstrapModules(ctx context.Context, cmd *cli.Command, mngr *manager.Manag
 	defer func(m *manager.Manager) {
 		go m.Start()
 	}(mngr)
-
-	// Initialize database and caches
-	db.Init(ctx, cmd)
 
 	// Handle generic modules
 	mods := modules.GetModules()

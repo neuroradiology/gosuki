@@ -32,6 +32,7 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v3"
 
+	db "github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/pkg/events"
 	"github.com/blob42/gosuki/pkg/logging"
@@ -41,12 +42,15 @@ import (
 func startDaemon(ctx context.Context, cmd *cli.Command) error {
 	defer utils.CleanFiles()
 
+	// Initialize database and caches
+	db.Init(ctx, cmd)
+
 	//TUI MODE
 	if cmd.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()) {
 		manager := initManager(true)
 		modules.MsgDispatcher.AddListener("tui", ModMsgQ)
 
-		tui := NewTUI(func(tea.Model) tea.Cmd {
+		tui, err := NewTUI(ctx, func(tea.Model) tea.Cmd {
 			return func() tea.Msg {
 				err := bootstrapModules(ctx, cmd, manager)
 				if err != nil {
@@ -55,6 +59,9 @@ func startDaemon(ctx context.Context, cmd *cli.Command) error {
 				return DaemonStartedMsg{}
 			}
 		}, manager, tuiOptions...)
+		if err != nil {
+			return err
+		}
 
 		logging.SetTUI(tui.model.logBuffer)
 		return tui.Run()

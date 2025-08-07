@@ -21,7 +21,9 @@
 
 package database
 
-import "context"
+import (
+	"context"
+)
 
 const (
 	CacheName   = "memcache"
@@ -62,6 +64,10 @@ func GetCacheDB() *CacheDB {
 		log.Fatal("cache is not initialized")
 	}
 	return Cache
+}
+
+func (c *CacheDB) TotalBookmarks(ctx context.Context) (uint, error) {
+	return c.DB.TotalBookmarks(ctx)
 }
 
 func (c *CacheDB) IsInitialized() bool {

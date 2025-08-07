@@ -23,10 +23,12 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"maps"
 	"math"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -38,9 +40,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/gofrs/uuid"
 
+	"github.com/blob42/gosuki/internal/database"
 	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/internal/webui"
 	"github.com/blob42/gosuki/pkg/build"
+	"github.com/blob42/gosuki/pkg/config"
 	"github.com/blob42/gosuki/pkg/events"
 	"github.com/blob42/gosuki/pkg/logging"
 	"github.com/blob42/gosuki/pkg/manager"
@@ -53,7 +57,7 @@ const (
 	maxWidth   = 80
 	tickRate   = 20
 	nLogLines  = 10
-	statusChar = "●"
+	statusChar = "•"
 )
 
 var (
@@ -147,7 +151,14 @@ const (
 	DaemonFail
 )
 
+type dbState struct {
+	init     bool
+	totalBks uint
+}
+
 type tuiModel struct {
+	ctx         context.Context
+	db          dbState
 	initFunc    initFunc
 	logBuffer   *logging.TailBuffer
 	showLog     bool
@@ -173,6 +184,7 @@ type keymap struct {
 
 type ErrMsg error
 type TickMsg time.Time
+type DBTickMsg time.Time
 type DaemonStartedMsg struct{}
 type DaemonStoppedMsg struct{}
 type initFunc func(tea.Model) tea.Cmd
@@ -198,6 +210,14 @@ var (
 			PaddingLeft(2).
 			MarginTop(1).
 			MarginBottom(1)
+
+	headerPadding = 1
+	headerStyle   = lipgloss.NewStyle().
+			Background(lipgloss.Color("60")).
+			PaddingLeft(headerPadding).
+			PaddingRight(1).
+			MarginBottom(2)
+		// Border(lipgloss.NormalBorder(), false, false, true)
 
 	infoLabelStyle = defaultTextColor.
 			AlignHorizontal(lipgloss.Right).
@@ -262,9 +282,20 @@ func tickCmd() tea.Cmd {
 	})
 }
 
+func dbTickCmd() tea.Cmd {
+	return tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+		return DBTickMsg(t)
+	})
+}
+
 // Init implements tea.Model.
 func (m tuiModel) Init() tea.Cmd {
-	return tea.Batch(tea.ClearScreen, m.initFunc(m), tickCmd())
+	return tea.Batch(
+		tea.ClearScreen,
+		m.initFunc(m),
+		tickCmd(),
+		dbTickCmd(),
+	)
 }
 
 func (m tuiModel) HelpView() string {
@@ -367,23 +398,17 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			func() tea.Msg { return <-ModMsgQ },
 		)
 
-		// // update counters
-		// for _, b := range m.browsers {
-		// 	newTotal := 0
-		// 	newCur := 0
-		// 	for _, br := range b.instances {
-		// 		if counter, ok := br.(parsing.Counter); ok {
-		// 			newTotal += int(counter.Total())
-		// 			newCur += int(counter.URLCount())
-		// 		}
-		// 	}
-		// 	// Only update progress if there's a change
-		// 	if newTotal != b.totalCount || newCur != b.curCount {
-		// 		cmds = append(cmds, updateBrowserProgress(b, newCur, newTotal))
-		// 	}
-		// }
-
 		return m, tea.Batch(cmds...)
+
+	// ticker for checking db data
+	case DBTickMsg:
+		var err error
+		m.db.totalBks, err = database.L2Cache.TotalBookmarks(m.ctx)
+		if err != nil {
+			log.Errorf("counting bookmarks from cache: %s", err)
+		}
+
+		return m, dbTickCmd()
 
 	case modules.ModMsg:
 		if msg.To == "tui" {
@@ -449,7 +474,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case ErrMsg:
-		fmt.Printf("tui error: %s", msg.Error())
+		fmt.Fprintf(os.Stderr, "tui error: %s", msg.Error())
 		return m, tea.Quit
 
 	case DaemonStartedMsg:
@@ -481,7 +506,8 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m tuiModel) View() string {
 	doc := strings.Builder{}
 
-	doc.WriteString(titleStyle.Render(fmt.Sprintf("gosuki %s", build.Version())))
+	doc.WriteString(m.headerView())
+	// doc.WriteString(titleStyle.Render(fmt.Sprintf("gosuki %s", build.Version())))
 
 	modStatus := map[string]bool{}
 
@@ -504,7 +530,6 @@ func (m tuiModel) View() string {
 	// uiSection.WriteString(infoLabelStyle.Render(
 	// 	fmt.Sprintf("%s web ui :", webUILabel)))
 	uiSection.WriteString(defaultTextColor.Render(fmt.Sprintf("http://%s", webui.BindAddr)))
-
 	p2psyncSec := strings.Builder{}
 	p2psyncSec.WriteString(infoLabelStyle.Render(
 		defaultTextColor.Render("p2p-sync"),
@@ -595,7 +620,7 @@ func (m tuiModel) View() string {
 		Render(progressSection.String()))
 
 	totalLabelStyle = totalLabelStyle.MarginLeft(labelStyle.GetWidth())
-	doc.WriteString(totalLabelStyle.Render(fmt.Sprintf("%d bookmarks loaded", totalURLCount)))
+	doc.WriteString(totalLabelStyle.Render(fmt.Sprintf("bookmarks: %d loaded / %d (db)", totalURLCount, m.db.totalBks)))
 	// doc.WriteString(fmt.Sprintf("%d", totalUrlCount))
 
 	if m.showLog {
@@ -606,16 +631,35 @@ func (m tuiModel) View() string {
 	return doc.String()
 }
 
+func (m tuiModel) headerView() string {
+	logo := lipgloss.NewStyle().Render(fmt.Sprintf("gosuki:%s", build.Version()))
+
+	dbPath := lipgloss.NewStyle().Render(utils.Shorten(config.DBPath))
+
+	bookmarks := lipgloss.NewStyle().
+		PaddingRight(headerPadding * 2).
+		Render(fmt.Sprintf(" • bks: %4d", m.db.totalBks))
+
+	space := strings.Repeat(" ", max(
+		0,
+		m.windowSize.width-(lipgloss.Width(logo+bookmarks+dbPath)),
+	))
+	line := lipgloss.JoinHorizontal(lipgloss.Center, logo, space, dbPath, bookmarks)
+	return headerStyle.Render(line)
+}
+
 type tui struct {
 	model tuiModel
 	opts  []tea.ProgramOption
 }
 
 func NewTUI(
+	ctx context.Context,
 	initFunc initFunc,
 	manager *manager.Manager,
 	opts ...tea.ProgramOption,
-) *tui {
+) (*tui, error) {
+	var err error
 
 	mods := map[string]*module{}
 	browsers := make(map[string]*browser)
@@ -651,8 +695,10 @@ func NewTUI(
 		labelStyle = labelStyle.Width(modLabelWidth)
 	}
 
-	return &tui{
+	tui := &tui{
 		model: tuiModel{
+			ctx:         ctx,
+			db:          dbState{},
 			initFunc:    initFunc,
 			manager:     manager,
 			logBuffer:   logging.NewTailBuffer(nLogLines),
@@ -673,13 +719,13 @@ func NewTUI(
 					key.WithHelp("L", "show log"),
 				),
 				expand: key.NewBinding(
-					key.WithKeys("+"),
-					key.WithHelp("+", "expand"),
+					key.WithKeys(" "),
+					key.WithHelp("space", "expand"),
 					key.WithDisabled(),
 				),
 				collapse: key.NewBinding(
-					key.WithKeys("-"),
-					key.WithHelp("-", "collapse"),
+					key.WithKeys(" "),
+					key.WithHelp("space", "collapse"),
 				),
 			},
 			help:   help.New(),
@@ -687,6 +733,12 @@ func NewTUI(
 		},
 		opts: opts,
 	}
+	tui.model.db.totalBks, err = database.L2Cache.TotalBookmarks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return tui, nil
 }
 
 func (tui *tui) Run() error {
