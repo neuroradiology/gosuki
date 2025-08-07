@@ -41,11 +41,6 @@ import (
 func startDaemon(ctx context.Context, cmd *cli.Command) error {
 	defer utils.CleanFiles()
 
-	// initialize webui and non module units
-	tuiOpts := []tea.ProgramOption{
-		// tea.WithAltScreen(),
-	}
-
 	//TUI MODE
 	if cmd.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()) {
 		manager := initManager(true)
@@ -59,7 +54,7 @@ func startDaemon(ctx context.Context, cmd *cli.Command) error {
 				}
 				return DaemonStartedMsg{}
 			}
-		}, manager, tuiOpts...)
+		}, manager, tuiOptions...)
 
 		logging.SetTUI(tui.model.logBuffer)
 		return tui.Run()

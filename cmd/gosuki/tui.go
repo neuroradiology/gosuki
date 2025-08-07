@@ -52,11 +52,16 @@ import (
 const (
 	maxWidth   = 80
 	tickRate   = 20
-	nLogLines  = 8
+	nLogLines  = 10
 	statusChar = "●"
 )
 
-var ModMsgQ = make(chan modules.ModMsg, 64)
+var (
+	ModMsgQ    = make(chan modules.ModMsg, 64)
+	tuiOptions = []tea.ProgramOption{
+		// tea.WithAltScreen(),
+	}
+)
 
 type module struct {
 	modules.Module
@@ -341,8 +346,12 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showLog = !m.showLog
 		case key.Matches(msg, m.keymap.expand):
 			m.collapse = false
+			m.keymap.expand.SetEnabled(false)
+			m.keymap.collapse.SetEnabled(true)
 		case key.Matches(msg, m.keymap.collapse):
 			m.collapse = true
+			m.keymap.expand.SetEnabled(true)
+			m.keymap.collapse.SetEnabled(false)
 		}
 
 	case TickMsg:
@@ -666,6 +675,7 @@ func NewTUI(
 				expand: key.NewBinding(
 					key.WithKeys("+"),
 					key.WithHelp("+", "expand"),
+					key.WithDisabled(),
 				),
 				collapse: key.NewBinding(
 					key.WithKeys("-"),
