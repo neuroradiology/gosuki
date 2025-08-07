@@ -25,6 +25,7 @@
 package gui
 
 import (
+	"fmt"
 	"runtime"
 
 	"github.com/energye/systray"
@@ -46,7 +47,8 @@ func onReady() {
 
 	mUI := systray.AddMenuItem("Web UI", "Local Web UI")
 	mUI.Click(func() {
-		open.Run("http://127.0.0.1" + webui.BindPort)
+		println(fmt.Sprintf("http://127.0.0.1:%d", webui.BindPort))
+		open.Run(fmt.Sprintf("http://127.0.0.1:%d", webui.BindPort))
 	})
 
 	systray.AddSeparator()
@@ -64,7 +66,7 @@ func onReady() {
 	})
 
 	systray.SetOnClick(func(menu systray.IMenu) {
-		open.Run("http://127.0.0.1:" + webui.BindPort)
+		open.Run(fmt.Sprintf("http://127.0.0.1:%d", webui.BindPort))
 	})
 
 	//NOTE: this is not required, it just allows to mutate the systray after

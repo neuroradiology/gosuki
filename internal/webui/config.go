@@ -22,8 +22,8 @@ package webui
 import "fmt"
 
 const (
-	BindPort = "2025"
+	BindPort = 2025
 	BindHost = "0.0.0.0"
 )
 
-var BindAddr = fmt.Sprintf("%s:%s", BindHost, BindPort)
+var BindAddr = fmt.Sprintf("%s:%d", BindHost, BindPort)
