@@ -42,7 +42,7 @@ all: prepare build
 prepare:
 	@mkdir -p build
 
-build: genimports
+build: 
 ifeq ($(OS), darwin)
 	@ sed -i '' 's/LoggingMode = .*/LoggingMode = Dev/' pkg/logging/log.go
 else
@@ -56,7 +56,7 @@ endif
 # 	@#dlv debug . -- server
 # 	@go build -v $(DEV_GCFLAGS) -o build/gosuki ./cmd/gosuki
 
-release: genimports
+release: 
 ifeq ($(OS), darwin)
 	@ sed -i '' 's/LoggingMode = .*/LoggingMode = Release/' pkg/logging/log.go
 else

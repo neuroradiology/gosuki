@@ -11,12 +11,20 @@ jobs:
     strategy:
       # https://gist.github.com/asukakenji/f15ba7e588ac42795f421b48b8aede63
       matrix:
-        arch: [amd64]
-        os: [linux]
+        arch: [amd64, arm64, 386]
+        os: [linux, darwin]
         include:
           - os: linux
             runs_on: ubuntu-latest
-            
+          - os: darwin
+            runs_on: macos-latest
+
+        exclude:
+          - os: linux
+            arch: arm64
+          - os: darwin
+            arch: 386
+
 
     runs-on: ${{ matrix.runs_on }}
 
@@ -24,6 +32,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
+        lfs: true
         fetch-depth: 0
 
     - name: Set Release Version
@@ -49,12 +58,43 @@ jobs:
     #     echo "${{ toJSON(jobs) }}"
 
 
+    #- name: Setup Cross-Compile
+    #  if: "${{ matrix.arch == 'arm64' }}"
+    #  run: |
+    #    set -euxo pipefail
+    #    apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+    #    env CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ CGO_ENABLED=1 GOOS=linux GOARCH=arm64
+      #
+    - name: Dependencies linux
+      if: ${{ matrix.os == 'linux' }}
+      run: |
+        sudo apt install -y build-essential
+
+    - name: Dependencies linux 386
+      if: ${{ matrix.os == 'linux' && matrix.arch == '386' }}
+      run: |
+          sudo apt install -y gcc-multilib g++-multilib
+
     - name: Build
       run: |
-        # Optional: Uncomment to build for multiple platforms (see comments below)
+        set -euxo pipefail
 
-        # Single-platform build (current OS/arch)
-        make SYSTRAY=true release
+        make genimports
+        export CGO_ENABLED=1
+        export GOARCH="${{ matrix.arch }}"
+
+        case "${{ matrix.os }}" in
+          darwin)
+            make SYSTRAY=true bundle-macos
+            ;;
+          linux)
+            make SYSTRAY=true release
+            ;;
+          *)
+            echo "Unsupported OS: ${{ matrix.os }}"
+            exit 1
+            ;;
+        esac
 
 
     - name: Prepare package archive
@@ -74,7 +114,7 @@ jobs:
 
         mkdir -p $dist_dir/$bin-$version
 
-        cp build/* {LICENSE,README.md} $dist_dir/$bin-$version
+        cp -a build/* {LICENSE,README.md} $dist_dir/$bin-$version
         echo "dist_dir=$dist_dir" >> $GITHUB_OUTPUT
 
         cd $dist_dir

@@ -67,6 +67,7 @@ func main() {
 	disabledRe := regexp.MustCompile(`\.disabled$`)
 
 	header := `package mods
+
 import (
 `
 	fmt.Print(header)
