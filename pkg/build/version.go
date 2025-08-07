@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU Affero General Public License along with
 // gosuki.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: get runtime build/git info  see:
 // https://github.com/lightningnetwork/lnd/blob/master/build/version.go#L66
 // https://raw.githubusercontent.com/lightningnetwork/lnd/refs/heads/master/build/version.go
 package build
@@ -47,20 +46,23 @@ var (
 	// GoVersion stores the go version that the executable was compiled
 	// with.
 	GoVersion string
+
+	// PackageVersion stores the version of the package itself.
+	PackageVersion string
 )
 
 // Version returns the application version as a properly formed string per the
 // semantic versioning 2.0.0 spec (http://semver.org/).
 func Version() string {
+	if Describe == "" {
+		return PackageVersion
+	}
 
 	commit := CommitHash
 	if commit != "" {
 		commit = CommitHash[:8]
 	}
 	version := fmt.Sprintf("%s commit=%s", Describe, commit)
-	if Describe == "" {
-		version = "dev"
-	}
 
 	return version
 }
@@ -86,6 +88,9 @@ func init() {
 			case "-tags":
 				RawTags = setting.Value
 			}
+		}
+		if info.Main.Version != "" {
+			PackageVersion = info.Main.Version
 		}
 	}
 }
