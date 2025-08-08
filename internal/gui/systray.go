@@ -26,12 +26,14 @@ package gui
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 
 	"github.com/energye/systray"
 	"github.com/skratchdot/open-golang/open"
 
 	"github.com/blob42/gosuki/internal/gui/icon"
+	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/internal/webui"
 	"github.com/blob42/gosuki/pkg/manager"
 )
@@ -80,7 +82,13 @@ func onReady() {
 	// }()
 }
 
-func RunSystray(m *manager.Manager) {
+func DarwinRunSystray(m *manager.Manager) {
+	// ugly way to handle exit signal without blocking the gui thread
+	go func() {
+		<-m.Quit
+		utils.CleanFiles()
+		os.Exit(0)
+	}()
 	systray.Run(onReady, func() { m.Shutdown() })
 }
 

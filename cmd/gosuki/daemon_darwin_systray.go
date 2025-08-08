@@ -33,6 +33,7 @@ import (
 	"github.com/blob42/gosuki/internal/utils"
 	"github.com/blob42/gosuki/pkg/events"
 	"github.com/blob42/gosuki/pkg/logging"
+	"github.com/blob42/gosuki/pkg/modules"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v3"
@@ -46,6 +47,7 @@ func startDaemon(ctx context.Context, cmd *cli.Command) error {
 
 	if cmd.Bool("tui") && isatty.IsTerminal(os.Stdout.Fd()) {
 		manager := initManager(true)
+		modules.MsgDispatcher.AddListener("tui", ModMsgQ)
 
 		tui, err := NewTUI(ctx, func(tea.Model) tea.Cmd {
 			return func() tea.Msg {
@@ -72,7 +74,6 @@ func startDaemon(ctx context.Context, cmd *cli.Command) error {
 	manager := initManager(false)
 
 	bootstrapModules(ctx, cmd, manager)
-	gui.RunSystray(manager)
-	<-manager.Quit
+	gui.DarwinRunSystray(manager)
 	return nil
 }
