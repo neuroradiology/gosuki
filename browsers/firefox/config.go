@@ -81,8 +81,13 @@ func setBookmarkDir(fc *FirefoxConfig) {
 
 	// load profile from config
 	var profile *profiles.Profile
-	if profile, err = FirefoxProfileManager.GetProfileByName(BrowserName, fc.Profile); err != nil {
-		log.Warn(err)
+	if profile, err = FirefoxProfileManager.GetProfileByName(
+		BrowserName,
+		fc.Profile,
+	); err != nil {
+		//HACK: properly display error, refactor this func
+		// setBookmarkDir() should not be called from init()
+		log.Infof("error: %s", err)
 	} else {
 		bookmarkDir, err := profile.AbsolutePath()
 		if err != nil {

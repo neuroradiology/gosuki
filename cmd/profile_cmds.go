@@ -48,7 +48,6 @@ var listProfilesCmd = &cli.Command{
 	Name:  "list",
 	Usage: "list all available profiles",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-
 		red := color.New(color.FgRed).SprintFunc()
 		yellow := color.New(color.FgYellow).SprintFunc()
 		cyan := color.New(color.FgCyan).SprintFunc()
@@ -63,7 +62,7 @@ var listProfilesCmd = &cli.Command{
 
 			pm, isProfileManager := brmod.(profiles.ProfileManager)
 			if !isProfileManager {
-				log.Warnf("<%s> is not a profile manager", br.ModInfo().ID)
+				log.Infof("<%s> is not a profile manager", br.ModInfo().ID)
 				continue
 			}
 
@@ -150,7 +149,7 @@ var DetectCmd = &cli.Command{
 			for _, f := range flavours {
 				log.Debugf("considering flavour <%s> of <%s>", f.Flavour, mod.ModInfo().ID)
 				if dir, err := f.ExpandBaseDir(); err != nil {
-					log.Warn("expanding base directory", "path", f.BaseDir(), "flavour", f.Flavour)
+					log.Info("base directory not found", "path", f.BaseDir(), "flavour", f.Flavour)
 					continue
 				} else {
 					fmt.Printf(" %s %-10s \t %s\n", green(""), f.Flavour, dir)

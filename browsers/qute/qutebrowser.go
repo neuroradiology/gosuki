@@ -102,11 +102,9 @@ func (qu *Qute) Detect() ([]modules.Detected, error) {
 		return res, err
 	}
 	exist, err := utils.DirExists(bPath)
-	if err != nil {
+	if err != nil && exist {
 		return res, err
-	}
-
-	if exist {
+	} else if exist {
 		res = append(res, modules.Detected{
 			Flavour:  BrowserName,
 			BasePath: bPath,
